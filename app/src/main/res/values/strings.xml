@@ -1,3 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <resources>
     <string name="app_name">BookBuddies</string>
+
+    <string name="button_cancel">Cancel</string>
+    <string name="button_export">Export to CSV file</string>
+    <string name="button_import">Import CSV file</string>
+    <string name="button_send">Send</string>
+    <string name="button_sendBug">Report a bug</string>
+
+    <string name="desc_burgerMenu">burger menu</string>
+    <string name="desc_dstIcon">destination icon</string>
+    <string name="desc_goBack">go back</string>
+    <string name="desc_textFieldIcon">text field icon</string>
+
+    <string name="dst_settings">Settings</string>
+
+    <string name="field_bugReport">Please describe what the bug is and what led to it.</string>
+    <string name="field_maxChar">max. %1$s characters</string>
+
+    <string name="title_about">About</string>
+    <string name="title_backup">Data Backup</string>
+    <string name="title_theme">Theme</string>
+
+    <string name="toast_bugReport">Thank you for reporting the bug!</string>
+    <string name="toast_emptyBugReport">Please describe the bug to send a report.</string>
+    <string name="toast_unknownError">There was an error, please retry. If it keeps failing, please contact Alice!</string>
+
+    <string name="txt_iconsBy">"Icons by "</string>
+    <string name="txt_reportBugNote">Reporting a bug will also send this app\'s log files that it locally saved on your phone.</string>
+    <string name="txt_systemDark">Dark</string>
+    <string name="txt_systemDefault">System default</string>
+    <string name="txt_systemLight">Light</string>
 </resources>

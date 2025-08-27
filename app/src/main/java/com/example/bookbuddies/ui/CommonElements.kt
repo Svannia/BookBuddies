@@ -1,0 +1,385 @@
+package com.example.bookbuddies.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.example.bookbuddies.R
+import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
+import com.example.bookbuddies.navigation.NavigationActions
+import com.example.bookbuddies.ui.theme.MyTypography
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+
+/**
+ * This creates the layout for a "primary screen".
+ * It mainly contains a body and a larger top bar in a different colour.
+ * There is a burger menu in the top bar that opens on the left-side.
+ *
+ * @param navigationActions to handle screen navigation
+ * @param title display in the top bar
+ * @param topBarIcons composable for icons on the right-side of the top bar
+ * @param content screen body
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PrimaryScreen(
+    navigationActions: NavigationActions,
+    title: String,
+    topBarIcons: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit
+) {
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        modifier = Modifier.fillMaxSize(),
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.requiredWidth(200.dp)
+            ) {
+                Spacer(modifier = Modifier.size(32.dp))
+                BURGER_DESTINATIONS.forEach { destination ->
+                    NavigationDrawerItem(
+                        label = { Text(text = stringResource(destination.text), style = MyTypography.bodyLarge) },
+                        selected = false,
+                        onClick = {
+                            navigationActions.navigateTo(destination.route)
+                            scope.launch { drawerState.close() }
+                        },
+                        icon = {
+                            Icon(
+                                modifier = Modifier.size(22.dp),
+                                painter = painterResource(destination.icon),
+                                contentDescription = stringResource(R.string.desc_dstIcon)
+                            )
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
+            }
+        }
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                Box {
+                    CenterAlignedTopAppBar(
+                        title = { Text(text = title, style = MyTypography.titleMedium) },
+                        navigationIcon = { BurgerMenu(scope, drawerState) },
+                        actions = { topBarIcons() },
+                    )
+                    Divider(color = MaterialTheme.colorScheme.outline, thickness = 3.dp, modifier = Modifier.align(Alignment.BottomStart))
+                }
+            },
+            content = { content(it) }
+        )
+    }
+}
+
+/**
+ * This creates the layout for a "secondary screen".
+ * It mainly contains a body and an invisible top bar with an optional title and a GoBack button.
+ *
+ * @param title display in the top bar (can be empty)
+ * @param navigationActions to handle screen navigation
+ * @param route optional Route to navigate to when pressing the Back button, instead of navigating back
+ * @param navExtraActions optional extra block to run when navigating back (e.g navigating back from CreateAccount screen also signs out)
+ * @param topBarIcons extra composable on the right-side of the top bar (optional)
+ * @param content screen body
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SecondaryScreen(
+    title: String,
+    navigationActions: NavigationActions,
+    route: String ?= null,
+    navExtraActions: () -> Unit,
+    topBarIcons: @Composable () -> Unit,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            Box {
+                CenterAlignedTopAppBar(
+                    title = { Text(text = title, style = MyTypography.titleMedium)},
+                    navigationIcon = {
+                        GoBackButton(navigationActions, navExtraActions, route)
+                    },
+                    actions = {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            topBarIcons()
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background, scrolledContainerColor = MaterialTheme.colorScheme.background)
+                )}
+        },
+        content = { content(it) }
+    )
+}
+
+/**
+ * Rewritten basic TextField composable for constant design throughout the app.
+ * Always use this instead of the normal TextField.
+ *
+ * @param value text passed by the user in the text field
+ * @param onValueChange block that runs with the new input value when it is edited
+ * @param icon display at the beginning of the text field (use a negative int for no icon)
+ * @param placeHolder text displayed in the empty text field
+ * @param singleLine whether or not the value of the text field can contain line breaks
+ * @param maxLength maximum amount of characters allowed in the text field
+ * @param autoCap whether or not to activate the AutoCap on the keyboard when starting to type. True by default
+ * @param focusRequester optional FocusRequester when the TextField needs to be manually put into focus
+ * @param onFocusedChanged needed if there is a FocusRequester: block that runs when focus is changed
+ * @param showMaxChara whether or not to show supporting text with the max amount of character. True by default
+ * @param width width of the TextField
+ * @param height optional height for the TextField, usually used for writing big blocks of text
+ * @param keyboardActions optional overriding of default keyboard actions
+ * @param keyboardOptions optional overriding of default keyboard options
+ */
+@Composable
+fun CustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    icon: Int,
+    placeHolder: String,
+    singleLine: Boolean,
+    maxLength: Int,
+    autoCap: Boolean = true,
+    focusRequester: FocusRequester = FocusRequester.Default,
+    onFocusedChanged: (FocusState) -> Unit = {},
+    showMaxChara: Boolean = true,
+    width: Dp,
+    height: Dp? = null,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+) {
+    TextField(
+        modifier = if (singleLine) {
+            Modifier
+                .width(width)
+                .padding(0.dp)
+                .focusRequester(focusRequester)
+                .onFocusChanged { onFocusedChanged(it) }
+        } else {
+            Modifier
+                .width(width)
+                .height(height!!)
+                .padding(0.dp)
+                .focusRequester(focusRequester)
+                .onFocusChanged { onFocusedChanged(it) }
+        },
+        value = value,
+        onValueChange = {
+            if (it.length <= maxLength) {
+                onValueChange(it)
+            }
+        },
+        textStyle = MyTypography.bodyLarge,
+        prefix = {
+            if (icon >= 0) {
+                Row{
+                    Icon(
+                        painter = painterResource(id = icon),
+                        contentDescription = stringResource(R.string.desc_textFieldIcon),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.size(16.dp))
+                }
+            }
+        },
+        placeholder = {
+            Text(text = placeHolder, style = MyTypography.bodySmall)
+        },
+        singleLine = singleLine,
+        supportingText = {
+            if (showMaxChara) {
+                Text(text = stringResource(R.string.field_maxChar, maxLength), style = MyTypography.labelSmall)
+            }
+        },
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary
+        ),
+        keyboardActions = keyboardActions,
+        keyboardOptions = keyboardOptions.copy(
+            capitalization = if (autoCap) KeyboardCapitalization.Sentences
+            else KeyboardCapitalization.None
+        )
+    )
+}
+
+/**
+ * Creates a dialog window that can pop and be dismissed; its contents can be anything.
+ * Warning: always call this function after all other composable elements in code, so that it appears on top of the screen.
+ *
+ * @param visible whether or not this window should be visible
+ * @param confirmText text within the confirm button
+ * @param confirmColour colour of the confirm text and button
+ * @param onConfirm block that runs if the confirm button is pressed
+ * @param content content of the dialog window
+ */
+@Composable
+fun CustomContentDialogWindow(
+    visible: MutableState<Boolean>,
+    confirmText: String,
+    confirmColour: Color,
+    onConfirm: () -> Unit,
+    content: @Composable (() -> Unit)
+) {
+    AlertDialog(
+        onDismissRequest = { visible.value = false },
+        text = content,
+        confirmButton = {
+            TextButton(
+                modifier = Modifier
+                    .border(
+                        width = 2.dp,
+                        color = confirmColour,
+                        shape = RoundedCornerShape(50)
+                    )
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(50)
+                    ),
+                onClick = { onConfirm() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(50)
+            ) {
+                Text(
+                    text = confirmText,
+                    style = MyTypography.bodyLarge,
+                    color = confirmColour
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                modifier = Modifier
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.inversePrimary,
+                        shape = RoundedCornerShape(50)
+                    )
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(50)
+                    ),
+                onClick = { visible.value = false },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(50)
+            ) {
+                Text(
+                    text = stringResource(R.string.button_cancel),
+                    style = MyTypography.bodyLarge,
+                    color = MaterialTheme.colorScheme.inversePrimary
+                )
+            }
+        }
+    )
+}
+
+/**
+ * Icon that handles the burger menu.
+ *
+ * @param scope needed to launch a coroutine to open the burger menu
+ * @param drawerState value that determines if the burger menu is opened or closed
+ */
+@Composable
+private fun BurgerMenu(scope: CoroutineScope, drawerState: DrawerState) {
+    IconButton(
+        onClick = { scope.launch { drawerState.open() }}
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.burger_menu),
+            contentDescription = stringResource(R.string.desc_burgerMenu),
+            modifier = Modifier.size(28.dp)
+        )
+    }
+}
+
+/**
+ * A button used to navigate back in the screens navigation history.
+ *
+ * @param navigationActions to handle screen navigation
+ * @param navExtraActions optional extra block to run when navigating back (e.g navigating back from CreateAccount screen also signs out)
+ * @param route optional route to navigate to instead of navigating back
+ */
+@Composable
+fun GoBackButton(navigationActions: NavigationActions, navExtraActions: () -> Unit, route: String ?= null) {
+    IconButton(
+        onClick = {
+            if (route != null) navigationActions.navigateTo(route)
+            else navigationActions.goBack()
+            navExtraActions()
+        }
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.go_back),
+            contentDescription = stringResource(R.string.desc_goBack)
+        )
+    }
+}

@@ -1,16 +1,28 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.10"
+}
+
+val secretsPropsFile = rootProject.file("secrets.properties")
+val secretsProps = Properties().apply {
+    if (secretsPropsFile.exists()) {
+        load(FileInputStream(secretsPropsFile))
+    }
 }
 
 android {
     namespace = "com.example.bookbuddies"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.bookbuddies"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -18,6 +30,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        buildConfigField("String", "TELEGRAM_BOT_TOKEN", "\"${secretsProps.getProperty("telegramBotToken") ?: ""}\"")
+        buildConfigField("String", "TELEGRAM_CHAT_ID", "\"${secretsProps.getProperty("telegramChatId") ?: ""}\"")
     }
 
     buildTypes {
@@ -33,11 +48,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_1_8)
+        }
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -66,4 +84,23 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // compose
+    implementation(platform("androidx.compose:compose-bom:2025.08.00")) // optional but recommended
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-text") // includes AnnotatedString & LinkAnnotation
+    implementation("androidx.compose.material3:material3")
+
+    // navigation
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // datastore
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
+
+    // timber
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // viewModels
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
 }

@@ -4,44 +4,60 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.bookbuddies.errors.FileLoggingTree
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.bookbuddies.navigation.NavigationActions
+import com.example.bookbuddies.navigation.Route
+import com.example.bookbuddies.ui.settings.Settings
+import com.example.bookbuddies.ui.home.HomeScreen
 import com.example.bookbuddies.ui.theme.BookBuddiesTheme
+import com.example.bookbuddies.viewModels.DataViewModel
+import timber.log.Timber
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val logFile = File(filesDir, "log.txt")
+        Timber.plant(FileLoggingTree(logFile))
+        Timber.i("---------------- App started ----------------")
+
         setContent {
-            BookBuddiesTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+            val dataVM: DataViewModel = viewModel()
+            val currentTheme by dataVM.currentTheme.collectAsState()
+
+            BookBuddiesTheme(themeChoice = currentTheme) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    val navController = rememberNavController()
+                    val navigationActions = NavigationActions(navController)
+
+                    NavHost(navController, Route.HOME) {
+                        composable(Route.HOME) {
+                            HomeScreen(dataVM, navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen Home")
+                        }
+
+                        composable(Route.SETTINGS) {
+                            Settings(dataVM, navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen Settings")
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    BookBuddiesTheme {
-        Greeting("Android")
     }
 }
