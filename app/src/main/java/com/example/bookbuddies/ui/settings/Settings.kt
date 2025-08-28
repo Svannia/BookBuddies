@@ -1,6 +1,10 @@
 package com.example.bookbuddies.ui.settings
 
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
@@ -59,6 +63,27 @@ private const val OFFSET = 45
 @Composable
 fun Settings(dataVM: DataViewModel, navigationActions: NavigationActions) {
     val context = LocalContext.current
+
+    // storage access permission
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        uri?.let {
+            // after selecting a doc, check if it is a csv file
+            val fileName = context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                cursor.moveToFirst()
+                cursor.getString(nameIndex)
+            }
+
+            if (fileName != null && fileName.endsWith(".csv", ignoreCase = true)) {
+                // todo: process csv file
+            } else {
+                Toast.makeText(context,
+                    context.getString(R.string.toast_invalidCSV), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     // variables for setting theme
     val themeChoice = convertThemeToText(dataVM.currentTheme.collectAsState().value)
@@ -112,7 +137,7 @@ fun Settings(dataVM: DataViewModel, navigationActions: NavigationActions) {
                             .fillMaxWidth()
                             .height(HEIGHT.dp)
                             .clickable {
-                                // TODO
+                                importLauncher.launch(arrayOf("*/*"))
                             },
                         contentAlignment = Alignment.CenterStart
                     ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_import), style = MyTypography.bodyLarge) }
@@ -229,7 +254,7 @@ private fun SettingCategory(name: String, content: @Composable ColumnScope.() ->
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) { content() }
-        Divider(color = MaterialTheme.colorScheme.outline, thickness = 3.dp)
+        HorizontalDivider(thickness = 3.dp, color = MaterialTheme.colorScheme.outline)
         Spacer(modifier = Modifier.size(16.dp))
     }
 }

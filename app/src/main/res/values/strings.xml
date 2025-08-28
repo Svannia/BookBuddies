@@ -23,6 +23,7 @@
     <string name="title_theme">Theme</string>
 
     <string name="toast_bugReport">Thank you for reporting the bug!</string>
+    <string name="toast_invalidCSV">Invalid file type, please select a CSV document.</string>
     <string name="toast_emptyBugReport">Please describe the bug to send a report.</string>
     <string name="toast_unknownError">There was an error, please retry. If it keeps failing, please contact Alice!</string>
 
