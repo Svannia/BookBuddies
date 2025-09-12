@@ -1,18 +1,7 @@
 package com.example.bookbuddies.data
 
-import androidx.room.Dao
-import androidx.room.Database
-import androidx.room.Delete
 import androidx.room.Entity
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
-import androidx.room.Query
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverter
-import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 @Entity(tableName = "books")
 data class Book(
@@ -20,14 +9,34 @@ data class Book(
     val isbn: String,
     val title: String,
     val authors: List<String>,
-    val series: String,
+    val cover: String?,
+    val seriesName: String,
     val seriesNumber: Int,
     val description: String,
     val genre: String,
     val publisher: String,
     val publishedDate: Long,
+    val rating: Double,
     val language: String,
     val format: String,
     val read: Boolean,
+    val dateStarted: Long,
+    val dateFinished: Long,
+    val boughtAt: String,
     val dateAdded: Long
 )
+
+fun displayAuthors(authorsList: List<String>): String {
+    if (authorsList.isEmpty()) return ""
+
+    return authorsList.joinToString(", ") { author ->
+        val parts = author.split(",")
+        if (parts.size == 2) {
+            val surname = parts[0].trim()
+            val names = parts[1].trim()
+            "$names $surname"
+        } else {
+            author
+        }
+    }
+}

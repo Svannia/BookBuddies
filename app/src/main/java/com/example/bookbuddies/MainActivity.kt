@@ -12,16 +12,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.room.Room
-import com.example.bookbuddies.data.AppDatabase
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.ui.settings.Settings
 import com.example.bookbuddies.ui.home.HomeScreen
 import com.example.bookbuddies.ui.theme.BookBuddiesTheme
+import com.example.bookbuddies.datastore.BookRepository
+import com.example.bookbuddies.viewModels.BookViewModel
+import com.example.bookbuddies.viewModels.BookViewModelFactory
 import com.example.bookbuddies.viewModels.DataViewModel
 import timber.log.Timber
 import java.io.File
@@ -40,6 +42,11 @@ class MainActivity : ComponentActivity() {
             val dataVM: DataViewModel = viewModel()
             val currentTheme by dataVM.currentTheme.collectAsState()
 
+            val bookRepository = BookRepository(LocalContext.current)
+            val bookVM: BookViewModel = viewModel(
+                factory = BookViewModelFactory(bookRepository)
+            )
+
             BookBuddiesTheme(themeChoice = currentTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -50,12 +57,12 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(navController, Route.HOME) {
                         composable(Route.HOME) {
-                            HomeScreen(dataVM, navigationActions)
+                            HomeScreen(bookVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen Home")
                         }
 
                         composable(Route.SETTINGS) {
-                            Settings(dataVM, navigationActions)
+                            Settings(dataVM, bookVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen Settings")
                         }
                     }

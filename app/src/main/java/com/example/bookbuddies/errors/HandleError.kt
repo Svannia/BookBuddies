@@ -16,6 +16,6 @@ import timber.log.Timber
  * @param e the caught exception if any
  */
 fun handleError(context: Context, errorMssg: String, e: Exception ?= null) {
-    Toast.makeText(context, context.getString(R.string.toast_unknownError), Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, "${context.getString(R.string.toast_unknownError)} $errorMssg", Toast.LENGTH_SHORT).show()
         Timber.tag("Error").d("$errorMssg ${e?.let { "with error: $it" }}")
 }

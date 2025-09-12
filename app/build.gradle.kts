@@ -109,10 +109,17 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.10.1")
 
     // room
-    implementation("androidx.room:room-runtime:2.6.1") // Or the latest version
-    annotationProcessor("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.2")
+    implementation("androidx.room:room-runtime:2.7.2") // Or the latest version
+    kapt("androidx.room:room-compiler:2.7.2")
+    annotationProcessor("androidx.room:room-compiler:2.7.2")
+    implementation("androidx.room:room-ktx:2.7.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("com.opencsv:opencsv:5.7.1")
+
+    // images
+    implementation("io.coil-kt:coil-compose:2.1.0")
+
+    // http requests
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
 
 }

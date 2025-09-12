@@ -5,6 +5,7 @@ import com.example.bookbuddies.R
 object Route{
     const val HOME = "Home"
     const val SETTINGS = "Settings"
+    const val BOOK = "Book"
 }
 
 /**

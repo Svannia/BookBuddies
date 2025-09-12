@@ -1,9 +1,19 @@
 package com.example.bookbuddies.ui
 
+import android.net.Uri
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,16 +24,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,19 +51,26 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 import com.example.bookbuddies.R
 import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
 import com.example.bookbuddies.navigation.NavigationActions
@@ -119,7 +137,11 @@ fun PrimaryScreen(
                         navigationIcon = { BurgerMenu(scope, drawerState) },
                         actions = { topBarIcons() },
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline, thickness = 3.dp, modifier = Modifier.align(Alignment.BottomStart))
+                    HorizontalDivider(
+                        modifier = Modifier.align(Alignment.BottomStart),
+                        thickness = 3.dp,
+                        color = MaterialTheme.colorScheme.outline
+                    )
                 }
             },
             content = { content(it) }
@@ -173,6 +195,69 @@ fun SecondaryScreen(
         },
         content = { content(it) }
     )
+}
+
+/**
+ * A simple plain screen with a rotating loading animation.
+ */
+@Composable
+fun LoadingPage() {
+    // ensures that the user cannot go back while on the loading page.
+    BackHandler {}
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        LoadingAnimation(100f, 10f)
+    }
+}
+
+/**
+ * A rotating animation to be used for when waiting for information to load/change.
+ *
+ * @param size diameter of the loading circle
+ * @param strokeWidth width of the circle
+ */
+@Composable
+fun LoadingAnimation(size: Float, strokeWidth: Float) {
+    val infiniteTransition = rememberInfiniteTransition(label = stringResource(R.string.desc_loading))
+    val angle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000, easing = LinearEasing)
+        ), label = stringResource(R.string.desc_loading)
+    )
+
+    val primaryColour = MaterialTheme.colorScheme.primary
+    Canvas(modifier = Modifier.size((size).dp)) {
+        drawArc(
+            color = primaryColour,
+            startAngle = angle,
+            sweepAngle = 270f,
+            useCenter = false,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+        )
+    }
+}
+
+/**
+ * This creates a column with a small loading animation that can be used as a screen content.
+ *
+ * @param paddingValues to be used in the main column
+ */
+@Composable
+fun MiniLoading(paddingValues: PaddingValues) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.size(16.dp))
+        LoadingAnimation(30f, 10f)
+    }
 }
 
 /**
@@ -380,6 +465,32 @@ fun GoBackButton(navigationActions: NavigationActions, navExtraActions: () -> Un
         Icon(
             painter = painterResource(R.drawable.go_back),
             contentDescription = stringResource(R.string.desc_goBack)
+        )
+    }
+}
+
+/**
+ * Sizes a cover image to a fix height, keeping original proportions.
+ *
+ * @param height height of the image
+ * @param picture text linking to the cover image's storage location
+ * @param contentDescription image description
+ */
+@Composable
+fun CoverImage(height: Dp, picture: String?, contentDescription: String) {
+    Box(
+        modifier = Modifier
+            .height(height)
+            .width(height * 0.6f)
+            .clip(RectangleShape)
+            .background(Color.Transparent)
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter(
+                model = picture ?: R.drawable.default_cover
+            ),
+            contentDescription = contentDescription,
+            contentScale = ContentScale.FillHeight
         )
     }
 }

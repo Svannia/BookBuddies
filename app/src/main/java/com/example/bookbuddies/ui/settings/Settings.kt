@@ -43,14 +43,19 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.datastore.ThemeChoice
+import com.example.bookbuddies.datastore.findCovers
+import com.example.bookbuddies.datastore.importBooksFromCsv
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
+import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.system.TelegramBot
 import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.CustomTextField
+import com.example.bookbuddies.ui.LoadingPage
 import com.example.bookbuddies.ui.SecondaryScreen
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
+import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.DataViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -61,8 +66,17 @@ private const val HEIGHT = 52
 private const val OFFSET = 45
 
 @Composable
-fun Settings(dataVM: DataViewModel, navigationActions: NavigationActions) {
+fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: NavigationActions) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val loading = remember { mutableStateOf(false) }
+
+    val books by bookVM.allBooks.collectAsState(initial = emptyList())
+
+    val importDialogue = remember { mutableStateOf(false) }
+
+    val coversVisible = remember { mutableStateOf(false) }
+    val failedCovers = remember { mutableListOf<String>() }
 
     // storage access permission
     val importLauncher = rememberLauncherForActivityResult(
@@ -76,8 +90,42 @@ fun Settings(dataVM: DataViewModel, navigationActions: NavigationActions) {
                 cursor.getString(nameIndex)
             }
 
+            // open and read file
             if (fileName != null && fileName.endsWith(".csv", ignoreCase = true)) {
-                // todo: process csv file
+                loading.value = true
+                scope.launch {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    if (inputStream != null) {
+                        val tempFile = File(context.cacheDir, fileName)
+                        tempFile.outputStream().use { outputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+
+                        // import file data into BookRepository
+                        importBooksFromCsv(
+                            context,
+                            tempFile,
+                            bookVM::insertBooks,
+                            callBack = {
+                                loading.value = false
+                                importDialogue.value = false
+                            }
+                        ) { isError ->
+                            if (isError) handleError(context, "An error occurred while importing the selected file.")
+                            else {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.toast_successfulImport),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                navigationActions.navigateTo(Route.HOME, true)
+                            }
+                        }
+                    } else {
+                        loading.value = false
+                        handleError(context, "Failed to open the selected file.")
+                    }
+                }
             } else {
                 Toast.makeText(context,
                     context.getString(R.string.toast_invalidCSV), Toast.LENGTH_SHORT).show()
@@ -97,143 +145,250 @@ fun Settings(dataVM: DataViewModel, navigationActions: NavigationActions) {
     val bugReport = remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
-    SecondaryScreen(
-        title = "Settings",
-        navigationActions = navigationActions,
-        navExtraActions = {},
-        topBarIcons = {}
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // settings category for the theme
-            item {
-                SettingCategory(stringResource(R.string.title_theme)) {
-                    ToggleOptions(
-                        numberChoices = themeChoices.size,
-                        currentChoice = themeChoiceState,
-                        choicesNames = themeChoices
-                    ){ newChoice ->
-                        var newTheme = ThemeChoice.SYSTEM_DEFAULT
-                        if (newChoice == lightTheme) {
-                            newTheme = ThemeChoice.LIGHT
-                        } else if (newChoice == darkTheme) {
-                            newTheme = ThemeChoice.DARK
-                        }
-                        dataVM.setTheme(newTheme)
-                    }
-                }
-            }
-            // settings category for importing/exporting book data
-            item {
-                SettingCategory(stringResource(R.string.title_backup)) {
-                    // Import data
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(HEIGHT.dp)
-                            .clickable {
-                                importLauncher.launch(arrayOf("*/*"))
-                            },
-                        contentAlignment = Alignment.CenterStart
-                    ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_import), style = MyTypography.bodyLarge) }
-                    // Export data
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(HEIGHT.dp)
-                            .clickable {
-                                // TODO
-                            },
-                        contentAlignment = Alignment.CenterStart
-                    ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_export), style = MyTypography.bodyLarge) }
-                }
-            }
-            // settings category for About information
-            item {
-                SettingCategory(stringResource(R.string.title_about)) {
-                    // button to open a dialog for sending bug information
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(HEIGHT.dp)
-                            .clickable { reportVisible.value = true },
-                        contentAlignment = Alignment.CenterStart
-                    ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_sendBug), style = MyTypography.bodyLarge) }
-                    // Credits for icons
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(HEIGHT.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        val annotatedString = buildAnnotatedString {
-                            append(stringResource(R.string.txt_iconsBy))
-                            pushLink(LinkAnnotation.Url("https://icons8.com"))
-                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                                append("Icons8")
+    if (loading.value) LoadingPage()
+    else {
+        SecondaryScreen(
+            title = "Settings",
+            navigationActions = navigationActions,
+            navExtraActions = {},
+            topBarIcons = {}
+        ) { paddingValues ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // settings category for the theme
+                item {
+                    SettingCategory(stringResource(R.string.title_theme)) {
+                        ToggleOptions(
+                            numberChoices = themeChoices.size,
+                            currentChoice = themeChoiceState,
+                            choicesNames = themeChoices
+                        ){ newChoice ->
+                            var newTheme = ThemeChoice.SYSTEM_DEFAULT
+                            if (newChoice == lightTheme) {
+                                newTheme = ThemeChoice.LIGHT
+                            } else if (newChoice == darkTheme) {
+                                newTheme = ThemeChoice.DARK
                             }
-                            pop()
+                            dataVM.setTheme(newTheme)
                         }
-                        Text(
-                            modifier = Modifier.padding(start = OFFSET.dp),
-                            text = annotatedString,
-                            style = MyTypography.bodyMedium.copy(color = MaterialTheme.colorScheme.outline),
-                        )
+                    }
+                }
+                // settings category for book data
+                item {
+                    SettingCategory(stringResource(R.string.title_backup)) {
+                        // Import data
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(HEIGHT.dp)
+                                .clickable {
+                                    importDialogue.value = true
+                                },
+                            contentAlignment = Alignment.CenterStart
+                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_import), style = MyTypography.bodyLarge) }
+                        // Export data
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(HEIGHT.dp)
+                                .clickable {
+                                    // TODO
+                                },
+                            contentAlignment = Alignment.CenterStart
+                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_export), style = MyTypography.bodyLarge) }
+                        // Find covers
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(HEIGHT.dp)
+                                .clickable {
+                                    loading.value = true
+                                    scope.launch {
+                                        findCovers(
+                                            context = context,
+                                            books = books,
+                                            insertBook = bookVM::insertBook,
+                                            callBack = { failedBooks ->
+                                                loading.value = false
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.toast_successfulCovers),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                if (failedBooks.isEmpty()) navigationActions.navigateTo(Route.HOME, true)
+                                                else {
+                                                    failedCovers.clear()
+                                                    failedCovers.addAll(failedBooks)
+                                                    coversVisible.value = true
+                                                }
+                                            }
+                                        ) { isError ->
+                                            if (isError) {
+                                                loading.value = false
+                                                handleError(context, "An error occurred while finding covers.")
+                                            }
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.CenterStart
+                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_findCovers), style = MyTypography.bodyLarge) }
+                        // Remove all covers
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(HEIGHT.dp)
+                                .clickable {
+                                    loading.value = true
+                                    scope.launch {
+                                        bookVM.clearAllCovers({
+                                            if (it) {
+                                                loading.value = false
+                                                handleError(context, "Failed to remove some covers.")
+                                            }
+                                        }) {
+                                            loading.value = false
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.toast_removeCovers),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            navigationActions.navigateTo(Route.HOME, true)
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.CenterStart
+                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_removeCovers), style = MyTypography.bodyLarge) }
+                    }
+                }
+                // settings category for About information
+                item {
+                    SettingCategory(stringResource(R.string.title_about)) {
+                        // button to open a dialog for sending bug information
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(HEIGHT.dp)
+                                .clickable { reportVisible.value = true },
+                            contentAlignment = Alignment.CenterStart
+                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_sendBug), style = MyTypography.bodyLarge) }
+                        // Credits for icons
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(HEIGHT.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            val annotatedString = buildAnnotatedString {
+                                append(stringResource(R.string.txt_iconsBy))
+                                pushLink(LinkAnnotation.Url("https://icons8.com"))
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                    append("Icons8")
+                                }
+                                pop()
+                            }
+                            Text(
+                                modifier = Modifier.padding(start = OFFSET.dp),
+                                text = annotatedString,
+                                style = MyTypography.bodyMedium.copy(color = MaterialTheme.colorScheme.outline),
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Report a bug dialog window
-        if (reportVisible.value) {
-            CustomContentDialogWindow(
-                visible = reportVisible,
-                confirmText = stringResource(R.string.button_send),
-                confirmColour = ValidGreen,
-                onConfirm = {
-                    bugReport.value = bugReport.value.trimEnd()
-                    if (bugReport.value.isBlank()) {
-                        Toast.makeText(context, context.getString(R.string.toast_emptyBugReport), Toast.LENGTH_SHORT).show()
-                    } else {
-                        reportVisible.value = false
-                        coroutineScope.launch {
-                            val success = TelegramBot.sendBugReport(bugReport.value, File(context.filesDir, "log.txt"))
-
-                            withContext(Dispatchers.Main) {
-                                if (success) {
-                                    Toast.makeText(context, context.getString(R.string.toast_bugReport), Toast.LENGTH_SHORT).show()
-                                    bugReport.value = ""
-                                } else {
-                                    handleError(context, "Failed to send bug report")
+            // List of failed covers
+            if (coversVisible.value) {
+                CustomContentDialogWindow(
+                    visible = coversVisible,
+                    confirmText = stringResource(R.string.button_confirm),
+                    confirmColour = ValidGreen,
+                    onConfirm = { navigationActions.navigateTo(Route.HOME, true) }
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = context.getString(R.string.title_failedCovers), style = MyTypography.titleSmall)
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            failedCovers.forEach { cover ->
+                                item {
+                                    Text(text = cover, style = MyTypography.bodyMedium)
                                 }
                             }
                         }
                     }
                 }
-            ) {
-                // title for Report a bug, input text field and log.txt explanation
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            }
+
+            // Import a CSV file instructions
+            if (importDialogue.value) {
+                CustomContentDialogWindow(
+                    visible = importDialogue,
+                    confirmText = stringResource(R.string.button_confirm),
+                    confirmColour = ValidGreen,
+                    onConfirm = { importLauncher.launch(arrayOf("*/*")) }
                 ) {
-                    Text(text = context.getString(R.string.button_sendBug), style = MyTypography.titleSmall)
-                    CustomTextField(
-                        value = bugReport.value,
-                        onValueChange = { bugReport.value = it },
-                        icon = -1,
-                        placeHolder = stringResource(R.string.field_bugReport),
-                        singleLine = false,
-                        maxLength = 700,
-                        showMaxChara = false,
-                        width = 250.dp,
-                        height = 350.dp
+                    Text(
+                        text = stringResource(R.string.txt_importInstructions),
+                        style = MyTypography.bodyLarge
                     )
-                    Text(text = stringResource(R.string.txt_reportBugNote), style = MyTypography.bodyMedium)
+                }
+            }
+
+            // Report a bug dialog window
+            if (reportVisible.value) {
+                CustomContentDialogWindow(
+                    visible = reportVisible,
+                    confirmText = stringResource(R.string.button_send),
+                    confirmColour = ValidGreen,
+                    onConfirm = {
+                        bugReport.value = bugReport.value.trimEnd()
+                        if (bugReport.value.isBlank()) {
+                            Toast.makeText(context, context.getString(R.string.toast_emptyBugReport), Toast.LENGTH_SHORT).show()
+                        } else {
+                            reportVisible.value = false
+                            coroutineScope.launch {
+                                val success = TelegramBot.sendBugReport(bugReport.value, File(context.filesDir, "log.txt"))
+
+                                withContext(Dispatchers.Main) {
+                                    if (success) {
+                                        Toast.makeText(context, context.getString(R.string.toast_bugReport), Toast.LENGTH_SHORT).show()
+                                        bugReport.value = ""
+                                    } else {
+                                        handleError(context, "Failed to send bug report")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    // title for Report a bug, input text field and log.txt explanation
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = context.getString(R.string.button_sendBug), style = MyTypography.titleSmall)
+                        CustomTextField(
+                            value = bugReport.value,
+                            onValueChange = { bugReport.value = it },
+                            icon = -1,
+                            placeHolder = stringResource(R.string.field_bugReport),
+                            singleLine = false,
+                            maxLength = 700,
+                            showMaxChara = false,
+                            width = 250.dp,
+                            height = 350.dp
+                        )
+                        Text(text = stringResource(R.string.txt_reportBugNote), style = MyTypography.bodyMedium)
+                    }
                 }
             }
         }
