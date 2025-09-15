@@ -12,6 +12,7 @@ data class Book(
     val cover: String?,
     val seriesName: String,
     val seriesNumber: Int,
+    val mangaSeriesId: String ?= null,
     val description: String,
     val genre: String,
     val publisher: String,

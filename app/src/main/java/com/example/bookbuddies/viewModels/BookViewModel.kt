@@ -19,6 +19,10 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         repository.insertBook(book)
     }
 
+    suspend fun updateMangaSeriesId(seriesName: String, mangaId: String) {
+        repository.updateMangaSeriesId(seriesName, mangaId)
+    }
+
     suspend fun clearAllCovers(isError: (Boolean) -> Unit, callBack: () -> Unit) {
         val currentBooks = allBooks.first()
         var errorOccurred = false

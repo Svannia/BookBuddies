@@ -10,15 +10,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.Response
+import org.json.JSONObject
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -33,6 +35,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.Locale
+import kotlin.math.pow
 
 // Repository to manage data operations and provide a clean API for data access
 class BookRepository(context: Context) {
@@ -42,6 +45,7 @@ class BookRepository(context: Context) {
 
     suspend fun insertBook(book: Book) = bookDao.insertBook(book)
     suspend fun insertBooks(books: List<Book>) = bookDao.insertBooks(books)
+    suspend fun updateMangaSeriesId(mangaId: String, seriesName: String) = bookDao.updateMangaSeriesId(mangaId, seriesName)
     suspend fun deleteBook(book: Book) = bookDao.deleteBook(book)
     suspend fun deleteAll() = bookDao.deleteAll()
 }
@@ -54,25 +58,31 @@ class BookRepository(context: Context) {
  * @param callBack function to be called after the covers are updated, returning a list of books whose cover hasn't been found
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
  */
-suspend fun findCovers(
+suspend fun findBookCovers(
     context: Context,
     books: List<Book>,
     insertBook: suspend (Book) -> Unit,
+    updateMangaSeriesId: suspend (String, String) -> Unit,
     callBack: (List<String>) -> Unit,
     isError: (Boolean) -> Unit
 ) = coroutineScope {
-    val semaphore = Semaphore(10) // max 10 parallel downloads to avoid DDOS the APIs that fetch book covers
+    val semaphore = Semaphore(5) // max 5 parallel downloads to avoid DDOS the APIs that fetch book covers
     val failedBooks = mutableListOf<String>()
     val mutex = Mutex() // lock to protect access to failedBooks
 
-    // parallelize the processes on all books over 10 threads
+    // parallelize the processes on all books over 5 threads
     try {
         val jobs = books.map { book ->
             async(Dispatchers.IO) {
                 semaphore.withPermit {
                     try {
-                        if (book.isbn.isNotBlank() && book.cover.isNullOrBlank()) {
-                            val updatedBook = fetchBookWithCover(context, book)
+                        // use different strategies for manga and regular books
+                        val isManga = book.format.contains("manga", ignoreCase = true)
+
+                        // regular book APIs use ISBN, manga API searches by series title
+                        val reference = if (isManga) book.seriesName else book.isbn
+                        if (reference.isNotBlank() && book.cover.isNullOrBlank()) {
+                            val updatedBook = if (isManga) fetchCoverForManga(context, book, updateMangaSeriesId) else fetchCoverForBook(context, book)
 
                             // if no cover was found -> mark as failed
                             if (updatedBook.cover.isNullOrBlank()) {
@@ -110,7 +120,7 @@ suspend fun findCovers(
     }
 }
 
-private suspend fun fetchBookWithCover(context: Context, book: Book): Book =
+private suspend fun fetchCoverForBook(context: Context, book: Book): Book =
     withContext(Dispatchers.IO) {
         val fileName = "${book.uid}.jpg"
         val file = File(context.filesDir, fileName)
@@ -120,64 +130,215 @@ private suspend fun fetchBookWithCover(context: Context, book: Book): Book =
             return@withContext book.copy(cover = file.absolutePath)
         }
 
-        val urlsToTry = mutableListOf<String>()
-
-        // 1. Try Google Books API first
-        urlsToTry += "https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}"
-
-        // 2. Open Library API as a fallback
-        urlsToTry += "https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg"
-
         var savedPath: String? = null
 
-        for (url in urlsToTry) {
+        // 1. Try Google Books API
+        val googleURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}"
+        var attempt = 0
+        val maxRetries = 5
+
+        while (attempt < maxRetries && savedPath == null) {
             try {
-                if (url.contains("googleapis")) {
-                    val client = OkHttpClient()
-                    val request = Request.Builder()
-                        .url(url)
-                        .header("User-Agent", "BookBuddiesApp/1.0")
-                        .build()
-                    val response = client.newCall(request).execute()
+                val client = OkHttpClient()
+                val request = Request.Builder()
+                    .url(googleURL)
+                    .header("User-Agent", "BookBuddiesApp/1.0")
+                    .build()
+                val response = client.newCall(request).execute()
 
-                    if (response.isSuccessful) {
-                        val json = response.body?.string()
-                        val coverUrl = Regex("\"thumbnail\"\\s*:\\s*\"([^\"]+)\"")
-                            .find(json ?: "")?.groupValues?.get(1)
-                            ?.replace("http://", "https://")
+                // if hit rate limit, retry with exponential backoff
+                if (response.code == 429) {
+                    val delayTime = (1000L * 2.0.pow(attempt.toDouble())).toLong()
+                    Timber.tag("BookCover").d("${book.title}: Hit Google Books API rate limit. Retrying in ${delayTime}ms.")
+                    delay(delayTime)
+                    attempt++
+                    continue
+                }
 
-                        if (!coverUrl.isNullOrBlank()) {
-                            savedPath = downloadAndSaveCover(coverUrl, file)
-                            if (savedPath != null) {
-                                Timber.tag("BookCover").d("${book.title}: Fetched cover from Google Books.")
-                                break
-                            }
+                // if the API correctly responded, try to extract the cover URL
+                if (response.isSuccessful) {
+                    val json = response.body?.string()
+                    val coverUrl = Regex("\"thumbnail\"\\s*:\\s*\"([^\"]+)\"")
+                        .find(json ?: "")?.groupValues?.get(1)
+                        ?.replace("http://", "https://")
+
+                    if (!coverUrl.isNullOrBlank()) {
+                        savedPath = downloadAndSaveCover(coverUrl, file)
+                        if (savedPath != null) {
+                            Timber.tag("BookCover").d("${book.title}: Fetched cover from Google Books.")
+                            break
                         }
-                    } else {
-                        Timber.tag("BookCover").d("${book.title}: Google Books API returned ${response.code}")
                     }
-
                 } else {
-                    // Open Library direct image link
-                    val localPath = validateAndSaveCover(context, url, book.uid)
-                    if (localPath != null) {
-                        savedPath = localPath
-                        Timber.tag("BookCover").d("${book.title}: Fetched and validated cover from Open Library.")
-                        break
-                    }
-                    else {
-                        Timber.tag("BookCover").d("${book.title}: Open Library returned invalid placeholder.")
-                    }
+                    Timber.tag("BookCover").d("${book.title}: Google Books API failed and returned ${response.code}")
+                }
+
+            } catch (e: Exception) {
+                Timber.tag("BookCover").d("${book.title}: Google Books attempt failed with $e")
+                val delayTime = (500L * 2.0.pow(attempt.toDouble())).toLong()
+                delay(delayTime)
+            }
+            attempt++
+        }
+
+        // 2. Try Open Library API
+        if (savedPath == null) {
+            val openLibraryURL = "https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg"
+            try {
+                val localPath = validateAndSaveCover(context, openLibraryURL, book.uid)
+                if (localPath != null) {
+                    savedPath = localPath
+                    Timber.tag("BookCover").d("${book.title}: Fetched and validated cover from Open Library.")
+                } else {
+                    Timber.tag("BookCover").d("${book.title}: Open Library returned invalid placeholder.")
                 }
             } catch (e: Exception) {
-                Timber.tag("BookCover").d("${book.title}: Failed to fetch cover from $url with error $e")
-                continue
+                Timber.tag("BookCover").d("${book.title}: OpenLibrary attempt failed with $e")
             }
         }
 
-        // if nothing worked, fallback to default cover
-        val finalCoverPath = savedPath
-        return@withContext book.copy(cover = finalCoverPath)
+        return@withContext book.copy(cover = savedPath)
+    }
+
+private suspend fun fetchCoverForManga(context: Context, book: Book, updateMangaSeriesId: suspend (String, String) -> Unit): Book =
+    withContext(Dispatchers.IO) {
+        val fileName = "${book.uid}.jpg"
+        val file = File(context.filesDir, fileName)
+
+        // if the cover is already stored locally -> use it
+        if (file.exists()) {
+            return@withContext book.copy(cover = file.absolutePath)
+        }
+
+        var savedPath: String? = null
+
+        // Use MangaDex search API to find manga by series
+
+        // Full URL is "https://api.mangadex.org/manga?title=${book.seriesName}" -> using builder to encode special characters
+        val searchEndpoint = HttpUrl.Builder()
+            .scheme("https")
+            .host("api.mangadex.org")
+            .addPathSegment("manga")
+            .addQueryParameter("title", book.seriesName)
+            .build()
+
+        try {
+            // if the mangaID is already known, skip the series search step
+            var mangaId = book.mangaSeriesId
+            val client = OkHttpClient()
+
+            if (mangaId == null) {
+                // 1. search at searchEndpoint
+                val request = Request.Builder()
+                    .url(searchEndpoint)
+                    .header("User-Agent", "BookBuddiesApp/1.0")
+                    .build()
+
+                val response = client.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    Timber.tag("BookCover").d("${book.title}: MangaDex search API failed and returned ${response.code}")
+                    return@withContext book
+                }
+
+                val body = response.body?.string() ?: return@withContext book
+                val json = JSONObject(body)
+                val results = json.optJSONArray("data") ?: return@withContext book
+
+                // 2. among results, find the one with title matching series name (ignoring case and all characters that are not letters, like - or ' or :)
+                fun normalize(str: String) = str.lowercase().replace(Regex("[^a-z0-9]"), "")
+                val targetTitle = normalize(book.seriesName)
+
+                for (i in 0 until results.length()) {
+                    val manga = results.getJSONObject(i)
+                    val attributes = manga.getJSONObject("attributes")
+                    val candidateTitles = mutableListOf<String>()
+
+                    val titles = attributes.getJSONObject("title") ?: continue
+                    titles.keys().forEach { lang ->
+                        val titleValue = titles.optString(lang)
+                        if (titleValue.isNotBlank()) candidateTitles.add(titleValue)
+                    }
+                    val alternateTitles = attributes.optJSONArray("altTitles")
+                    if (alternateTitles != null) {
+                        for (i in 0 until alternateTitles.length()) {
+                            val altObj = alternateTitles.getJSONObject(i)
+                            altObj.keys().forEach { lang ->
+                                val altTitle = altObj.optString(lang)
+                                if (altTitle.isNotBlank()) candidateTitles.add(altTitle)
+                            }
+                        }
+                    }
+
+                    // 3. get id of that result
+                    val match = candidateTitles.any { normalize(it) == targetTitle }
+                    if (match) {
+                        mangaId = manga.getString("id")
+                        break
+                    }
+                }
+
+                // Update mangaID for all books in the same series
+                if (mangaId != null) {
+                    updateMangaSeriesId(mangaId, book.seriesName)
+                }
+
+            }
+
+
+            // 4. go to URL https://api.mangadex.org/cover?manga[]=<manga_id>&limit=100
+            if (mangaId == null) {
+                Timber.tag("BookCover").d("${book.title}: No matching manga found on MangaDex")
+                return@withContext book
+            }
+
+            val coversEndpoint = "https://api.mangadex.org/cover?manga[]=${mangaId}&limit=100"
+
+            val coversRequest = Request.Builder()
+                .url(coversEndpoint).header("User-Agent", "BookBuddiesApp/1.0").build()
+            val coversResponse = client.newCall(coversRequest).execute()
+
+            if (!coversResponse.isSuccessful) {
+                Timber.tag("BookCover").d("${book.title}: MangaDex covers fetch failed and returned ${coversResponse.code}")
+                return@withContext book
+            }
+
+            val coversJson = JSONObject(coversResponse.body?.string() ?: "")
+            val coversResults = coversJson.optJSONArray("data") ?: return@withContext book
+
+            // 5. among results, find the one with volume = seriesNumber
+            var volumeFile: String? = null
+            for (i in 0 until coversResults.length()) {
+                val coverObj = coversResults.getJSONObject(i)
+                val coverAttr = coverObj.getJSONObject("attributes")
+
+                val volume = coverAttr.optString("volume")
+                if (volume == book.seriesNumber.toString()) {
+                    // 6. If there are multiple results, chose locale = book.language, else choose en, else choose ja
+                    val locale = coverAttr.optString("locale", "en")
+                    if (book.language == locale || volumeFile == null) {
+                        volumeFile = coverAttr.getString("fileName")
+                        if (book.language == locale) break
+
+                    }
+                }
+            }
+
+            // 7. Use downloadAndSaveCover with URL https://uploads.mangadex.org/covers/<manga_id>/<filename>
+            if (volumeFile != null) {
+                val coverURL = "https://uploads.mangadex.org/covers/${mangaId}/${volumeFile}"
+                savedPath = downloadAndSaveCover(coverURL, file)
+                if (savedPath != null) {
+                    Timber.tag("BookCover").d("${book.title}: Fetched cover from MangaDex.")
+                }
+            } else {
+                Timber.tag("BookCover").d("${book.title}: No matching volume found on MangaDex")
+            }
+
+        } catch (e: Exception) {
+            Timber.tag("BookCover").d("${book.title}: MangaDex search attempt failed with $e")
+        }
+
+        return@withContext book.copy(cover = savedPath)
     }
 
 private fun downloadAndSaveCover(coverURL: String, file: File): String? {

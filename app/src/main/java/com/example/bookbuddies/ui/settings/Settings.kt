@@ -43,7 +43,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.datastore.ThemeChoice
-import com.example.bookbuddies.datastore.findCovers
+import com.example.bookbuddies.datastore.findBookCovers
 import com.example.bookbuddies.datastore.importBooksFromCsv
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
@@ -180,7 +180,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                 }
                 // settings category for book data
                 item {
-                    SettingCategory(stringResource(R.string.title_backup)) {
+                    SettingCategory(stringResource(R.string.title_data)) {
                         // Import data
                         Box(
                             modifier = Modifier
@@ -209,10 +209,11 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                 .clickable {
                                     loading.value = true
                                     scope.launch {
-                                        findCovers(
+                                        findBookCovers(
                                             context = context,
                                             books = books,
                                             insertBook = bookVM::insertBook,
+                                            updateMangaSeriesId = bookVM::updateMangaSeriesId,
                                             callBack = { failedBooks ->
                                                 loading.value = false
                                                 Toast.makeText(

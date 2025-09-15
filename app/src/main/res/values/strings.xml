@@ -24,7 +24,7 @@
     <string name="field_maxChar">max. %1$s characters</string>
 
     <string name="title_about">About</string>
-    <string name="title_backup">Data Backup</string>
+    <string name="title_data">Book Data</string>
     <string name="title_failedCovers">The following covers have not been found:</string>
     <string name="title_theme">Theme</string>
 
