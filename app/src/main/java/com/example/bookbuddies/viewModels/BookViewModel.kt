@@ -11,17 +11,14 @@ import java.io.File
 class BookViewModel(private val repository: BookRepository) : ViewModel() {
     val allBooks = repository.allBooks
 
-    suspend fun insertBooks(books: List<Book>) {
-        repository.insertBooks(books)
-    }
+    suspend fun getBookById(uid: String) = repository.getBookById(uid)
 
-    suspend fun insertBook(book: Book) {
-        repository.insertBook(book)
-    }
+    suspend fun insertBooks(books: List<Book>) = repository.insertBooks(books)
 
-    suspend fun updateMangaSeriesId(seriesName: String, mangaId: String) {
+    suspend fun insertBook(book: Book) = repository.insertBook(book)
+
+    suspend fun updateMangaSeriesId(seriesName: String, mangaId: String) =
         repository.updateMangaSeriesId(seriesName, mangaId)
-    }
 
     suspend fun clearAllCovers(isError: (Boolean) -> Unit, callBack: () -> Unit) {
         val currentBooks = allBooks.first()

@@ -319,7 +319,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.Start
                         ) {
-                            failedCovers.forEach { cover ->
+                            failedCovers.sorted().forEach { cover ->
                                 item {
                                     Text(text = cover, style = MyTypography.bodyMedium)
                                 }

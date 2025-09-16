@@ -43,6 +43,7 @@ class BookRepository(context: Context) {
 
     val allBooks: Flow<List<Book>> = bookDao.getAllBooks()
 
+    suspend fun getBookById(uid: String) = bookDao.getBookById(uid)
     suspend fun insertBook(book: Book) = bookDao.insertBook(book)
     suspend fun insertBooks(books: List<Book>) = bookDao.insertBooks(books)
     suspend fun updateMangaSeriesId(mangaId: String, seriesName: String) = bookDao.updateMangaSeriesId(mangaId, seriesName)
@@ -135,7 +136,7 @@ private suspend fun fetchCoverForBook(context: Context, book: Book): Book =
         // 1. Try Google Books API
         val googleURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}"
         var attempt = 0
-        val maxRetries = 5
+        val maxRetries = 4
 
         while (attempt < maxRetries && savedPath == null) {
             try {
@@ -393,7 +394,14 @@ private fun saveBitmapToFile(context: Context, bitmap: Bitmap, uid: String): Str
  * @param callBack function to be called after the import is complete
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
  */
-suspend fun importBooksFromCsv(context: Context, file: File, insertBooks: suspend (List<Book>) -> Unit, callBack: () -> Unit, isError: (Boolean) -> Unit) {
+suspend fun importBooksFromCsv(
+    context: Context,
+    file: File,
+    insertBooks: suspend (List<Book>) -> Unit,
+    getBookById: suspend (String) -> Book?,
+    callBack: () -> Unit,
+    isError: (Boolean) -> Unit
+) {
     val reader = CSVReader(FileReader(file))
     val allLines = reader.readAll()
     reader.close()
@@ -424,6 +432,7 @@ suspend fun importBooksFromCsv(context: Context, file: File, insertBooks: suspen
 
     // Iterate over the column cells of each row (one row = one book)
     Timber.tag("BookImport").d("Found ${allLines.size - 1} books to import")
+
     for (cols in allLines.drop(1)) {
         val authors = getCol(cols, "author_details")
             .split("|").map { it.trim() }.filter { it.isNotEmpty() }
@@ -456,12 +465,15 @@ suspend fun importBooksFromCsv(context: Context, file: File, insertBooks: suspen
             errorOccurred = true
         } ?: System.currentTimeMillis()
 
+        val uid = getCol(cols, "book_uuid")
+        val existingBook = getBookById(uid)
+
         val book = Book(
-            uid = getCol(cols, "book_uuid"),
+            uid = uid,
             isbn = getCol(cols, "isbn"),
             title = getCol(cols, "title"),
             authors = authors,
-            cover = null,
+            cover = existingBook?.cover,
             seriesName = seriesName,
             seriesNumber = seriesNumber,
             description = getCol(cols, "description"),
