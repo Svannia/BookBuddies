@@ -1,6 +1,5 @@
 package com.example.bookbuddies.ui
 
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -19,12 +18,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -209,6 +208,59 @@ fun LoadingPage() {
         contentAlignment = Alignment.Center
     ) {
         LoadingAnimation(100f, 10f)
+    }
+}
+
+@Composable
+fun ProgressBar(processed: Int, total: Int) {
+    BackHandler {}
+
+    val progress = (processed.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+    val percentage = (progress * 100).toInt()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(R.string.txt_coversProgress, processed, total),
+                    style = MyTypography.bodyLarge
+                )
+                Text(
+                    text = "$percentage%",
+                    style = MyTypography.bodyLarge
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(50))
+                    .border(width = 2.dp, color = MaterialTheme.colorScheme.inversePrimary, shape = RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.outline)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+        }
     }
 }
 

@@ -1,10 +1,13 @@
 package com.example.bookbuddies.ui.settings
 
 import android.net.Uri
+import android.os.SystemClock
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +21,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
@@ -28,19 +35,23 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import com.example.bookbuddies.R
 import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.datastore.findBookCovers
@@ -52,6 +63,7 @@ import com.example.bookbuddies.system.TelegramBot
 import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.CustomTextField
 import com.example.bookbuddies.ui.LoadingPage
+import com.example.bookbuddies.ui.ProgressBar
 import com.example.bookbuddies.ui.SecondaryScreen
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
@@ -71,9 +83,11 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     val scope = rememberCoroutineScope()
     val loading = remember { mutableStateOf(false) }
 
-    val books by bookVM.allBooks.collectAsState(initial = emptyList())
+    val progressing = remember { mutableStateOf(false) }
+    val processed = remember { mutableIntStateOf(0) }
+    val total = remember { mutableIntStateOf(0) }
 
-    val importDialogue = remember { mutableStateOf(false) }
+    val books by bookVM.allBooks.collectAsState(initial = emptyList())
 
     val coversVisible = remember { mutableStateOf(false) }
     val failedCovers = remember { mutableListOf<String>() }
@@ -106,9 +120,9 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             context,
                             tempFile,
                             bookVM::insertBooks,
+                            bookVM::getBookById,
                             callBack = {
                                 loading.value = false
-                                importDialogue.value = false
                             }
                         ) { isError ->
                             if (isError) handleError(context, "An error occurred while importing the selected file.")
@@ -146,6 +160,9 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     val coroutineScope = rememberCoroutineScope()
 
     if (loading.value) LoadingPage()
+    else if (progressing.value) {
+        ProgressBar(processed.intValue, total.intValue)
+    }
     else {
         SecondaryScreen(
             title = "Settings",
@@ -182,15 +199,13 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                 item {
                     SettingCategory(stringResource(R.string.title_data)) {
                         // Import data
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(HEIGHT.dp)
-                                .clickable {
-                                    importDialogue.value = true
-                                },
-                            contentAlignment = Alignment.CenterStart
-                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_import), style = MyTypography.bodyLarge) }
+                        ToolTipRow(
+                            onSettingClick = {
+                                importLauncher.launch(arrayOf("*/*"))
+                            },
+                            settingText = stringResource(R.string.button_import),
+                            toolTipText = stringResource(R.string.txt_importTooltip)
+                        )
                         // Export data
                         Box(
                             modifier = Modifier
@@ -202,42 +217,51 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             contentAlignment = Alignment.CenterStart
                         ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_export), style = MyTypography.bodyLarge) }
                         // Find covers
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(HEIGHT.dp)
-                                .clickable {
-                                    loading.value = true
-                                    scope.launch {
-                                        findBookCovers(
-                                            context = context,
-                                            books = books,
-                                            insertBook = bookVM::insertBook,
-                                            updateMangaSeriesId = bookVM::updateMangaSeriesId,
-                                            callBack = { failedBooks ->
-                                                loading.value = false
-                                                Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.toast_successfulCovers),
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                                if (failedBooks.isEmpty()) navigationActions.navigateTo(Route.HOME, true)
-                                                else {
-                                                    failedCovers.clear()
-                                                    failedCovers.addAll(failedBooks)
-                                                    coversVisible.value = true
-                                                }
+                        ToolTipRow(
+                            onSettingClick = {
+                                progressing.value = true
+                                scope.launch {
+                                    findBookCovers(
+                                        context = context,
+                                        books = books,
+                                        insertBook = bookVM::insertBook,
+                                        updateMangaSeriesId = bookVM::updateMangaSeriesId,
+                                        callBack = { failedBooks ->
+                                            progressing.value = false
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.toast_successfulCovers),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            if (failedBooks.isEmpty()) navigationActions.navigateTo(
+                                                Route.HOME,
+                                                true
+                                            )
+                                            else {
+                                                failedCovers.clear()
+                                                failedCovers.addAll(failedBooks)
+                                                coversVisible.value = true
                                             }
-                                        ) { isError ->
+                                        },
+                                        isError = { isError ->
                                             if (isError) {
-                                                loading.value = false
-                                                handleError(context, "An error occurred while finding covers.")
+                                                progressing.value = false
+                                                handleError(
+                                                    context,
+                                                    "An error occurred while finding covers."
+                                                )
                                             }
+                                        },
+                                        onProgress = { processedNb, totalNb ->
+                                            processed.intValue = processedNb
+                                            total.intValue = totalNb
                                         }
-                                    }
-                                },
-                            contentAlignment = Alignment.CenterStart
-                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_findCovers), style = MyTypography.bodyLarge) }
+                                    )
+                                }
+                            },
+                            settingText = stringResource(R.string.button_findCovers),
+                            toolTipText = stringResource(R.string.txt_coversTooltip)
+                        )
                         // Remove all covers
                         Box(
                             modifier = Modifier
@@ -249,7 +273,10 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                         bookVM.clearAllCovers({
                                             if (it) {
                                                 loading.value = false
-                                                handleError(context, "Failed to remove some covers.")
+                                                handleError(
+                                                    context,
+                                                    "Failed to remove some covers."
+                                                )
                                             }
                                         }) {
                                             loading.value = false
@@ -329,21 +356,6 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                 }
             }
 
-            // Import a CSV file instructions
-            if (importDialogue.value) {
-                CustomContentDialogWindow(
-                    visible = importDialogue,
-                    confirmText = stringResource(R.string.button_confirm),
-                    confirmColour = ValidGreen,
-                    onConfirm = { importLauncher.launch(arrayOf("*/*")) }
-                ) {
-                    Text(
-                        text = stringResource(R.string.txt_importInstructions),
-                        style = MyTypography.bodyLarge
-                    )
-                }
-            }
-
             // Report a bug dialog window
             if (reportVisible.value) {
                 CustomContentDialogWindow(
@@ -389,6 +401,102 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             height = 350.dp
                         )
                         Text(text = stringResource(R.string.txt_reportBugNote), style = MyTypography.bodyMedium)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ToolTipRow(
+    onSettingClick: () -> Unit,
+    settingText: String,
+    toolTipText: String
+) {
+    val showTooltip = remember { mutableStateOf(false) }
+    // to avoid frequent "double-click" issues
+    val lastDismissTime = remember { mutableLongStateOf(0L) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(HEIGHT.dp)
+            .clickable { onSettingClick() },
+        contentAlignment = Alignment.CenterStart
+    ) {
+        // Main text
+        Text(
+            modifier = Modifier.padding(start = OFFSET.dp),
+            text = settingText,
+            style = MyTypography.bodyLarge
+        )
+
+        // Info icon
+        Box(
+            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = stringResource(R.string.desc_tooltip),
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable {
+                        val now = SystemClock.uptimeMillis()
+                        val guardMs = 300L
+                        if (now - lastDismissTime.longValue > guardMs) {
+                            showTooltip.value = !showTooltip.value
+                        }
+                    }
+            )
+
+            if (showTooltip.value) {
+                Popup(
+                    alignment = Alignment.BottomEnd,
+                    offset = IntOffset(0, -100),
+                    onDismissRequest = {
+                        showTooltip.value = false
+                        lastDismissTime.longValue = SystemClock.uptimeMillis()
+                    }
+                ) {
+                    val bubbleColor = MaterialTheme.colorScheme.outline
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        // Tooltip bubble
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = bubbleColor,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = toolTipText,
+                                style = MyTypography.bodyLarge,
+                                color = MaterialTheme.colorScheme.inversePrimary
+                            )
+                        }
+
+                        // Triangle pointer
+                        Box(
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Canvas(modifier = Modifier.size(16.dp)) {
+                                val path = Path().apply {
+                                    moveTo(size.width / 2, size.height)
+                                    lineTo(0f, 0f)
+                                    lineTo(size.width, 0f)
+                                    close()
+                                }
+                                drawPath(path = path, color = bubbleColor)
+                            }
+                        }
                     }
                 }
             }

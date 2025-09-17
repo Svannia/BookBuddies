@@ -6,8 +6,8 @@
     <string name="button_confirm">Confirm</string>
     <string name="button_export">Export to CSV file</string>
     <string name="button_findCovers">Find covers</string>
-    <string name="button_removeCovers">Remove all covers</string>
     <string name="button_import">Import CSV file</string>
+    <string name="button_removeCovers">Remove all covers</string>
     <string name="button_send">Send</string>
     <string name="button_sendBug">Report a bug</string>
 
@@ -17,6 +17,7 @@
     <string name="desc_goBack">go back</string>
     <string name="desc_loading">loading</string>
     <string name="desc_textFieldIcon">text field icon</string>
+    <string name="desc_tooltip">tooltip info</string>
 
     <string name="dst_settings">Settings</string>
 
@@ -31,15 +32,19 @@
     <string name="toast_bugReport">Thank you for reporting the bug!</string>
     <string name="toast_emptyBugReport">Please describe the bug to send a report.</string>
     <string name="toast_invalidCSV">Invalid file type, please select a CSV document.</string>
-    <string name="toast_successfulCovers">All possible covers have been added!</string>
     <string name="toast_removeCovers">All covers have been deleted.</string>
+    <string name="toast_successfulCovers">All possible covers have been added!</string>
     <string name="toast_successfulImport">The books have been successfully imported!</string>
     <string name="toast_unknownError">There was an error.</string>
 
+    <string name="txt_coversProgress">Covers %1$d/%2$d</string>
     <string name="txt_iconsBy">"Icons by "</string>
-    <string name="txt_importInstructions">This functionality is made to import books from the app \"Book Catalogue\".\n
+    <string name="txt_importTooltip">This functionality is made to import books from the app \"Book Catalogue\".\n
         \nUse \"Admin &gt; Export to CSV file\" to get your backup in the correct format.\n
         \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
+    <string name="txt_coversTooltip">Concerning Manga covers:\n
+        \nIn order to get more results, please use the word \"manga\" within the corresponding books\' \"format\" field.\n
+        \nThis will trigger a different search mechanism for those volumes.</string>
     <string name="txt_noResults">You don\'t have any books yet.</string>
     <string name="txt_reportBugNote">Reporting a bug will also send this app\'s log files that it locally saved on your phone.</string>
     <string name="txt_systemDark">Dark</string>

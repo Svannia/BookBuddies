@@ -65,11 +65,14 @@ suspend fun findBookCovers(
     insertBook: suspend (Book) -> Unit,
     updateMangaSeriesId: suspend (String, String) -> Unit,
     callBack: (List<String>) -> Unit,
-    isError: (Boolean) -> Unit
+    isError: (Boolean) -> Unit,
+    onProgress: (Int, Int) -> Unit
 ) = coroutineScope {
     val semaphore = Semaphore(5) // max 5 parallel downloads to avoid DDOS the APIs that fetch book covers
     val failedBooks = mutableListOf<String>()
     val mutex = Mutex() // lock to protect access to failedBooks
+    val total = books.size
+    var processed = 0
 
     // parallelize the processes on all books over 5 threads
     try {
@@ -102,6 +105,13 @@ suspend fun findBookCovers(
                             Timber.tag("BookCover").d("Failed to process book ${book.uid} with error $e")
                         }
                         isError(true)
+                    } finally {
+                        mutex.withLock {
+                            processed++
+                            withContext(Dispatchers.Main) {
+                                onProgress(processed, total)
+                            }
+                        }
                     }
                 }
             }
