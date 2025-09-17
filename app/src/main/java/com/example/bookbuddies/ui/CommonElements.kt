@@ -1,5 +1,6 @@
 package com.example.bookbuddies.ui
 
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -10,6 +11,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -60,6 +64,7 @@ import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -68,7 +73,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookbuddies.R
 import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
@@ -477,6 +484,70 @@ fun CustomContentDialogWindow(
             }
         }
     )
+}
+
+@Composable
+fun Tooltip(showTooltip: MutableState<Boolean>, onIconClick: () -> Unit, extraOnDismiss: () -> Unit, toolTipText: String) {
+    // Info icon
+    Icon(
+        imageVector = Icons.Default.Info,
+        contentDescription = stringResource(R.string.desc_tooltip),
+        tint = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier
+            .size(20.dp)
+            .clickable { onIconClick() }
+    )
+
+    // Show tooltip popup
+    if (showTooltip.value) {
+        Popup(
+            alignment = Alignment.BottomEnd,
+            offset = IntOffset(0, -100),
+            onDismissRequest = {
+                showTooltip.value = false
+                extraOnDismiss()
+            }
+        ) {
+            val bubbleColor = MaterialTheme.colorScheme.outline
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp),
+                horizontalAlignment = Alignment.End
+            ) {
+                // Tooltip bubble
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = bubbleColor,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = toolTipText,
+                        style = MyTypography.bodyLarge,
+                        color = MaterialTheme.colorScheme.inversePrimary
+                    )
+                }
+
+                // Triangle pointer
+                Box(
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        val path = Path().apply {
+                            moveTo(size.width / 2, size.height)
+                            lineTo(0f, 0f)
+                            lineTo(size.width, 0f)
+                            close()
+                        }
+                        drawPath(path = path, color = bubbleColor)
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**

@@ -41,3 +41,7 @@ fun displayAuthors(authorsList: List<String>): String {
         }
     }
 }
+
+enum class BookSorting {
+    AUTHOR_SERIES, SERIES, TITLE, RECENTLY_ADDED, GENRE, RATING
+}

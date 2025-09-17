@@ -3,13 +3,38 @@ package com.example.bookbuddies.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.bookbuddies.data.Book
+import com.example.bookbuddies.data.BookSorting
 import com.example.bookbuddies.datastore.BookRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import java.io.File
 
 class BookViewModel(private val repository: BookRepository) : ViewModel() {
-    val allBooks = repository.allBooks
+    private val _bookSorting = MutableStateFlow(BookSorting.AUTHOR_SERIES)
+    val sorting: StateFlow<BookSorting> = _bookSorting
+
+    private val allBooks = repository.allBooks
+    val sortedBooks: Flow<List<Book>> = combine(allBooks, _bookSorting) { books, sorting ->
+        when (sorting) {
+            BookSorting.AUTHOR_SERIES -> books.sortedWith(
+                compareBy<Book> { it.authors.firstOrNull() ?: "" }
+                    .thenBy { it.seriesName }
+                    .thenBy { it.seriesNumber }
+            )
+            BookSorting.SERIES -> books.sortedWith(
+                compareBy<Book> { it.seriesName }
+                    .thenBy { it.seriesNumber }
+            )
+            BookSorting.TITLE -> books.sortedBy { it.title }
+            BookSorting.RECENTLY_ADDED -> books.sortedByDescending { it.dateAdded }
+            BookSorting.GENRE -> books.sortedBy { it.genre }
+            BookSorting.RATING -> books.sortedByDescending { it.rating }
+        }
+    }
 
     suspend fun getBookById(uid: String) = repository.getBookById(uid)
 
@@ -38,6 +63,10 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         }
         repository.insertBooks(clearedBooks)
         if (errorOccurred) isError(true) else callBack()
+    }
+
+    fun setSorting(newSorting: BookSorting) {
+        _bookSorting.value = newSorting
     }
 }
 

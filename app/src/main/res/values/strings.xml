@@ -18,6 +18,7 @@
     <string name="desc_loading">loading</string>
     <string name="desc_textFieldIcon">text field icon</string>
     <string name="desc_tooltip">tooltip info</string>
+    <string name="desc_filters">sorting and filters icon</string>
 
     <string name="dst_settings">Settings</string>
 
@@ -38,16 +39,19 @@
     <string name="toast_unknownError">There was an error.</string>
 
     <string name="txt_coversProgress">Covers %1$d/%2$d</string>
+    <string name="txt_coversTooltip">Concerning Manga covers:\n
+        \nIn order to get more results, please use the word \"manga\" within the corresponding books\' \"format\" field.\n
+        \nThis will trigger a different search mechanism for those volumes.</string>
     <string name="txt_iconsBy">"Icons by "</string>
     <string name="txt_importTooltip">This functionality is made to import books from the app \"Book Catalogue\".\n
         \nUse \"Admin &gt; Export to CSV file\" to get your backup in the correct format.\n
         \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
-    <string name="txt_coversTooltip">Concerning Manga covers:\n
-        \nIn order to get more results, please use the word \"manga\" within the corresponding books\' \"format\" field.\n
-        \nThis will trigger a different search mechanism for those volumes.</string>
     <string name="txt_noResults">You don\'t have any books yet.</string>
     <string name="txt_reportBugNote">Reporting a bug will also send this app\'s log files that it locally saved on your phone.</string>
     <string name="txt_systemDark">Dark</string>
     <string name="txt_systemDefault">System default</string>
     <string name="txt_systemLight">Light</string>
+    <string name="txt_unknownAuthor">Unknown Author</string>
+    <string name="txt_unknownGenre">Other</string>
+    <string name="txt_unknownSeries">Standalones</string>
 </resources>

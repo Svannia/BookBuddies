@@ -65,6 +65,7 @@ import com.example.bookbuddies.ui.CustomTextField
 import com.example.bookbuddies.ui.LoadingPage
 import com.example.bookbuddies.ui.ProgressBar
 import com.example.bookbuddies.ui.SecondaryScreen
+import com.example.bookbuddies.ui.Tooltip
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.BookViewModel
@@ -87,7 +88,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     val processed = remember { mutableIntStateOf(0) }
     val total = remember { mutableIntStateOf(0) }
 
-    val books by bookVM.allBooks.collectAsState(initial = emptyList())
+    val books by bookVM.sortedBooks.collectAsState(initial = emptyList())
 
     val coversVisible = remember { mutableStateOf(false) }
     val failedCovers = remember { mutableListOf<String>() }
@@ -352,6 +353,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                 }
                             }
                         }
+                        // TODO: add copy button
                     }
                 }
             }
@@ -436,70 +438,18 @@ fun ToolTipRow(
         Box(
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = stringResource(R.string.desc_tooltip),
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .size(20.dp)
-                    .clickable {
-                        val now = SystemClock.uptimeMillis()
-                        val guardMs = 300L
-                        if (now - lastDismissTime.longValue > guardMs) {
-                            showTooltip.value = !showTooltip.value
-                        }
+            Tooltip(
+                showTooltip = showTooltip,
+                onIconClick = {
+                    val now = SystemClock.uptimeMillis()
+                    val guardMs = 300L
+                    if (now - lastDismissTime.longValue > guardMs) {
+                        showTooltip.value = !showTooltip.value
                     }
+                },
+                extraOnDismiss = { lastDismissTime.longValue = SystemClock.uptimeMillis() },
+                toolTipText = toolTipText
             )
-
-            if (showTooltip.value) {
-                Popup(
-                    alignment = Alignment.BottomEnd,
-                    offset = IntOffset(0, -100),
-                    onDismissRequest = {
-                        showTooltip.value = false
-                        lastDismissTime.longValue = SystemClock.uptimeMillis()
-                    }
-                ) {
-                    val bubbleColor = MaterialTheme.colorScheme.outline
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp),
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        // Tooltip bubble
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = bubbleColor,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(12.dp)
-                        ) {
-                            Text(
-                                text = toolTipText,
-                                style = MyTypography.bodyLarge,
-                                color = MaterialTheme.colorScheme.inversePrimary
-                            )
-                        }
-
-                        // Triangle pointer
-                        Box(
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Canvas(modifier = Modifier.size(16.dp)) {
-                                val path = Path().apply {
-                                    moveTo(size.width / 2, size.height)
-                                    lineTo(0f, 0f)
-                                    lineTo(size.width, 0f)
-                                    close()
-                                }
-                                drawPath(path = path, color = bubbleColor)
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
