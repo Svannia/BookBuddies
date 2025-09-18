@@ -15,8 +15,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerState
@@ -46,6 +49,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -75,6 +79,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookbuddies.R
@@ -425,65 +430,56 @@ fun CustomTextField(
 @Composable
 fun CustomContentDialogWindow(
     visible: MutableState<Boolean>,
-    confirmText: String,
-    confirmColour: Color,
-    onConfirm: () -> Unit,
-    content: @Composable (() -> Unit)
+    content: @Composable (ColumnScope.() -> Unit),
+    bottomButtons: Boolean,
+    leftButtonContent: @Composable (RowScope.() -> Unit)? = null,
+    leftButtonOnClick: (() -> Unit)? = null,
+    rightButtonContent: @Composable (RowScope.() -> Unit)? = null,
+    rightButtonOnClick: (() -> Unit)? = null
 ) {
-    AlertDialog(
-        onDismissRequest = { visible.value = false },
-        text = content,
-        confirmButton = {
-            TextButton(
-                modifier = Modifier
-                    .border(
-                        width = 2.dp,
-                        color = confirmColour,
-                        shape = RoundedCornerShape(50)
-                    )
-                    .background(
-                        color = Color.Transparent,
-                        shape = RoundedCornerShape(50)
-                    ),
-                onClick = { onConfirm() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent
-                ),
-                shape = RoundedCornerShape(50)
+    Dialog(onDismissRequest = { visible.value = false }) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.outline,
+            tonalElevation = 0.dp,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start
             ) {
-                Text(
-                    text = confirmText,
-                    style = MyTypography.bodyLarge,
-                    color = confirmColour
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(
-                modifier = Modifier
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.inversePrimary,
-                        shape = RoundedCornerShape(50)
-                    )
-                    .background(
-                        color = Color.Transparent,
-                        shape = RoundedCornerShape(50)
-                    ),
-                onClick = { visible.value = false },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent
-                ),
-                shape = RoundedCornerShape(50)
-            ) {
-                Text(
-                    text = stringResource(R.string.button_cancel),
-                    style = MyTypography.bodyLarge,
-                    color = MaterialTheme.colorScheme.inversePrimary
-                )
+                content()
+                if (bottomButtons) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        if (leftButtonContent != null && leftButtonOnClick != null) {
+                            Button(
+                                modifier = Modifier.background(color = Color.Transparent, shape = RoundedCornerShape(50)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Transparent
+                                ),
+                                onClick = { leftButtonOnClick() }
+                            ) { leftButtonContent() }
+                        }
+                        if (rightButtonContent != null && rightButtonOnClick != null) {
+                            Button(
+                                modifier = Modifier.background(color = Color.Transparent, shape = RoundedCornerShape(50)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Transparent
+                                ),
+                                onClick = { rightButtonOnClick() }
+                            ) { rightButtonContent() }
+                        }
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable

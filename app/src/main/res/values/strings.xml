@@ -54,4 +54,6 @@
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownGenre">Other</string>
     <string name="txt_unknownSeries">Standalones</string>
+    <string name="desc_copy">copy button</string>
+    <string name="txt_failedCoversClipboard">Covers not found</string>
 </resources>
