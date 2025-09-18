@@ -3,7 +3,9 @@
     <string name="app_name">BookBuddies</string>
 
     <string name="button_cancel">Cancel</string>
+    <string name="button_collapseAll">Collapse all</string>
     <string name="button_confirm">Confirm</string>
+    <string name="button_expandAll">Expand all</string>
     <string name="button_export">Export to CSV file</string>
     <string name="button_findCovers">Find covers</string>
     <string name="button_import">Import CSV file</string>
@@ -12,13 +14,16 @@
     <string name="button_sendBug">Report a bug</string>
 
     <string name="desc_burgerMenu">burger menu</string>
+    <string name="desc_copy">copy button</string>
     <string name="desc_coverImage">book cover image</string>
     <string name="desc_dstIcon">destination icon</string>
+    <string name="desc_expandCollapse">Expand/collapse</string>
+    <string name="desc_filters">sorting and filters icon</string>
     <string name="desc_goBack">go back</string>
     <string name="desc_loading">loading</string>
+    <string name="desc_options">options menu</string>
     <string name="desc_textFieldIcon">text field icon</string>
     <string name="desc_tooltip">tooltip info</string>
-    <string name="desc_filters">sorting and filters icon</string>
 
     <string name="dst_settings">Settings</string>
 
@@ -28,6 +33,7 @@
     <string name="title_about">About</string>
     <string name="title_data">Book Data</string>
     <string name="title_failedCovers">The following covers have not been found:</string>
+    <string name="title_homeScreen">My Books</string>
     <string name="title_theme">Theme</string>
 
     <string name="toast_bugReport">Thank you for reporting the bug!</string>
@@ -42,6 +48,7 @@
     <string name="txt_coversTooltip">Concerning Manga covers:\n
         \nIn order to get more results, please use the word \"manga\" within the corresponding books\' \"format\" field.\n
         \nThis will trigger a different search mechanism for those volumes.</string>
+    <string name="txt_failedCoversClipboard">Covers not found</string>
     <string name="txt_iconsBy">"Icons by "</string>
     <string name="txt_importTooltip">This functionality is made to import books from the app \"Book Catalogue\".\n
         \nUse \"Admin &gt; Export to CSV file\" to get your backup in the correct format.\n
@@ -51,9 +58,18 @@
     <string name="txt_systemDark">Dark</string>
     <string name="txt_systemDefault">System default</string>
     <string name="txt_systemLight">Light</string>
+    <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
-    <string name="txt_unknownGenre">Other</string>
     <string name="txt_unknownSeries">Standalones</string>
-    <string name="desc_copy">copy button</string>
-    <string name="txt_failedCoversClipboard">Covers not found</string>
+    <string name="sorting_author"><![CDATA[Author > Series]]></string>
+    <string name="sorting_series">Series</string>
+    <string name="sorting_title">Title</string>
+    <string name="sorting_added">Recently added</string>
+    <string name="sorting_rating">Rating</string>
+    <string name="sorting_genre">Genre</string>
+    <string name="sorting_bought">Bought at</string>
+    <string name="sorting_language">Language</string>
+    <string name="sorting_format">Format</string>
+    <string name="title_sortBy">Sort by</string>
+    <string name="button_unread">Only unread</string>
 </resources>

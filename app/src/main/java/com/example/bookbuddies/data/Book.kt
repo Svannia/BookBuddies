@@ -1,7 +1,9 @@
 package com.example.bookbuddies.data
 
+import android.content.Context
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.bookbuddies.R
 
 @Entity(tableName = "books")
 data class Book(
@@ -43,5 +45,27 @@ fun displayAuthors(authorsList: List<String>): String {
 }
 
 enum class BookSorting {
-    AUTHOR_SERIES, SERIES, TITLE, RECENTLY_ADDED, GENRE, RATING
+    AUTHOR_SERIES, SERIES, TITLE, RECENTLY_ADDED, RATING, GENRE, LANGUAGE, FORMAT, BOUGHT_AT
+}
+
+val sortingsMap = mapOf(
+    BookSorting.AUTHOR_SERIES to R.string.sorting_author,
+    BookSorting.SERIES to R.string.sorting_series,
+    BookSorting.TITLE to R.string.sorting_title,
+    BookSorting.RECENTLY_ADDED to R.string.sorting_added,
+    BookSorting.RATING to R.string.sorting_rating,
+    BookSorting.GENRE to R.string.sorting_genre,
+    BookSorting.LANGUAGE to R.string.sorting_language,
+    BookSorting.FORMAT to R.string.sorting_format,
+    BookSorting.BOUGHT_AT to R.string.sorting_bought
+)
+
+fun BookSorting.getString(context: Context): String {
+    return context.getString(sortingsMap[this] ?: R.string.sorting_author)
+}
+
+fun String.getBookSorting(context: Context): BookSorting {
+    return sortingsMap.entries.firstOrNull {
+        context.getString(it.value) == this
+    }?.key ?: BookSorting.AUTHOR_SERIES
 }

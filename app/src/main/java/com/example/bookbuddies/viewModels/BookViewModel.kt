@@ -16,6 +16,8 @@ import java.io.File
 class BookViewModel(private val repository: BookRepository) : ViewModel() {
     private val _bookSorting = MutableStateFlow(BookSorting.AUTHOR_SERIES)
     val sorting: StateFlow<BookSorting> = _bookSorting
+    private val _onlyUnread = MutableStateFlow(false)
+    val onlyUnread: StateFlow<Boolean> = _onlyUnread
 
     private val allBooks = repository.allBooks
     val sortedBooks: Flow<List<Book>> = combine(allBooks, _bookSorting) { books, sorting ->
@@ -31,8 +33,11 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             )
             BookSorting.TITLE -> books.sortedBy { it.title }
             BookSorting.RECENTLY_ADDED -> books.sortedByDescending { it.dateAdded }
-            BookSorting.GENRE -> books.sortedBy { it.genre }
             BookSorting.RATING -> books.sortedByDescending { it.rating }
+            BookSorting.GENRE -> books.sortedBy { it.genre }
+            BookSorting.LANGUAGE -> books.sortedBy { it.language }
+            BookSorting.FORMAT -> books.sortedBy { it.format }
+            BookSorting.BOUGHT_AT -> books.sortedBy { it.boughtAt }
         }
     }
 
@@ -67,6 +72,10 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     fun setSorting(newSorting: BookSorting) {
         _bookSorting.value = newSorting
+    }
+
+    fun switchUnreadFilter() {
+        _onlyUnread.value = !_onlyUnread.value
     }
 }
 

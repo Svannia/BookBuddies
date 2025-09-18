@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,6 +67,7 @@ import com.example.bookbuddies.ui.CustomTextField
 import com.example.bookbuddies.ui.LoadingPage
 import com.example.bookbuddies.ui.ProgressBar
 import com.example.bookbuddies.ui.SecondaryScreen
+import com.example.bookbuddies.ui.ToggleBox
 import com.example.bookbuddies.ui.Tooltip
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
@@ -540,43 +542,18 @@ private fun ToggleOptions(numberChoices: Int, currentChoice: MutableState<String
     var toggledIndex by remember { mutableIntStateOf(choicesNames.indexOf(currentChoice.value)) }
 
     for (i in 0 until numberChoices) {
-        ToggleBox(choicesNames[i], toggledIndex == i) {
+        ToggleBox(
+            isRadio = true,
+            boxHeight = HEIGHT.dp,
+            rowPadding = PaddingValues(start = OFFSET.dp, end = 14.dp),
+            rowSpacing = 16.dp,
+            optionText = choicesNames[i],
+            textStyle = MyTypography.bodyLarge,
+            isToggled = toggledIndex == i
+        ) {
             toggledIndex = i
             currentChoice.value = choicesNames[i]
             onToggle(choicesNames[i])
-        }
-    }
-}
-
-/**
- * Creates the layout of a single option within a list of options that can be selected / toggled on.
- *
- * @param name displayed as the option's name
- * @param isToggled whether this specific option is toggled on or not
- * @param onToggle block that runs if this option is toggled on
- */
-@Composable
-private fun ToggleBox(name: String, isToggled: Boolean, onToggle: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(HEIGHT.dp)
-            .clickable { onToggle() },
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = OFFSET.dp, end = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                modifier = Modifier.size(20.dp),
-                selected = isToggled,
-                onClick = { onToggle() },
-                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary))
-            Text(text = name, style = MyTypography.bodyLarge)
         }
     }
 }

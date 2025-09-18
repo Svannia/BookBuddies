@@ -445,7 +445,7 @@ suspend fun importBooksFromCsv(
 
     for (cols in allLines.drop(1)) {
         val authors = getCol(cols, "author_details")
-            .split("|").map { it.trim() }.filter { it.isNotEmpty() }
+            .split("|").map { it.trim().trimEnd(',') }.filter { it.isNotEmpty() }
 
         val seriesDetails = getCol(cols, "series_details")
         // ^...$ -> string start and end, (.*?) -> series name (non-greedy), (?:...) -> non-capturing group, \s* -> optional whitespace, \( -> literal '(', (\d+) -> series number, \) -> literal ')'
