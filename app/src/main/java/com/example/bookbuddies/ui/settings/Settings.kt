@@ -56,6 +56,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.datastore.ThemeChoice
+import com.example.bookbuddies.datastore.exportBooksToCSV
 import com.example.bookbuddies.datastore.findBookCovers
 import com.example.bookbuddies.datastore.importBooksFromCsv
 import com.example.bookbuddies.errors.handleError
@@ -77,6 +78,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 
 private const val HEIGHT = 52
@@ -98,7 +100,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     val failedCovers = remember { mutableListOf<String>() }
     val clipboard = LocalClipboard.current
 
-    // storage access permission
+    // launcher to access files for importing
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
@@ -123,7 +125,6 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
 
                         // import file data into BookRepository
                         importBooksFromCsv(
-                            context,
                             tempFile,
                             bookVM::insertBooks,
                             bookVM::getBookById,
@@ -143,12 +144,36 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                         }
                     } else {
                         loading.value = false
+                        Timber.tag("BookImport").d("Could not open file, input stream is null.")
                         handleError(context, "Failed to open the selected file.")
                     }
                 }
             } else {
                 Toast.makeText(context,
                     context.getString(R.string.toast_invalidCSV), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // launcher to access files for exporting
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        val outputArray = exportBooksToCSV(books)
+                        outputStream.write(outputArray)
+                    }
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.toast_successfulExport), Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: Exception) {
+                    Timber.tag("BookExport").d("Failed to export with error $e")
+                    handleError(context, "Failed to export books as a CSV file.")
+                }
             }
         }
     }
@@ -218,7 +243,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                 .fillMaxWidth()
                                 .height(HEIGHT.dp)
                                 .clickable {
-                                    // TODO
+                                    exportLauncher.launch("myBooks.csv")
                                 },
                             contentAlignment = Alignment.CenterStart
                         ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_export), style = MyTypography.bodyLarge) }

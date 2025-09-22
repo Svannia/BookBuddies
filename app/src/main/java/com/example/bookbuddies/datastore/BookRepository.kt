@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.example.bookbuddies.data.Book
+import com.example.bookbuddies.data.DateFormat
+import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.errors.handleError
 import com.opencsv.CSVReader
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +52,27 @@ class BookRepository(context: Context) {
     suspend fun deleteBook(book: Book) = bookDao.deleteBook(book)
     suspend fun deleteAll() = bookDao.deleteAll()
 }
+
+// CSV Headers
+const val NUMBER_ID = "_id"
+const val AUTHOR = "author_details"
+const val TITLE = "title"
+const val ISBN = "isbn"
+const val PUBLISHER = "publisher"
+const val DATE_PUBLISHED = "date_published"
+const val RATING = "rating"
+const val READ = "read"
+const val SERIES = "series_details"
+const val LOCATION = "location"
+const val START = "read_start"
+const val END = "read_end"
+const val FORMAT = "format"
+const val DESCRIPTION = "description"
+const val GENRE = "genre"
+const val LANGUAGE = "language"
+const val DATE_ADDED = "date_added"
+const val UUID = "book_uuid"
+
 
 /**
  * Uses books ISBN to find and replace their covers.
@@ -405,7 +428,6 @@ private fun saveBitmapToFile(context: Context, bitmap: Bitmap, uid: String): Str
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
  */
 suspend fun importBooksFromCsv(
-    context: Context,
     file: File,
     insertBooks: suspend (List<Book>) -> Unit,
     getBookById: suspend (String) -> Book?,
@@ -431,7 +453,7 @@ suspend fun importBooksFromCsv(
     fun getCol(cols: Array<String>, name: String): String {
         val idx = columnIndex[name]
         if (idx == null) {
-            handleError(context, "Column name $name not found for book number ${cols[0]}")
+            Timber.tag("BookImport").d("Column name $name not found for book number ${cols[0]}")
             errorOccurred = true
             return ""
         }
@@ -444,59 +466,59 @@ suspend fun importBooksFromCsv(
     Timber.tag("BookImport").d("Found ${allLines.size - 1} books to import")
 
     for (cols in allLines.drop(1)) {
-        val authors = getCol(cols, "author_details")
+        val authors = getCol(cols, AUTHOR)
             .split("|").map { it.trim().trimEnd(',') }.filter { it.isNotEmpty() }
 
-        val seriesDetails = getCol(cols, "series_details")
+        val seriesDetails = getCol(cols, SERIES)
         // ^...$ -> string start and end, (.*?) -> series name (non-greedy), (?:...) -> non-capturing group, \s* -> optional whitespace, \( -> literal '(', (\d+) -> series number, \) -> literal ')'
         val seriesRegex = Regex("""^(.*?)(?:\s*\((\d+)\))?$""")
         val (seriesName, seriesNumber) = seriesRegex.find(seriesDetails)?.destructured?.let { (name, number) ->
             name.trim() to (number.toIntOrNull() ?: -1) // set series number to -1 if not available
         } ?: (seriesDetails.trim() to -1)
 
-        val publishedDate = parseDate(getCol(cols, "date_published")) { isError ->
+        val publishedDate = parseDate(getCol(cols, DATE_PUBLISHED)) { isError ->
             isError(isError)
             errorOccurred = true
         } ?: 0L
 
-        val readValue = getCol(cols, "read").trim()
+        val readValue = getCol(cols, READ).trim()
         val read = (readValue == "1")
 
-        val dateStarted = parseDate(getCol(cols, "date_published")) { isError ->
+        val dateStarted = parseDate(getCol(cols, START)) { isError ->
             isError(isError)
             errorOccurred = true
         } ?: 0L
-        val dateFinished = parseDate(getCol(cols, "date_published")) { isError ->
+        val dateFinished = parseDate(getCol(cols, END)) { isError ->
             isError(isError)
             errorOccurred = true
         } ?: 0L
-        val dateAdded = parseAddedDate(getCol(cols, "date_added")) { isError ->
+        val dateAdded = parseAddedDate(getCol(cols, DATE_ADDED)) { isError ->
             isError(isError)
             errorOccurred = true
         } ?: System.currentTimeMillis()
 
-        val uid = getCol(cols, "book_uuid")
+        val uid = getCol(cols, UUID)
         val existingBook = getBookById(uid)
 
         val book = Book(
             uid = uid,
-            isbn = getCol(cols, "isbn"),
-            title = getCol(cols, "title"),
+            isbn = getCol(cols, ISBN),
+            title = getCol(cols, TITLE),
             authors = authors,
             cover = existingBook?.cover,
             seriesName = seriesName,
             seriesNumber = seriesNumber,
-            description = getCol(cols, "description"),
-            genre = getCol(cols, "genre"),
-            publisher = getCol(cols, "publisher"),
+            description = getCol(cols, DESCRIPTION),
+            genre = getCol(cols, GENRE),
+            publisher = getCol(cols, PUBLISHER),
             publishedDate = publishedDate,
-            rating = getCol(cols, "rating").toDouble(),
-            language = getCol(cols, "language"),
-            format = getCol(cols, "format"),
+            rating = getCol(cols, RATING).toDouble(),
+            language = getCol(cols, LANGUAGE),
+            format = getCol(cols, FORMAT),
             read = read,
             dateStarted = dateStarted,
             dateFinished = dateFinished,
-            boughtAt = getCol(cols, "location"),
+            boughtAt = getCol(cols, LOCATION),
             dateAdded = dateAdded
         )
         books.add(book)
@@ -508,9 +530,91 @@ suspend fun importBooksFromCsv(
     if (!errorOccurred) isError(false)
 }
 
+fun exportBooksToCSV(books: List<Book>): ByteArray {
+    // start writing CSV file
+    val csvBuilder = StringBuilder()
+
+    // add header row
+    csvBuilder.append(
+        "$NUMBER_ID," +
+        "$AUTHOR," +
+        "$TITLE," +
+        "$ISBN," +
+        "$PUBLISHER," +
+        "$DATE_PUBLISHED," +
+        "$RATING," +
+        "$READ," +
+        "$SERIES," +
+        "$LOCATION," +
+        "$START," +
+        "$END," +
+        "$FORMAT," +
+        "$DESCRIPTION," +
+        "$GENRE," +
+        "$LANGUAGE," +
+        "$DATE_ADDED," +
+        UUID + "\n"
+    )
+
+    // add each book in RECENTLY_ADDED order
+    val recentSortedBooks = books.sortedBy { it.dateAdded }
+    for ((index, book) in recentSortedBooks.withIndex()) {
+        csvBuilder.append("$index,")
+
+        val authors = escapeCSVchar(book.authors.joinToString(" | "))
+        csvBuilder.append("$authors,")
+
+        csvBuilder.append("${escapeCSVchar(book.title)},")
+        csvBuilder.append("${book.isbn},")
+        csvBuilder.append("${escapeCSVchar(book.publisher)},")
+
+        val datePublished = displayDate(book.publishedDate, DateFormat.NUMBERED_REVERSE)
+        csvBuilder.append("$datePublished,")
+
+        csvBuilder.append("${book.rating},")
+
+        val read = if (book.read) "1" else "0"
+        csvBuilder.append("$read,")
+
+        val series = if (book.seriesName.isBlank()) ""
+            else escapeCSVchar(book.seriesName) +
+                if (book.seriesNumber >= 0) " (${book.seriesNumber})" else ""
+        csvBuilder.append("$series,")
+
+        csvBuilder.append("${escapeCSVchar(book.boughtAt)},")
+
+        val dateStart = displayDate(book.dateStarted, DateFormat.NUMBERED_REVERSE)
+        csvBuilder.append("$dateStart,")
+
+        val dateEnd = displayDate(book.dateFinished, DateFormat.NUMBERED_REVERSE)
+        csvBuilder.append("$dateEnd,")
+
+        csvBuilder.append("${escapeCSVchar(book.format)},")
+        csvBuilder.append("${escapeCSVchar(book.description)},")
+        csvBuilder.append("${escapeCSVchar(book.genre)},")
+        csvBuilder.append("${escapeCSVchar(book.language)},")
+
+        val dateAdded = displayDate(book.dateAdded, DateFormat.NUMBERED_WITH_TIME)
+        csvBuilder.append("$dateAdded,")
+
+        csvBuilder.append("${book.uid}\n")
+    }
+
+    val output = csvBuilder.toString().toByteArray()
+    Timber.tag("BookExport").d("All books successfully written on export file.")
+
+    return output
+}
+
+private fun escapeCSVchar(text: String): String {
+    val needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n")
+    val escaped = text.replace("\"", "\"\"")
+    return if (needsQuotes) "\"$escaped\"" else escaped
+}
+
 /**
  * Parses a date string into a Long (milliseconds since epoch).
- * The date can be of format "yyyy-MM-dd", "yyyy-MM", "yyyy" or ISO 8601 (yyyy-MM-ddTHH:mm:ssZ).
+ * The date can be of format "dd/mm/yyyy", "yyyy/mm/dd", "yyyy-MM-dd", "yyyy-MM", "yyyy" or ISO 8601 (yyyy-MM-ddTHH:mm:ssZ).
  *
  * @param dateStr the date string to parse
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
@@ -540,6 +644,21 @@ private fun parseDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
                     ldt.atZone(ZoneOffset.UTC).toInstant().toEpochMilli()
                 }
             }
+            str.matches(Regex("""\d{2}/\d{2}/\d{4}""")) -> { // dd/mm/yyyy
+                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                val locale = LocalDate.parse(str, formatter)
+                locale.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+            }
+            str.matches(Regex("""\d{4}/\d{2}/\d{2}""")) -> { // yyyy/mm/dd
+                val formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd")
+                val locale = LocalDate.parse(str, formatter)
+                locale.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+            }
+            str.matches(Regex("""[A-Za-z]+ \d{1,2}, \d{4}""")) -> { // MMMM d, yyyy
+                val formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
+                val locale = LocalDate.parse(str, formatter)
+                locale.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+            }
             else -> {
                 Timber.tag("BookImport").d("Unknown date format: $str")
                 isError(true)
@@ -555,22 +674,46 @@ private fun parseDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
 
 /**
  * Parses a date string into a Long (milliseconds since epoch).
- * The date is of format dd/mm/yyyy hh:mm.
+ * The date is of format dd/mm/yyyy hh:mm or dd-MM-yyyy HH:mm.
  *
  * @param dateStr the date string to parse
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
  * @return the parsed date in milliseconds since epoch, or null if parsing failed
  */
 private fun parseAddedDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
-    if (dateStr.isBlank()) return null
-
-    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault())
+    val str = dateStr.trim()
+    if (str.isBlank()) return null
 
     return try {
-        val localDateTime = LocalDateTime.parse(dateStr, formatter)
-        localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+        when {
+            str.matches(Regex("""\d{2}/\d{2}/\d{4} \d{2}:\d{2}(:\d{2})?""")) -> { // dd/MM/yyyy HH:mm
+                val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm[:ss]", Locale.getDefault())
+                val localDateTime = LocalDateTime.parse(str, formatter)
+                localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+            }
+            str.matches(Regex("""\d{4}/\d{2}/\d{2} \d{2}:\d{2}(:\d{2})?""")) -> { // yyyy/MM/dd HH:mm
+                val formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm[:ss]", Locale.getDefault())
+                val localDateTime = LocalDateTime.parse(str, formatter)
+                localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+            }
+            str.matches(Regex("""\d{2}-\d{2}-\d{4} \d{2}:\d{2}(:\d{2})?""")) -> { // dd-MM-yyyy HH:mm
+                val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm[:ss]", Locale.getDefault())
+                val localDateTime = LocalDateTime.parse(str, formatter)
+                localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+            }
+            str.matches(Regex("""\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?""")) -> { // yyyy-MM-dd HH:mm
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm[:ss]", Locale.getDefault())
+                val localDateTime = LocalDateTime.parse(str, formatter)
+                localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+            }
+            else -> {
+                Timber.tag("BookImport").d("Unknown added date format: $str")
+                isError(true)
+                null
+            }
+        }
     } catch (e: DateTimeParseException) {
-        Timber.tag("BookImport").d("Failed to parse added date: $dateStr with error $e")
+        Timber.tag("BookImport").d("Failed to parse added date: $str with error $e")
         isError(true)
         null
     }

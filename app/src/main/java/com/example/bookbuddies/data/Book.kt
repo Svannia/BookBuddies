@@ -1,9 +1,13 @@
 package com.example.bookbuddies.data
 
 import android.content.Context
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.migration.Migration
 import com.example.bookbuddies.R
+import java.util.Calendar
+import java.util.Locale
 
 @Entity(tableName = "books")
 data class Book(
@@ -42,6 +46,50 @@ fun displayAuthors(authorsList: List<String>): String {
             author
         }
     }
+}
+
+fun displayDate(date: Long, format: DateFormat): String {
+    if (date <= 0L) return ""
+    val calendar = Calendar.getInstance().apply { timeInMillis = date }
+    val locale = Locale.getDefault()
+
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+    val longMonth = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, locale)
+    val shortMonth = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, locale)
+    val year = calendar.get(Calendar.YEAR)
+
+    return when (format) {
+        DateFormat.FULL_DATE -> {
+            "$day $longMonth $year"
+        }
+        DateFormat.FULL_SHORT_DATE -> {
+            "$day $shortMonth $year"
+        }
+        DateFormat.MONTH_YEAR -> {
+            "$longMonth $year"
+        }
+        DateFormat.NUMBERED -> {
+            val numberDay = day.toString().padStart(2, '0')
+            val numberMonth = (calendar.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
+            "$numberDay/$numberMonth/$year"
+        }
+        DateFormat.NUMBERED_REVERSE -> {
+            val numberDay = day.toString().padStart(2, '0')
+            val numberMonth = (calendar.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
+            "$year/$numberMonth/$numberDay"
+        }
+        DateFormat.NUMBERED_WITH_TIME -> {
+            val numberDay = day.toString().padStart(2, '0')
+            val numberMonth = (calendar.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
+            val hour = calendar.get(Calendar.HOUR_OF_DAY).toString().padStart(2, '0')
+            val minute = calendar.get(Calendar.MINUTE).toString().padStart(2, '0')
+            "$numberDay/$numberMonth/$year $hour:$minute"
+        }
+    }
+}
+
+enum class DateFormat {
+    FULL_DATE, FULL_SHORT_DATE, MONTH_YEAR, NUMBERED, NUMBERED_REVERSE, NUMBERED_WITH_TIME
 }
 
 enum class BookSorting {

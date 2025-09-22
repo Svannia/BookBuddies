@@ -49,7 +49,9 @@ import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
+import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.displayAuthors
+import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.data.getBookSorting
 import com.example.bookbuddies.data.getString
 import com.example.bookbuddies.ui.CoverImage
@@ -532,13 +534,10 @@ private fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSor
             book.title.firstOrNull()?.uppercaseChar()?.toString() ?: "#"
         }
         BookSorting.RECENTLY_ADDED -> filteredBooks.groupBy { book ->
-            val calendar = Calendar.getInstance().apply { timeInMillis = book.dateAdded }
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault())
-            "$month $year"
+            displayDate(book.dateAdded, DateFormat.MONTH_YEAR)
         }
         BookSorting.RATING -> filteredBooks.groupBy { book ->
-            val rounded = book.rating.toInt().coerceIn(1, 5)
+            val rounded = book.rating.toInt().coerceIn(0, 5)
             "$rounded ★"
         }
         BookSorting.GENRE -> filteredBooks.groupBy { book ->
