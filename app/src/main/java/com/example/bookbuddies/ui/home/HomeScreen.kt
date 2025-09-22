@@ -1,6 +1,7 @@
 package com.example.bookbuddies.ui.home
 
 import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.MarqueeSpacing
 import androidx.compose.foundation.background
@@ -16,9 +17,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -39,12 +43,16 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.bookbuddies.navigation.NavigationActions
@@ -60,22 +68,38 @@ import com.example.bookbuddies.data.displayAuthors
 import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.data.getBookSorting
 import com.example.bookbuddies.data.getString
+import com.example.bookbuddies.datastore.findBookCovers
+import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.ui.CoverImage
+import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.FastScroll
 import com.example.bookbuddies.ui.OptionsMenu
+import com.example.bookbuddies.ui.ProgressBar
 import com.example.bookbuddies.ui.SingleOptionList
 import com.example.bookbuddies.ui.ToggleBox
+import com.example.bookbuddies.ui.settings.copyToClipboard
 import com.example.bookbuddies.ui.theme.MyTypography
+import com.example.bookbuddies.ui.theme.ValidGreen
+import kotlinx.coroutines.launch
 import kotlin.collections.mutableListOf
 
 @Composable
 fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     val loading = remember { mutableStateOf(false) }
     val books by bookVM.sortedBooks.collectAsState(emptyList())
     val sorting by bookVM.sorting.collectAsState()
     val onlyUnread by bookVM.onlyUnread.collectAsState()
+
+    val progressing = remember { mutableStateOf(false) }
+    val processed = remember { mutableIntStateOf(0) }
+    val total = remember { mutableIntStateOf(0) }
+    val coversVisible = remember { mutableStateOf(false) }
+    val failedCovers = remember { mutableListOf<String>() }
+    val clipboard = LocalClipboard.current
 
     // expanded state of each group, re-initialized when the sorting or book entries are changed
     val expandedStates = remember { mutableStateMapOf<String, Boolean>() }
@@ -129,7 +153,12 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
 
     BackHandler {
         navigationActions.navigateTo(Route.HOME, true)
-        if (selectionModeActive.value) selectionModeActive.value = false
+        if (selectionModeActive.value) {
+            selectionModeActive.value = false
+            selectedEntries.keys.forEach { key ->
+                selectedEntries[key] = false
+            }
+        }
     }
 
     // Expand/collapse all
@@ -172,6 +201,8 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     ) { paddingValues ->
         if (loading.value) {
             MiniLoading(paddingValues)
+        } else if (progressing.value) {
+            ProgressBar(processed.intValue, total.intValue)
         } else {
             Column(
                 modifier = Modifier
@@ -221,9 +252,92 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                         ) {
                             OptionsMenu(
                                 icon = R.drawable.options,
-                                stringResource(R.string.button_markAsRead) to { /*todo*/ },
-                                stringResource(R.string.button_addCover) to { /*todo*/ },
-                                stringResource(R.string.button_removeCover) to { /*todo*/ }
+                                // option to mark some books as read
+                                stringResource(R.string.button_markAsRead) to {
+                                    scope.launch {
+                                        val booksToUpdate = books.filter { selectedEntries[it.uid] == true }
+                                        booksToUpdate.forEach { book ->
+                                            bookVM.updateRead(true, book)
+                                        }
+                                        selectionModeActive.value = false
+                                        selectedEntries.keys.forEach { key ->
+                                            selectedEntries[key] = false
+                                        }
+                                    }
+                                },
+                                // option to add some covers
+                                stringResource(R.string.button_addCover) to {
+                                    progressing.value = true
+                                    scope.launch {
+                                        findBookCovers(
+                                            context = context,
+                                            books = books.filter { selectedEntries[it.uid] == true },
+                                            insertBook = bookVM::insertBook,
+                                            updateMangaSeriesId = bookVM::updateMangaSeriesId,
+                                            callBack = { failedBooks ->
+                                                progressing.value = false
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.toast_successfulCovers),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                if (failedBooks.isEmpty()) {
+                                                    selectionModeActive.value = false
+                                                    selectedEntries.keys.forEach { key ->
+                                                        selectedEntries[key] = false
+                                                    }
+                                                }
+                                                else {
+                                                    failedCovers.clear()
+                                                    failedCovers.addAll(failedBooks)
+                                                    failedCovers.sortBy { it }
+                                                    coversVisible.value = true
+                                                }
+                                            },
+                                            isError = { isError ->
+                                                if (isError) {
+                                                    progressing.value = false
+                                                    handleError(
+                                                        context,
+                                                        "An error occurred while finding covers."
+                                                    )
+                                                }
+                                            },
+                                            onProgress = { processedNb, totalNb ->
+                                                processed.intValue = processedNb
+                                                total.intValue = totalNb
+                                            }
+                                        )
+                                    }
+                                },
+                                // option to remove some covers
+                                stringResource(R.string.button_removeCover) to {
+                                    loading.value = true
+                                    scope.launch {
+                                        bookVM.clearCovers(
+                                            books.filter { selectedEntries[it.uid] == true },
+                                            {
+                                            if (it) {
+                                                loading.value = false
+                                                handleError(
+                                                    context,
+                                                    "Failed to remove some covers."
+                                                )
+                                            }
+                                        }) {
+                                            loading.value = false
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.toast_removeSomeCovers),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            selectionModeActive.value = false
+                                            selectedEntries.keys.forEach { key ->
+                                                selectedEntries[key] = false
+                                            }
+                                        }
+                                    }
+                                }
                             )
                             IconButton(
                                 onClick = {
@@ -364,7 +478,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     }
                 }
 
-
+                // popup with sorting options
                 if (showFilters.value) {
                     Dialog(onDismissRequest = { showFilters.value = false }) {
                         Surface(
@@ -412,6 +526,62 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             }
                         }
                     }
+                }
+
+                // List of failed covers
+                if (coversVisible.value) {
+                    CustomContentDialogWindow(
+                        visible = coversVisible,
+                        content = {
+                            Text(
+                                text = context.getString(R.string.title_failedCovers),
+                                style = MyTypography.titleSmall,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.inversePrimary, thickness = 1.5.dp)
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentHeight()
+                                    .heightIn(max = 350.dp),
+                                horizontalAlignment = Alignment.Start
+                            ) {
+                                failedCovers.forEach { cover ->
+                                    item {
+                                        Text(text = cover, style = MyTypography.bodyMedium)
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.inversePrimary, thickness = 1.5.dp)
+                        },
+                        bottomButtons = true,
+                        leftButtonContent = {
+                            Icon(
+                                modifier = Modifier.size(22.dp),
+                                painter = painterResource(R.drawable.copy),
+                                tint = MaterialTheme.colorScheme.inversePrimary,
+                                contentDescription = stringResource(R.string.desc_copy)
+                            )
+                        },
+                        leftButtonOnClick = {
+                            val coversText = failedCovers.joinToString("\n")
+                            copyToClipboard(context, coversText, clipboard, scope)
+                        },
+                        rightButtonContent = {
+                            Text(
+                                text = stringResource(R.string.button_confirm),
+                                style = MyTypography.bodyLarge,
+                                color = ValidGreen
+                            )
+                        },
+                        rightButtonOnClick = {
+                            coversVisible.value = false
+                            selectionModeActive.value = false
+                            selectedEntries.keys.forEach { key ->
+                                selectedEntries[key] = false
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -480,20 +650,21 @@ private fun BookEntry(
             .fillMaxWidth()
             .combinedClickable(
                 onClick = {
-                    if (selectionModeActive.value) selectedEntries[book.uid] = !selectedEntries[book.uid]!!
+                    if (selectionModeActive.value) selectedEntries[book.uid] =
+                        !selectedEntries[book.uid]!!
                     else onClick()
                 },
                 onLongClick = {
                     selectionModeActive.value = true
                     selectedEntries[book.uid] = true
                 }
-            ),
-        contentAlignment = Alignment.CenterStart
+            )
     ) {
         Row (
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 3.dp),
+                .padding(start = 16.dp, end = 46.dp, top = 3.dp, bottom = 3.dp)
+                .align(Alignment.CenterStart),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
@@ -520,7 +691,9 @@ private fun BookEntry(
             ) {
                 Text(
                     text = book.title,
-                    style = MyTypography.bodyLarge
+                    style = MyTypography.bodyLarge,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
                 val authors = displayAuthors(book.authors)
                 if (authors.isNotBlank()) {
@@ -530,6 +703,21 @@ private fun BookEntry(
                         color = MaterialTheme.colorScheme.outline
                     )
                 }
+            }
+        }
+        if (book.read) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    modifier = Modifier.size(22.dp),
+                    painter = painterResource(R.drawable.tick),
+                    contentDescription = stringResource(R.string.desc_read)
+                )
             }
         }
     }

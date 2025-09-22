@@ -481,7 +481,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     }
 }
 
-private fun copyToClipboard(context: Context, text: String, clipboard: Clipboard, coroutineScope: CoroutineScope) {
+fun copyToClipboard(context: Context, text: String, clipboard: Clipboard, coroutineScope: CoroutineScope) {
     coroutineScope.launch {
         val clipData = ClipData.newPlainText(context.getString(R.string.txt_failedCoversClipboard), text)
         val clipEntry: ClipEntry = clipData.toClipEntry()

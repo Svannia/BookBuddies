@@ -56,6 +56,7 @@
     <string name="toast_emptyBugReport">Please describe the bug to send a report.</string>
     <string name="toast_invalidCSV">Invalid file type, please select a CSV document.</string>
     <string name="toast_removeCovers">All covers have been deleted.</string>
+    <string name="toast_removeSomeCovers">The selected covers have been deleted.</string>
     <string name="toast_successfulCovers">All possible covers have been added!</string>
     <string name="toast_successfulExport">The books have been successfully exported</string>
     <string name="toast_successfulImport">The books have been successfully imported!</string>
@@ -79,4 +80,5 @@
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
     <string name="txt_nbSelected">%1$d selected</string>
+    <string name="desc_read">is read</string>
 </resources>

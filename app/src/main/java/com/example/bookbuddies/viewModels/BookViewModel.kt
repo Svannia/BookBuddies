@@ -50,11 +50,10 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     suspend fun updateMangaSeriesId(seriesName: String, mangaId: String) =
         repository.updateMangaSeriesId(seriesName, mangaId)
 
-    suspend fun clearAllCovers(isError: (Boolean) -> Unit, callBack: () -> Unit) {
-        val currentBooks = allBooks.first()
+    suspend fun clearCovers(booksToClear: List<Book>, isError: (Boolean) -> Unit, callBack: () -> Unit) {
         var errorOccurred = false
 
-        val clearedBooks = currentBooks.map { book ->
+        val clearedBooks = booksToClear.map { book ->
             book.cover?.let { path ->
                 try {
                     val file = File(path)
@@ -68,6 +67,16 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         }
         repository.insertBooks(clearedBooks)
         if (errorOccurred) isError(true) else callBack()
+    }
+
+    suspend fun clearAllCovers(isError: (Boolean) -> Unit, callBack: () -> Unit) {
+        val currentBooks = allBooks.first()
+        clearCovers(currentBooks, { isError(it) }, { callBack() })
+    }
+
+    suspend fun updateRead(isRead: Boolean, book: Book) {
+        val updatedBook = book.copy(read = isRead)
+        repository.insertBook(updatedBook)
     }
 
     fun setSorting(newSorting: BookSorting) {

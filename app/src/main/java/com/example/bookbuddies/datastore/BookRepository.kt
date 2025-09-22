@@ -97,6 +97,7 @@ suspend fun findBookCovers(
     val total = books.size
     var processed = 0
 
+    onProgress(processed, total)
     // parallelize the processes on all books over 5 threads
     try {
         val jobs = books.map { book ->
@@ -561,12 +562,12 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
     for ((index, book) in recentSortedBooks.withIndex()) {
         csvBuilder.append("$index,")
 
-        val authors = escapeCSVchar(book.authors.joinToString(" | "))
+        val authors = escapeCSVChar(book.authors.joinToString(" | "))
         csvBuilder.append("$authors,")
 
-        csvBuilder.append("${escapeCSVchar(book.title)},")
+        csvBuilder.append("${escapeCSVChar(book.title)},")
         csvBuilder.append("${book.isbn},")
-        csvBuilder.append("${escapeCSVchar(book.publisher)},")
+        csvBuilder.append("${escapeCSVChar(book.publisher)},")
 
         val datePublished = displayDate(book.publishedDate, DateFormat.NUMBERED_REVERSE)
         csvBuilder.append("$datePublished,")
@@ -577,11 +578,11 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
         csvBuilder.append("$read,")
 
         val series = if (book.seriesName.isBlank()) ""
-            else escapeCSVchar(book.seriesName) +
+            else escapeCSVChar(book.seriesName) +
                 if (book.seriesNumber >= 0) " (${book.seriesNumber})" else ""
         csvBuilder.append("$series,")
 
-        csvBuilder.append("${escapeCSVchar(book.boughtAt)},")
+        csvBuilder.append("${escapeCSVChar(book.boughtAt)},")
 
         val dateStart = displayDate(book.dateStarted, DateFormat.NUMBERED_REVERSE)
         csvBuilder.append("$dateStart,")
@@ -589,10 +590,10 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
         val dateEnd = displayDate(book.dateFinished, DateFormat.NUMBERED_REVERSE)
         csvBuilder.append("$dateEnd,")
 
-        csvBuilder.append("${escapeCSVchar(book.format)},")
-        csvBuilder.append("${escapeCSVchar(book.description)},")
-        csvBuilder.append("${escapeCSVchar(book.genre)},")
-        csvBuilder.append("${escapeCSVchar(book.language)},")
+        csvBuilder.append("${escapeCSVChar(book.format)},")
+        csvBuilder.append("${escapeCSVChar(book.description)},")
+        csvBuilder.append("${escapeCSVChar(book.genre)},")
+        csvBuilder.append("${escapeCSVChar(book.language)},")
 
         val dateAdded = displayDate(book.dateAdded, DateFormat.NUMBERED_WITH_TIME)
         csvBuilder.append("$dateAdded,")
@@ -606,7 +607,7 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
     return output
 }
 
-private fun escapeCSVchar(text: String): String {
+private fun escapeCSVChar(text: String): String {
     val needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n")
     val escaped = text.replace("\"", "\"\"")
     return if (needsQuotes) "\"$escaped\"" else escaped
