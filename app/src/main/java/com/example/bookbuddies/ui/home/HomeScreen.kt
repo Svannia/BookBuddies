@@ -2,23 +2,26 @@ package com.example.bookbuddies.ui.home
 
 import android.content.Context
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.MarqueeSpacing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,9 +30,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,15 +66,10 @@ import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.SingleOptionList
 import com.example.bookbuddies.ui.ToggleBox
 import com.example.bookbuddies.ui.theme.MyTypography
-import java.util.Calendar
-import java.util.Locale
+import kotlin.collections.mutableListOf
 
 @Composable
 fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
-
-    BackHandler {
-        navigationActions.navigateTo(Route.HOME, true)
-    }
 
     val context = LocalContext.current
     val loading = remember { mutableStateOf(false) }
@@ -112,6 +113,25 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
         }
     }
 
+    // Selection mode
+    val selectionModeActive = remember { mutableStateOf(false) }
+    val selectedEntries = remember { mutableStateMapOf<String, Boolean>() }
+    val nbSelected by remember {
+        derivedStateOf { selectedEntries.values.count { it } }
+    }
+    LaunchedEffect(books) {
+        books.forEach { book ->
+            if (selectedEntries[book.uid] == null) {
+                selectedEntries[book.uid] = false
+            }
+        }
+    }
+
+    BackHandler {
+        navigationActions.navigateTo(Route.HOME, true)
+        if (selectionModeActive.value) selectionModeActive.value = false
+    }
+
     // Expand/collapse all
     val expandAll: () -> Unit = {
         expandedStates.keys.forEach { expandedStates[it] = true }
@@ -119,9 +139,6 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     val collapseAll: () -> Unit = {
         expandedStates.keys.forEach { expandedStates[it] = false }
     }
-
-    // Selection mode
-    val selectionModeActive = remember { mutableStateOf(false) }
 
     // Filters and sorting method
     val showFilters = remember { mutableStateOf(false) }
@@ -167,11 +184,62 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(color = MaterialTheme.colorScheme.background)
-                        .padding(vertical = 4.dp, horizontal = 16.dp)
+                        .padding(vertical = 4.dp, horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     if (selectionModeActive.value) {
                         // Selection mode
-                        // TODO
+
+                        // left-side: selection number
+                        Row(
+                            modifier = Modifier.height(32.dp),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                space = 8.dp, alignment = Alignment.Start
+                            ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                modifier = Modifier.size(20.dp),
+                                checked = selectedEntries.values.all { it },
+                                onCheckedChange = { checked ->
+                                    selectedEntries.keys.forEach { key ->
+                                        selectedEntries[key] = checked
+                                    }
+                                },
+                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                            )
+                            Text(
+                                text = stringResource(R.string.txt_nbSelected, nbSelected),
+                                style = MyTypography.bodyMedium
+                            )
+                        }
+                        // right-side: options and cancel
+                        Row(
+                            modifier = Modifier.height(32.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OptionsMenu(
+                                icon = R.drawable.options,
+                                stringResource(R.string.button_markAsRead) to { /*todo*/ },
+                                stringResource(R.string.button_addCover) to { /*todo*/ },
+                                stringResource(R.string.button_removeCover) to { /*todo*/ }
+                            )
+                            IconButton(
+                                onClick = {
+                                    selectionModeActive.value = false
+                                    selectedEntries.keys.forEach { key ->
+                                        selectedEntries[key] = false
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.cancel),
+                                    modifier = Modifier.size(24.dp),
+                                    contentDescription = stringResource(R.string.desc_cancel)
+                                )
+                            }
+                        }
                     } else {
                         // Number of books displayed
                         Text(
@@ -237,10 +305,11 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                             item {
                                                 BookEntry(
                                                     book = book,
-                                                    onClick = {
-                                                        navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
-                                                    }
-                                                )
+                                                    selectionModeActive = selectionModeActive,
+                                                    selectedEntries = selectedEntries
+                                                ) {
+                                                    navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
+                                                }
                                             }
                                         }
                                     }
@@ -282,10 +351,11 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                         item {
                                             BookEntry(
                                                 book = book,
-                                                onClick = {
-                                                    navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
-                                                }
-                                            )
+                                                selectionModeActive = selectionModeActive,
+                                                selectedEntries = selectedEntries
+                                            ) {
+                                                navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
+                                            }
                                         }
                                     }
                                 }
@@ -293,86 +363,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                         }
                     }
                 }
-                /*LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    else {
-                        if (sorting == BookSorting.AUTHOR_SERIES) {
-                            // Sorting(s) that require subheaders
-                            val groupedBooks = groupBooksSubheaders(context, onlyUnread, sorting, books)
-                            groupedBooks.forEach { (author, seriesMap) ->
-                                // Author header
-                                stickyHeader {
-                                    ListHeader(author, true, expandedStates[author] ?: true) {
-                                        expandedStates[author] = !(expandedStates[author] ?: true)
-                                    }
-                                }
 
-                                if (expandedStates[author] == true) {
-                                    seriesMap.forEach { (series, seriesBooks) ->
-                                        // Series subheader
-                                        item {
-                                            ListHeader(series, false)
-                                        }
-
-                                        // Books in the series
-                                        seriesBooks.forEach { book ->
-                                            item {
-                                                BookEntry(
-                                                    book = book,
-                                                    onClick = {
-                                                        navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            // Single header sorting methods
-                            val groupedBooks = groupBooks(context, onlyUnread, sorting, books)
-                            FastScrollBar(
-                                groupedData = groupedBooks,
-                                itemContent = { book ->
-                                    BookEntry(
-                                        book = book,
-                                        onClick = {
-                                            navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
-                                        }
-                                    )
-                                },
-                                headerContent = { header ->
-                                    ListHeader(header, true, expandedStates[header] ?: true) {
-                                        expandedStates[header] = !(expandedStates[header] ?: true)
-                                    }
-                                }
-                            )
-                            groupedBooks.forEach { (header, bookEntries) ->
-                                // Header
-                                stickyHeader {
-                                    ListHeader(header, true, expandedStates[header] ?: true) {
-                                        expandedStates[header] = !(expandedStates[header] ?: true)
-                                    }
-                                }
-
-                                // Books in this group
-                                if (expandedStates[header] == true) {
-                                    bookEntries.forEach { book ->
-                                        item {
-                                            BookEntry(
-                                                book = book,
-                                                onClick = {
-                                                    navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }*/
 
                 if (showFilters.value) {
                     Dialog(onDismissRequest = { showFilters.value = false }) {
@@ -478,11 +469,25 @@ private fun ListHeader(headerText: String, collapsable: Boolean, isExpanded: Boo
 }
 
 @Composable
-private fun BookEntry(book: Book, onClick: () -> Unit) {
+private fun BookEntry(
+    book: Book,
+    selectionModeActive: MutableState<Boolean>,
+    selectedEntries: MutableMap<String, Boolean>,
+    onClick: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .combinedClickable(
+                onClick = {
+                    if (selectionModeActive.value) selectedEntries[book.uid] = !selectedEntries[book.uid]!!
+                    else onClick()
+                },
+                onLongClick = {
+                    selectionModeActive.value = true
+                    selectedEntries[book.uid] = true
+                }
+            ),
         contentAlignment = Alignment.CenterStart
     ) {
         Row (
@@ -492,6 +497,17 @@ private fun BookEntry(book: Book, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
+            if (selectionModeActive.value) {
+                Checkbox(
+                    modifier = Modifier.size(20.dp),
+                    checked = selectedEntries[book.uid] ?: false,
+                    onCheckedChange = { checked ->
+                        selectedEntries[book.uid] = checked
+                    },
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+            }
             CoverImage(
                 65.dp,
                 book.cover,

@@ -4,6 +4,9 @@
 
     <string name="button_cancel">Cancel</string>
     <string name="button_collapseAll">Collapse all</string>
+    <string name="button_markAsRead">Mark as Read</string>
+    <string name="button_removeCover">Remove covers</string>
+    <string name="button_addCover">Search for covers</string>
     <string name="button_confirm">Confirm</string>
     <string name="button_expandAll">Expand all</string>
     <string name="button_export">Export to CSV file</string>
@@ -16,6 +19,7 @@
 
     <string name="desc_burgerMenu">burger menu</string>
     <string name="desc_copy">copy button</string>
+    <string name="desc_cancel">cancel operation</string>
     <string name="desc_coverImage">book cover image</string>
     <string name="desc_dstIcon">destination icon</string>
     <string name="desc_expandCollapse">Expand/collapse</string>
@@ -74,4 +78,5 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
+    <string name="txt_nbSelected">%1$d selected</string>
 </resources>
