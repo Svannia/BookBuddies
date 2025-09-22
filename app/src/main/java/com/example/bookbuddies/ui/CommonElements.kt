@@ -1,18 +1,25 @@
 package com.example.bookbuddies.ui
 
+import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,10 +30,20 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -60,15 +77,20 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
@@ -79,11 +101,16 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -95,7 +122,10 @@ import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.ui.theme.MyTypography
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * This creates the layout for a "primary screen".
@@ -216,6 +246,174 @@ fun SecondaryScreen(
     )
 }
 
+@SuppressLint("FrequentlyChangingValue")
+@Composable
+fun FastScroll(
+    minThumbWidth: Int,
+    maxThumbWidth: Int,
+    thumbHeight: Int,
+    bubbleWidth: Int,
+    headerResolver: (Int) -> String?,
+    listContent: LazyListScope.() -> Unit
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val containerHeight = remember { mutableFloatStateOf(0f) }
+
+    val listState = rememberLazyListState()
+
+    val thumbAlpha = remember { Animatable(0f) }
+    val isDragging = remember { mutableStateOf(false) }
+    val thumbOffset = remember { mutableFloatStateOf(0f) }
+    val thumbWidth = remember { mutableIntStateOf(minThumbWidth) }
+
+    // capture the current scrolling/dragging state to fade in/out the thumb
+    LaunchedEffect(listState, isDragging.value) {
+        snapshotFlow { listState.isScrollInProgress || isDragging.value }
+            .collect { active ->
+                // User started scrolling
+                if (active) {
+                    thumbAlpha.animateTo(1f, tween(500))
+                }
+                // User stopped scrolling and dragging
+                else {
+                    delay(3000L)
+                    thumbAlpha.animateTo(0f, tween(1000))
+                }
+            }
+    }
+
+    val currentHeader = remember { mutableStateOf<String?>(null) }
+    // capture the sticky header currently at the top
+    LaunchedEffect(listState) {
+        /*snapshotFlow { listState.layoutInfo.visibleItemsInfo }
+            .collect { visibleItems ->
+                val header = visibleItems.firstOrNull { it.key is String }?.key as? String
+                if (header != null) currentHeader.value = header
+            }*/
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collect { index ->
+                if (!isDragging.value) currentHeader.value = headerResolver(index)
+            }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // contents of the LazyColumn
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = listState
+        ) {
+            listContent()
+        }
+
+        // whole vertical drag area
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .align(Alignment.CenterEnd)
+                .width(maxThumbWidth.dp)
+                .padding(end = 8.dp)
+                .alpha(thumbAlpha.value)
+                .onGloballyPositioned { coordinates ->
+                    containerHeight.floatValue = coordinates.size.height.toFloat()
+                }
+        ) {
+            // draggable thumb (larger touch area than visible to it's easier to use)
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(0, thumbOffset.floatValue.roundToInt()) }
+                    .fillMaxWidth()
+                    .height(thumbHeight.dp)
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = {
+                                isDragging.value = true
+                                thumbWidth.intValue = maxThumbWidth
+                            },
+                            onDragEnd = {
+                                isDragging.value = false
+                                thumbWidth.intValue = minThumbWidth
+                            },
+                            onDragCancel = {
+                                isDragging.value = false
+                                thumbWidth.intValue = minThumbWidth
+                            },
+                            onDrag = { change, offset ->
+                                change.consume()
+
+                                // change the position of the thumb on the screen
+                                val maxThumbOffset = containerHeight.floatValue - thumbHeight.dp.toPx()
+                                thumbOffset.floatValue = (thumbOffset.floatValue + offset.y)
+                                    .coerceIn(0f, maxThumbOffset)
+
+                                // sync LazyColum position with dragged thumb
+                                val scrollFraction = (thumbOffset.floatValue / maxThumbOffset).coerceIn(0f, 1f)
+                                val totalItems = listState.layoutInfo.totalItemsCount
+                                if (totalItems > 0) {
+                                    val targetIndex = (scrollFraction * (totalItems - 1)).toInt()
+                                    coroutineScope.launch {
+                                        listState.scrollToItem(targetIndex)
+                                    }
+
+                                    currentHeader.value = headerResolver(targetIndex)
+                                }
+                            }
+                        )
+                    }
+            ) {
+                // Visible part of the thumb
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width((thumbWidth.intValue).dp)
+                        .align(Alignment.CenterEnd)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                )
+            }
+        }
+
+        // Text bubble that follows the thumb
+        if (isDragging.value) {
+            Box(
+                modifier = Modifier
+                    .offset {
+                        IntOffset(
+                            -(8 + maxThumbWidth + 20).dp.roundToPx(),
+                            thumbOffset.floatValue.roundToInt())
+                    }
+                    .align(Alignment.TopEnd)
+                    .width(bubbleWidth.dp)
+                    .wrapContentHeight()
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = currentHeader.value ?: "",
+                    style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center),
+                )
+            }
+        }
+
+        // when scrolling normally, automatically adjust the thumb's height
+        if (!isDragging.value && containerHeight.floatValue > 0f && listState.layoutInfo.totalItemsCount > 0) {
+            // compute the current position in the list
+            val firstItemSize = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.size?.toFloat() ?: 1f
+            val visibleOffset = listState.firstVisibleItemScrollOffset / firstItemSize
+            val scrollFraction = ((listState.firstVisibleItemIndex + visibleOffset)
+                    / listState.layoutInfo.totalItemsCount.toFloat()).coerceIn(0f, 1f)
+
+            // adjust thumb height
+            val density = LocalDensity.current
+            val thumbHeightPx = with(density) { thumbHeight.dp.toPx() }
+            val maxThumbOffset = containerHeight.floatValue - thumbHeightPx
+            thumbOffset.floatValue = scrollFraction * maxThumbOffset
+        }
+    }
+}
+
 /**
  * A simple plain screen with a rotating loading animation.
  */
@@ -269,7 +467,11 @@ fun ProgressBar(processed: Int, total: Int) {
                     .fillMaxWidth()
                     .height(32.dp)
                     .clip(RoundedCornerShape(50))
-                    .border(width = 2.dp, color = MaterialTheme.colorScheme.inversePrimary, shape = RoundedCornerShape(50))
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.inversePrimary,
+                        shape = RoundedCornerShape(50)
+                    )
                     .background(MaterialTheme.colorScheme.outline)
             ) {
                 Box(
@@ -331,6 +533,7 @@ fun MiniLoading(paddingValues: PaddingValues) {
         LoadingAnimation(30f, 10f)
     }
 }
+
 
 /**
  * Rewritten basic TextField composable for constant design throughout the app.
@@ -453,7 +656,9 @@ fun CustomContentDialogWindow(
             modifier = Modifier.padding(16.dp)
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.Start
             ) {
@@ -713,7 +918,9 @@ fun ToggleBox(
         contentAlignment = Alignment.CenterStart
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(rowPadding),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(rowPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(rowSpacing)
         ) {

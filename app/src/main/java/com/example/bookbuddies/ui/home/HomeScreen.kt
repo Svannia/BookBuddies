@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,6 +53,7 @@ import com.example.bookbuddies.data.displayAuthors
 import com.example.bookbuddies.data.getBookSorting
 import com.example.bookbuddies.data.getString
 import com.example.bookbuddies.ui.CoverImage
+import com.example.bookbuddies.ui.FastScroll
 import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.SingleOptionList
 import com.example.bookbuddies.ui.ToggleBox
@@ -175,22 +178,123 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                         )
                     }
                 }
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    // TODO: add quick scroll bar
-                    if (books.isEmpty()) {
-                        item {
-                            Text(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 16.dp),
-                                text = stringResource(R.string.txt_noResults),
-                                style = MyTypography.bodyLarge,
-                                textAlign = TextAlign.Center
-                            )
+
+                // No books display
+                if (books.isEmpty()) {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        text = stringResource(R.string.txt_noResults),
+                        style = MyTypography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    if (sorting == BookSorting.AUTHOR_SERIES) {
+                        val groupedBooks = groupBooksSubheaders(context, onlyUnread, sorting, books)
+                        FastScroll(
+                            minThumbWidth = 5,
+                            maxThumbWidth = 20,
+                            thumbHeight = 50,
+                            bubbleWidth = 150,
+                            headerResolver = remember(groupedBooks, expandedStates) {
+                                { index ->
+                                    val flatList = mutableListOf<String>()
+                                    groupedBooks.forEach { (author, seriesMap) ->
+                                        flatList += author // sticky author header counts
+                                        if (expandedStates[author] == true) {
+                                            seriesMap.forEach { (_, seriesBooks) ->
+                                                flatList += author
+                                                seriesBooks.forEach { _ ->
+                                                    flatList += author
+                                                }
+                                            }
+                                        }
+                                    }
+                                    flatList.getOrNull(index)
+                                }
+                            }
+                        ) {
+                            groupedBooks.forEach { (author, seriesMap) ->
+                                // Author header
+                                stickyHeader(key = author) {
+                                    ListHeader(author, true, expandedStates[author] ?: true) {
+                                        expandedStates[author] = !(expandedStates[author] ?: true)
+                                    }
+                                }
+
+                                if (expandedStates[author] == true) {
+                                    seriesMap.forEach { (series, seriesBooks) ->
+                                        // Series subheader
+                                        item {
+                                            ListHeader(series, false)
+                                        }
+
+                                        // Books in the series
+                                        seriesBooks.forEach { book ->
+                                            item {
+                                                BookEntry(
+                                                    book = book,
+                                                    onClick = {
+                                                        navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else {
+                        val groupedBooks = groupBooks(context, onlyUnread, sorting, books)
+                        val groupedBooksState = remember { mutableStateOf(groupedBooks) }
+                        LaunchedEffect(groupedBooks) { groupedBooksState.value = groupedBooks}
+                        FastScroll(
+                            minThumbWidth = 5,
+                            maxThumbWidth = 20,
+                            thumbHeight = 50,
+                            bubbleWidth = 150,
+                            headerResolver = { index ->
+                                val flatList = mutableListOf<String>()
+                                groupedBooksState.value.forEach { (header, books) ->
+                                    flatList += header
+                                    if (expandedStates[header] == true) {
+                                        books.forEach { _ ->
+                                            flatList += header
+                                        }
+                                    }
+                                }
+                                flatList.getOrNull(index)
+                            }
+                        ) {
+                            groupedBooks.forEach { (header, bookEntries) ->
+                                // Header
+                                stickyHeader {
+                                    ListHeader(header, true, expandedStates[header] ?: true) {
+                                        expandedStates[header] = !(expandedStates[header] ?: true)
+                                    }
+                                }
+                                // Books in this group
+                                if (expandedStates[header] == true) {
+                                    bookEntries.forEach { book ->
+                                        item {
+                                            BookEntry(
+                                                book = book,
+                                                onClick = {
+                                                    navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                /*LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    else {
                         if (sorting == BookSorting.AUTHOR_SERIES) {
                             // Sorting(s) that require subheaders
                             val groupedBooks = groupBooksSubheaders(context, onlyUnread, sorting, books)
@@ -226,6 +330,22 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                         } else {
                             // Single header sorting methods
                             val groupedBooks = groupBooks(context, onlyUnread, sorting, books)
+                            FastScrollBar(
+                                groupedData = groupedBooks,
+                                itemContent = { book ->
+                                    BookEntry(
+                                        book = book,
+                                        onClick = {
+                                            navigationActions.navigateTo("${Route.BOOK}/${book.uid}")
+                                        }
+                                    )
+                                },
+                                headerContent = { header ->
+                                    ListHeader(header, true, expandedStates[header] ?: true) {
+                                        expandedStates[header] = !(expandedStates[header] ?: true)
+                                    }
+                                }
+                            )
                             groupedBooks.forEach { (header, bookEntries) ->
                                 // Header
                                 stickyHeader {
@@ -250,7 +370,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             }
                         }
                     }
-                }
+                }*/
 
                 if (showFilters.value) {
                     Dialog(onDismissRequest = { showFilters.value = false }) {
