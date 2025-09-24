@@ -26,9 +26,15 @@ The users can "report a bug" (available in the app's Settings page). When a bug 
 ## Development
 ### Log tags
 There are different logcat tags to help with debugging:
+- BookCover : Automatic API search for book covers.
+- BookExport : Exporting app's books into a CSV file.
+- BookImport : Reading a CSV file and importing its content as books on the app.
+- BookVM : All ViewModel actions taken on a (list of) book(s).
 - Compose : When new screens are successfully composed.
 - Debug : Only to use when currently debugging a specific feature. There shouldn't be any Debug tag on stable versions.
-- Error : for errors correctly caught and handled.
+- Error : Details of an error that was made evident to the user with a Toast.
+- NavActions : Navigation from a route to the other, backstack controls when going back in navigation history.
+All logs use a severity level: either for d (debug) for simple logs or e (errors) for caught unexpected errors. 
   
 ### JavaDoc
 All functions are commented with typical JavaDoc. To write them more easily, you can follow these steps:
