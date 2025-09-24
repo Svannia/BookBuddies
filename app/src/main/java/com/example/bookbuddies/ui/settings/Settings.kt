@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,8 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -132,7 +129,8 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                 loading.value = false
                             }
                         ) { isError ->
-                            if (isError) handleError(context, "An error occurred while importing the selected file.")
+                            if (isError) handleError(context,
+                                context.getString(R.string.toast_importError))
                             else {
                                 Toast.makeText(
                                     context,
@@ -144,8 +142,8 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                         }
                     } else {
                         loading.value = false
-                        Timber.tag("BookImport").d("Could not open file, input stream is null.")
-                        handleError(context, "Failed to open the selected file.")
+                        Timber.tag("BookImport").e("Could not open file, input stream is null.")
+                        handleError(context, context.getString(R.string.toast_fileOpenFailure))
                     }
                 }
             } else {
@@ -171,8 +169,8 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                         context.getString(R.string.toast_successfulExport), Toast.LENGTH_SHORT
                     ).show()
                 } catch (e: Exception) {
-                    Timber.tag("BookExport").d("Failed to export with error $e")
-                    handleError(context, "Failed to export books as a CSV file.")
+                    Timber.tag("BookExport").e("Failed to export with error $e")
+                    handleError(context, context.getString(R.string.toast_failExport))
                 }
             }
         }
@@ -196,7 +194,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     }
     else {
         SecondaryScreen(
-            title = "Settings",
+            title = stringResource(R.string.title_settings),
             navigationActions = navigationActions,
             navExtraActions = {},
             topBarIcons = {}
@@ -250,11 +248,6 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                         // Find covers
                         ToolTipRow(
                             onSettingClick = {
-                                /*// for testing
-                                failedCovers.clear()
-                                failedCovers.addAll(books.take(5).map { it.title })
-                                coversVisible.value = true*/
-
                                 progressing.value = true
                                 scope.launch {
                                     findBookCovers(
@@ -283,10 +276,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                         isError = { isError ->
                                             if (isError) {
                                                 progressing.value = false
-                                                handleError(
-                                                    context,
-                                                    "An error occurred while finding covers."
-                                                )
+                                                handleError(context, context.getString(R.string.toast_coverSearchFail))
                                             }
                                         },
                                         onProgress = { processedNb, totalNb ->
@@ -310,10 +300,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                         bookVM.clearAllCovers({
                                             if (it) {
                                                 loading.value = false
-                                                handleError(
-                                                    context,
-                                                    "Failed to remove some covers."
-                                                )
+                                                handleError(context, context.getString(R.string.toast_coverRemoveFail))
                                             }
                                         }) {
                                             loading.value = false
@@ -447,7 +434,10 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             color = MaterialTheme.colorScheme.inversePrimary
                         )
                     },
-                    leftButtonOnClick = { reportVisible.value = false },
+                    leftButtonOnClick = {
+                        reportVisible.value = false
+                        bugReport.value = ""
+                    },
                     rightButtonContent = {
                         Text(
                             text = stringResource(R.string.button_send),
@@ -469,7 +459,8 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                         Toast.makeText(context, context.getString(R.string.toast_bugReport), Toast.LENGTH_SHORT).show()
                                         bugReport.value = ""
                                     } else {
-                                        handleError(context, "Failed to send bug report")
+                                        handleError(context,
+                                            context.getString(R.string.toast_bugReportFail))
                                     }
                                 }
                             }
@@ -481,6 +472,14 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     }
 }
 
+/**
+ * Copies some text as an element on the user's phone clipboard.
+ *
+ * @param context to access string resources
+ * @param text to be copied in the clipboard
+ * @param clipboard user's Clipboard
+ * @param coroutineScope to launch the suspend copy operation
+ */
 fun copyToClipboard(context: Context, text: String, clipboard: Clipboard, coroutineScope: CoroutineScope) {
     coroutineScope.launch {
         val clipData = ClipData.newPlainText(context.getString(R.string.txt_failedCoversClipboard), text)
@@ -489,6 +488,13 @@ fun copyToClipboard(context: Context, text: String, clipboard: Clipboard, corout
     }
 }
 
+/**
+ * Composes a Settings row with a Tooltip icon at the end, that when pressed displays a popup with informative text design to look like a chat bubble.
+ *
+ * @param onSettingClick block that runs when clicking anywhere on the row
+ * @param settingText text show inside the row
+ * @param toolTipText text inside the tooltip chat bubble
+ */
 @Composable
 fun ToolTipRow(
     onSettingClick: () -> Unit,
@@ -496,7 +502,7 @@ fun ToolTipRow(
     toolTipText: String
 ) {
     val showTooltip = remember { mutableStateOf(false) }
-    // to avoid frequent "double-click" issues
+    // to avoid frequent "double-click" issues (row and tooltip icon pressed at the same time)
     val lastDismissTime = remember { mutableLongStateOf(0L) }
 
     Box(
@@ -584,7 +590,7 @@ private fun ToggleOptions(numberChoices: Int, currentChoice: MutableState<String
 }
 
 /**
- * Converts the themes objects understood by the system as a name that can be displayed to the user.
+ * Converts the ThemeChoice objects understood by the system as a name that can be displayed to the user.
  *
  * @param theme ThemeChoice to be converted
  * @return name of the ThemeChoice as a string

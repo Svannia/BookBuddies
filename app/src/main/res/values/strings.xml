@@ -81,4 +81,11 @@
     <string name="txt_unknownSeries">Standalones</string>
     <string name="txt_nbSelected">%1$d selected</string>
     <string name="desc_read">is read</string>
+    <string name="toast_importError">An error occurred while importing the selected file.</string>
+    <string name="toast_fileOpenFailure">Failed to open the selected file.</string>
+    <string name="toast_failExport">Failed to export books as a CSV file.</string>
+    <string name="title_settings">Settings</string>
+    <string name="toast_bugReportFail">Failed to send bug report</string>
+    <string name="toast_coverSearchFail">An error occurred while finding covers.</string>
+    <string name="toast_coverRemoveFail">Failed to remove some covers.</string>
 </resources>

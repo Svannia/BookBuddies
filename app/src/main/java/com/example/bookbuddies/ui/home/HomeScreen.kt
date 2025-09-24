@@ -3,7 +3,6 @@ package com.example.bookbuddies.ui.home
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.MarqueeSpacing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,7 +36,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +43,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -82,6 +78,7 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import kotlinx.coroutines.launch
 import kotlin.collections.mutableListOf
+import kotlin.collections.set
 
 @Composable
 fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
@@ -94,6 +91,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     val sorting by bookVM.sorting.collectAsState()
     val onlyUnread by bookVM.onlyUnread.collectAsState()
 
+    // variables specifically for the "remove some covers" functionality
     val progressing = remember { mutableStateOf(false) }
     val processed = remember { mutableIntStateOf(0) }
     val total = remember { mutableIntStateOf(0) }
@@ -151,6 +149,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
         }
     }
 
+    // when using the phone's built-in back function, stay on the current page and exit the Selection mode if active
     BackHandler {
         navigationActions.navigateTo(Route.HOME, true)
         if (selectionModeActive.value) {
@@ -169,7 +168,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
         expandedStates.keys.forEach { expandedStates[it] = false }
     }
 
-    // Filters and sorting method
+    // Visibility of the popup for unread filter and sorting methods
     val showFilters = remember { mutableStateOf(false) }
 
     PrimaryScreen(
@@ -181,7 +180,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // sorting and filters button
+                // sorting and filter button
                 IconButton(
                     onClick = { showFilters.value = !showFilters.value }
                 ) {
@@ -219,40 +218,10 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     if (selectionModeActive.value) {
-                        // Selection mode
+                        SelectionModeTopRow(
+                            selectionModeActive, selectedEntries, nbSelected,
 
-                        // left-side: selection number
-                        Row(
-                            modifier = Modifier.height(32.dp),
-                            horizontalArrangement = Arrangement.spacedBy(
-                                space = 8.dp, alignment = Alignment.Start
-                            ),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                modifier = Modifier.size(20.dp),
-                                checked = selectedEntries.values.all { it },
-                                onCheckedChange = { checked ->
-                                    selectedEntries.keys.forEach { key ->
-                                        selectedEntries[key] = checked
-                                    }
-                                },
-                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-                            )
-                            Text(
-                                text = stringResource(R.string.txt_nbSelected, nbSelected),
-                                style = MyTypography.bodyMedium
-                            )
-                        }
-                        // right-side: options and cancel
-                        Row(
-                            modifier = Modifier.height(32.dp),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OptionsMenu(
-                                icon = R.drawable.options,
-                                // option to mark some books as read
+                            // option to mark some books as read
                                 stringResource(R.string.button_markAsRead) to {
                                     scope.launch {
                                         val booksToUpdate = books.filter { selectedEntries[it.uid] == true }
@@ -265,95 +234,76 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                         }
                                     }
                                 },
-                                // option to add some covers
-                                stringResource(R.string.button_addCover) to {
-                                    progressing.value = true
-                                    scope.launch {
-                                        findBookCovers(
-                                            context = context,
-                                            books = books.filter { selectedEntries[it.uid] == true },
-                                            insertBook = bookVM::insertBook,
-                                            updateMangaSeriesId = bookVM::updateMangaSeriesId,
-                                            callBack = { failedBooks ->
-                                                progressing.value = false
-                                                Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.toast_successfulCovers),
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                                if (failedBooks.isEmpty()) {
-                                                    selectionModeActive.value = false
-                                                    selectedEntries.keys.forEach { key ->
-                                                        selectedEntries[key] = false
-                                                    }
-                                                }
-                                                else {
-                                                    failedCovers.clear()
-                                                    failedCovers.addAll(failedBooks)
-                                                    failedCovers.sortBy { it }
-                                                    coversVisible.value = true
-                                                }
-                                            },
-                                            isError = { isError ->
-                                                if (isError) {
-                                                    progressing.value = false
-                                                    handleError(
-                                                        context,
-                                                        "An error occurred while finding covers."
-                                                    )
-                                                }
-                                            },
-                                            onProgress = { processedNb, totalNb ->
-                                                processed.intValue = processedNb
-                                                total.intValue = totalNb
-                                            }
-                                        )
-                                    }
-                                },
-                                // option to remove some covers
-                                stringResource(R.string.button_removeCover) to {
-                                    loading.value = true
-                                    scope.launch {
-                                        bookVM.clearCovers(
-                                            books.filter { selectedEntries[it.uid] == true },
-                                            {
-                                            if (it) {
-                                                loading.value = false
-                                                handleError(
-                                                    context,
-                                                    "Failed to remove some covers."
-                                                )
-                                            }
-                                        }) {
-                                            loading.value = false
+                            // option to delete books
+                            // todo
+                            // option to add some covers
+                            stringResource(R.string.button_addCover) to {
+                                progressing.value = true
+                                scope.launch {
+                                    findBookCovers(
+                                        context = context,
+                                        books = books.filter { selectedEntries[it.uid] == true },
+                                        insertBook = bookVM::insertBook,
+                                        updateMangaSeriesId = bookVM::updateMangaSeriesId,
+                                        callBack = { failedBooks ->
+                                            progressing.value = false
                                             Toast.makeText(
                                                 context,
-                                                context.getString(R.string.toast_removeSomeCovers),
+                                                context.getString(R.string.toast_successfulCovers),
                                                 Toast.LENGTH_SHORT
                                             ).show()
-                                            selectionModeActive.value = false
-                                            selectedEntries.keys.forEach { key ->
-                                                selectedEntries[key] = false
+                                            if (failedBooks.isEmpty()) {
+                                                selectionModeActive.value = false
+                                                selectedEntries.keys.forEach { key ->
+                                                    selectedEntries[key] = false
+                                                }
                                             }
+                                            else {
+                                                failedCovers.clear()
+                                                failedCovers.addAll(failedBooks)
+                                                failedCovers.sortBy { it }
+                                                coversVisible.value = true
+                                            }
+                                        },
+                                        isError = { isError ->
+                                            if (isError) {
+                                                progressing.value = false
+                                                handleError(context, context.getString(R.string.toast_coverSearchFail))
+                                            }
+                                        },
+                                        onProgress = { processedNb, totalNb ->
+                                            processed.intValue = processedNb
+                                            total.intValue = totalNb
+                                        }
+                                    )
+                                }
+                            },
+                            // option to remove some covers
+                            stringResource(R.string.button_removeCover) to {
+                                loading.value = true
+                                scope.launch {
+                                    bookVM.clearCovers(
+                                        books.filter { selectedEntries[it.uid] == true },
+                                        {
+                                            if (it) {
+                                                loading.value = false
+                                                handleError(context, context.getString(R.string.toast_coverRemoveFail))
+                                            }
+                                        }) {
+                                        loading.value = false
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.toast_removeSomeCovers),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        selectionModeActive.value = false
+                                        selectedEntries.keys.forEach { key ->
+                                            selectedEntries[key] = false
                                         }
                                     }
                                 }
-                            )
-                            IconButton(
-                                onClick = {
-                                    selectionModeActive.value = false
-                                    selectedEntries.keys.forEach { key ->
-                                        selectedEntries[key] = false
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    painterResource(R.drawable.cancel),
-                                    modifier = Modifier.size(24.dp),
-                                    contentDescription = stringResource(R.string.desc_cancel)
-                                )
                             }
-                        }
+                        )
                     } else {
                         // Number of books displayed
                         Text(
@@ -374,6 +324,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                         textAlign = TextAlign.Center
                     )
                 } else {
+                    // Specific display for Author>Series sorting method, since it has subheaders
                     if (sorting == BookSorting.AUTHOR_SERIES) {
                         val groupedBooks = groupBooksSubheaders(context, onlyUnread, sorting, books)
                         FastScroll(
@@ -400,6 +351,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             }
                         ) {
                             groupedBooks.forEach { (author, seriesMap) ->
+
                                 // Author header
                                 stickyHeader(key = author) {
                                     ListHeader(author, true, expandedStates[author] ?: true) {
@@ -431,6 +383,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             }
                         }
                     } else {
+                        // Display for any other sorting method
                         val groupedBooks = groupBooks(context, onlyUnread, sorting, books)
                         val groupedBooksState = remember { mutableStateOf(groupedBooks) }
                         LaunchedEffect(groupedBooks) { groupedBooksState.value = groupedBooks}
@@ -494,10 +447,13 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                 horizontalAlignment = Alignment.Start
                             ) {
+                                // sorting methods title
                                 Text(
                                     text = stringResource(R.string.title_sortBy),
                                     style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
                                 )
+
+                                // list of sorting options with radio buttons
                                 val sortingOptions = BookSorting.entries.map { it.getString(context) }
                                 SingleOptionList(
                                     sortingOptions.size,
@@ -511,6 +467,8 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                 Spacer(modifier = Modifier
                                     .fillMaxWidth()
                                     .height(16.dp))
+
+                                // toggle box for "unread" filter
                                 ToggleBox(
                                     isRadio = false,
                                     boxHeight = 20.dp,
@@ -533,12 +491,14 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     CustomContentDialogWindow(
                         visible = coversVisible,
                         content = {
+                            // title
                             Text(
                                 text = context.getString(R.string.title_failedCovers),
                                 style = MyTypography.titleSmall,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.inversePrimary, thickness = 1.5.dp)
+                            // list of book titles for which covers have not been found
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -588,8 +548,18 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     }
 }
 
+/**
+ * Design for sticky headers used to group book entries depending on sorting method.
+ *
+ * @param headerText name of the group
+ * @param collapsable whether or not this group header can be tapped to collapse/expand the group under it.
+ *        If false, the header also has a smaller design
+ * @param isExpanded whether or not the group under this header is expanded or collapsed. Ignored if "collapsable" is false
+ * @param onToggle block that runs when the parent box or the collapse/expand button is pressed
+ */
 @Composable
 private fun ListHeader(headerText: String, collapsable: Boolean, isExpanded: Boolean = true, onToggle: () -> Unit = {}) {
+    // clickable box containing the header
     Box(
         modifier = if (collapsable) {
             Modifier
@@ -617,6 +587,7 @@ private fun ListHeader(headerText: String, collapsable: Boolean, isExpanded: Boo
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // header text
                 Text(
                     modifier = Modifier.weight(1f),
                     text = headerText,
@@ -624,6 +595,7 @@ private fun ListHeader(headerText: String, collapsable: Boolean, isExpanded: Boo
                             else MyTypography.bodyLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
+                // collapse/expand icon
                 if (collapsable) {
                     Icon(
                         modifier = Modifier.size(24.dp),
@@ -638,6 +610,14 @@ private fun ListHeader(headerText: String, collapsable: Boolean, isExpanded: Boo
     }
 }
 
+/**
+ * Design for a single book entry.
+ *
+ * @param book Book object to display its data
+ * @param selectionModeActive if true, a checkbox appears in front of the entry. The mode is activated by long-pressing any book entry
+ * @param selectedEntries maps book IDs with whether or not they are selected in the current selection mode
+ * @param onClick block that runs when tapping the book entry, when the selection mode is not active
+ */
 @Composable
 private fun BookEntry(
     book: Book,
@@ -668,6 +648,7 @@ private fun BookEntry(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
+            // checkbox to select this book entry if the selection mode is active
             if (selectionModeActive.value) {
                 Checkbox(
                     modifier = Modifier.size(20.dp),
@@ -679,22 +660,28 @@ private fun BookEntry(
                 )
                 Spacer(modifier = Modifier.width(16.dp))
             }
+
+            // book cover (or placeholder if null)
             CoverImage(
                 65.dp,
                 book.cover,
                 stringResource(R.string.desc_coverImage)
             )
+
+            // book data
             Column(
                 modifier = Modifier.padding(start = 16.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.Start
             ) {
+                // book title
                 Text(
                     text = book.title,
                     style = MyTypography.bodyLarge,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
+                // author(s)
                 val authors = displayAuthors(book.authors)
                 if (authors.isNotBlank()) {
                     Text(
@@ -705,6 +692,7 @@ private fun BookEntry(
                 }
             }
         }
+        // tick icon if the book has been read
         if (book.read) {
             Box(
                 modifier = Modifier
@@ -723,6 +711,79 @@ private fun BookEntry(
     }
 }
 
+
+/**
+ * Top row when in Selection Mode, that displays various actions to take on the selected book entries.
+ *
+ * @param selectionModeActive whether or not the Selection mode is currently active
+ * @param selectedEntries maps book IDs to whether or not they're currently selected
+ * @param nbSelected number of currently selected book entries
+ * @param options non-exhaustive number of pairs.
+ * Each pair contains a string for the name of the action appearing in the drop-down menu, and a block to run when that button is pressed.
+ */
+@Composable
+fun SelectionModeTopRow(selectionModeActive: MutableState<Boolean>, selectedEntries: MutableMap<String, Boolean>, nbSelected: Int, vararg options: Pair<String, () -> Unit>) {
+    // left-side: selection number
+    Row(
+        modifier = Modifier.height(32.dp),
+        horizontalArrangement = Arrangement.spacedBy(
+            space = 8.dp, alignment = Alignment.Start
+        ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // checkbox to (de-)select all
+        Checkbox(
+            modifier = Modifier.size(20.dp),
+            checked = selectedEntries.values.all { it },
+            onCheckedChange = { checked ->
+                selectedEntries.keys.forEach { key ->
+                    selectedEntries[key] = checked
+                }
+            },
+            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+        )
+        Text(
+            text = stringResource(R.string.txt_nbSelected, nbSelected),
+            style = MyTypography.bodyMedium
+        )
+    }
+
+    // right-side: options and cancel
+    Row(
+        modifier = Modifier.height(32.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OptionsMenu(
+            icon = R.drawable.options,
+            options = options
+        )
+        IconButton(
+            onClick = {
+                selectionModeActive.value = false
+                selectedEntries.keys.forEach { key ->
+                    selectedEntries[key] = false
+                }
+            }
+        ) {
+            Icon(
+                painterResource(R.drawable.cancel),
+                modifier = Modifier.size(24.dp),
+                contentDescription = stringResource(R.string.desc_cancel)
+            )
+        }
+    }
+}
+
+/**
+ * When changing the sorting method, sorts books and groups them based on titles that make sense with the sorting method. Rewrites group headers.
+ *
+ * @param context to access string resources
+ * @param unreadFilter whether or not to filter out books that have been read (only showing unread books)
+ * @param sorting current sorting method
+ * @param books current list of all Book objects
+ * @return Map that maps group headers to their sorted list of books
+ */
 private fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSorting, books: List<Book>): Map<String, List<Book>> {
     val filteredBooks = if (unreadFilter) books.filter { !it.read } else books
 
@@ -759,6 +820,15 @@ private fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSor
     }
 }
 
+/**
+ * Specifically handles sorting and re-grouping of books for the Author>Series sorting method, since it also requires subheaders.
+ *
+ * @param context to access string resources
+ * @param unreadFilter whether or not to filter out books that have been read (only showing unread books)
+ * @param sorting current sorting method
+ * @param books current list of all Book objects
+ * @return Map that maps group headers to a mapping of group subheaders to their sorted list of books
+ */
 private fun groupBooksSubheaders(context: Context, unreadFilter: Boolean, sorting: BookSorting, books: List<Book>): Map<String, Map<String, List<Book>>> {
     if (sorting == BookSorting.AUTHOR_SERIES) {
         val filteredBooks = if (unreadFilter) books.filter { !it.read } else books

@@ -2,15 +2,12 @@ package com.example.bookbuddies.ui
 
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,7 +16,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,13 +33,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -79,7 +70,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -103,7 +93,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -122,7 +111,6 @@ import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.ui.theme.MyTypography
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -246,6 +234,21 @@ fun SecondaryScreen(
     )
 }
 
+/**
+ * Implements a fast scroll bar for a LazyColumn.
+ * The thumb for the scroll bar only appears when scrolling through the LazyColumn, and disappears after 3sec of not scrolling or releasing the thumb.
+ * The thumb auto-scrolls on the side if the user uses normal scrolling on the LazyColumn.
+ * When dragging the thumb to go through the LazyColumn faster, a bubble appears next to the thumb and shows the content of the current closest sticky header.
+ * The thumb is visually wider when being dragged, but the width of the touch area for the thumb stays constant.
+ *
+ * @param minThumbWidth width of the thumb when not dragged
+ * @param maxThumbWidth width of the thumb when being dragged
+ * @param thumbHeight height of the thumb (constant)
+ * @param bubbleWidth fixed width of the sticky header bubble. Its height wraps around the length of the text.
+ * @param headerResolver lambda that receives the index of the closest LazyColumn item and uses it to return its sticky header parent
+ * @param listContent content of the LazyColumn
+ * @return
+ */
 @SuppressLint("FrequentlyChangingValue")
 @Composable
 fun FastScroll(
@@ -285,11 +288,6 @@ fun FastScroll(
     val currentHeader = remember { mutableStateOf<String?>(null) }
     // capture the sticky header currently at the top
     LaunchedEffect(listState) {
-        /*snapshotFlow { listState.layoutInfo.visibleItemsInfo }
-            .collect { visibleItems ->
-                val header = visibleItems.firstOrNull { it.key is String }?.key as? String
-                if (header != null) currentHeader.value = header
-            }*/
         snapshotFlow { listState.firstVisibleItemIndex }
             .collect { index ->
                 if (!isDragging.value) currentHeader.value = headerResolver(index)
@@ -305,7 +303,7 @@ fun FastScroll(
             listContent()
         }
 
-        // whole vertical drag area
+        // whole vertical drag area (invisible)
         Box(
             modifier = Modifier
                 .fillMaxHeight()
@@ -419,70 +417,13 @@ fun FastScroll(
  */
 @Composable
 fun LoadingPage() {
-    // ensures that the user cannot go back while on the loading page.
+    // ensures that the user cannot go back while on the loading page
     BackHandler {}
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         LoadingAnimation(100f, 10f)
-    }
-}
-
-@Composable
-fun ProgressBar(processed: Int, total: Int) {
-    BackHandler {}
-
-    val progress = (processed.toFloat() / total.toFloat()).coerceIn(0f, 1f)
-    val percentage = (progress * 100).toInt()
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = stringResource(R.string.txt_coversProgress, processed, total),
-                    style = MyTypography.bodyLarge
-                )
-                Text(
-                    text = "$percentage%",
-                    style = MyTypography.bodyLarge
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-
-            // progress bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(32.dp)
-                    .clip(RoundedCornerShape(50))
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.inversePrimary,
-                        shape = RoundedCornerShape(50)
-                    )
-                    .background(MaterialTheme.colorScheme.outline)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(progress)
-                        .clip(RoundedCornerShape(50))
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
-        }
     }
 }
 
@@ -516,7 +457,7 @@ fun LoadingAnimation(size: Float, strokeWidth: Float) {
 }
 
 /**
- * This creates a column with a small loading animation that can be used as a screen content.
+ * Column with a small loading animation that can be used as a screen content.
  *
  * @param paddingValues to be used in the main column
  */
@@ -534,6 +475,73 @@ fun MiniLoading(paddingValues: PaddingValues) {
     }
 }
 
+/**
+ * A plain screen with a progress bar that gradually fills up, along with number of processed items over total, and progression percentage.
+ *
+ * @param processed number of items that have been processed
+ * @param total total number of items to process
+ */
+@Composable
+fun ProgressBar(processed: Int, total: Int) {
+    // ensures that the user cannot go back while progress is ongoing
+    BackHandler {}
+
+    val progress = (processed.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+    val percentage = (progress * 100).toInt()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // informative text above the progress bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // number of processed items over total
+                Text(
+                    text = stringResource(R.string.txt_coversProgress, processed, total),
+                    style = MyTypography.bodyLarge
+                )
+                // progress percentage
+                Text(
+                    text = "$percentage%",
+                    style = MyTypography.bodyLarge
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(50))
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.inversePrimary,
+                        shape = RoundedCornerShape(50)
+                    )
+                    .background(MaterialTheme.colorScheme.outline)
+            ) {
+                // bar fill that progressively fills its frame bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+        }
+    }
+}
 
 /**
  * Rewritten basic TextField composable for constant design throughout the app.
@@ -633,10 +641,13 @@ fun CustomTextField(
  * Warning: always call this function after all other composable elements in code, so that it appears on top of the screen.
  *
  * @param visible whether or not this window should be visible
- * @param confirmText text within the confirm button
- * @param confirmColour colour of the confirm text and button
- * @param onConfirm block that runs if the confirm button is pressed
  * @param content content of the dialog window
+ * @param bottomButtons whether or not the window should have 2 buttons in a row at the bottom. If true, the rest of the parameters should be filled out.
+ *        If only any one button's content and actions are given, it will be displayed on the left
+ * @param leftButtonContent contents of the button on the far left (text or icon for example)
+ * @param leftButtonOnClick block that runs when clicking the left button (don't forget to dismiss the window if it's expected)
+ * @param rightButtonContent contents of the button on the far right (text or icon for example)
+ * @param rightButtonOnClick block that runs when clicking the right button (don't forget to dismiss the window if it's expected)
  */
 @Composable
 fun CustomContentDialogWindow(
@@ -695,6 +706,14 @@ fun CustomContentDialogWindow(
     }
 }
 
+/**
+ * Tooltip icon with, if visible, a bubble chat-design popup attached next, with a tail pointing to the icon.
+ *
+ * @param showTooltip whether or not the popup is visible
+ * @param onIconClick block that runs when tapping the tooltip icon
+ * @param extraOnDismiss extra actions that need to be taken when dismissing the popup
+ * @param toolTipText text inside the popup
+ */
 @Composable
 fun Tooltip(showTooltip: MutableState<Boolean>, onIconClick: () -> Unit, extraOnDismiss: () -> Unit, toolTipText: String) {
     // Info icon
@@ -740,7 +759,7 @@ fun Tooltip(showTooltip: MutableState<Boolean>, onIconClick: () -> Unit, extraOn
                     )
                 }
 
-                // Triangle pointer
+                // Triangle pointer (bubble chat tail)
                 Box(
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
@@ -867,7 +886,7 @@ fun CoverImage(height: Dp, picture: String?, contentDescription: String) {
 }
 
 /**
- * For a specific setting, handles a list of options where exactly one option can and must be selected.
+ * Handles a list of options where exactly one option can and must be selected.
  *
  * @param numberChoices number of options in the list
  * @param currentChoice option that is currently selected
@@ -899,6 +918,19 @@ fun SingleOptionList(
     }
 }
 
+/**
+ * UI element that can be toggled on or off, with its explanatory text.
+ * The elements are placed inside a box that can also be tapped to trigger the toggle element.
+ *
+ * @param isRadio if true, the item is a Radio button. If false it's a Checkbox
+ * @param boxHeight height of the clickable box wrapping all the elements
+ * @param rowPadding PaddingValues of the Row that organizes the elements
+ * @param rowSpacing spacing between the elements inside the Row
+ * @param optionText text next to the toggle element
+ * @param textStyle chosen from defined styles in MyTypography
+ * @param isToggled current state of the toggle element
+ * @param onToggle block that runs when triggering the toggle element by tapping it or the parent box
+ */
 @Composable
 fun ToggleBox(
     isRadio: Boolean,
