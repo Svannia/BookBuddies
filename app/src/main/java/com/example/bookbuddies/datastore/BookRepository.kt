@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.displayDate
-import com.example.bookbuddies.errors.handleError
 import com.opencsv.CSVReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -48,6 +47,13 @@ class BookRepository(context: Context) {
     suspend fun getBookById(uid: String) = bookDao.getBookById(uid)
     suspend fun insertBook(book: Book) = bookDao.insertBook(book)
     suspend fun insertBooks(books: List<Book>) = bookDao.insertBooks(books)
+
+    /**
+     * Updates all the volumes of a manga with their series ID from Mangadex.
+     *
+     * @param mangaId Mangadex ID for this manga series
+     * @param seriesName all volumes with this series name will update their mangaID
+     */
     suspend fun updateMangaSeriesId(mangaId: String, seriesName: String) = bookDao.updateMangaSeriesId(mangaId, seriesName)
     suspend fun deleteBook(book: Book) = bookDao.deleteBook(book)
     suspend fun deleteAll() = bookDao.deleteAll()
@@ -77,10 +83,13 @@ const val UUID = "book_uuid"
 /**
  * Uses books ISBN to find and replace their covers.
  *
+ * @param context to access local files
  * @param books list of books to check for a cover
  * @param insertBook a suspend lambda that receives a book and inserts it in the repository
+ * @param updateMangaSeriesId a suspend lambda that receives a Mangadex ID and a series name, and updates all mangas of that series with the new Mangadex ID
  * @param callBack function to be called after the covers are updated, returning a list of books whose cover hasn't been found
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
+ * @param onProgress block that receives the numbered of currently processed covers and the total number, and updates the progress accordingly
  */
 suspend fun findBookCovers(
     context: Context,
@@ -93,7 +102,7 @@ suspend fun findBookCovers(
 ) = coroutineScope {
     val semaphore = Semaphore(5) // max 5 parallel downloads to avoid DDOS the APIs that fetch book covers
     val failedBooks = mutableListOf<String>()
-    val mutex = Mutex() // lock to protect access to failedBooks
+    val mutex = Mutex() // lock to protect access to shared variables
     val total = books.size
     var processed = 0
 
@@ -126,7 +135,7 @@ suspend fun findBookCovers(
                     } catch (e: Exception) {
                         mutex.withLock {
                             failedBooks.add(book.title)
-                            Timber.tag("BookCover").d("Failed to process book ${book.uid} with error $e")
+                            Timber.tag("BookCover").e("Failed to process book ${book.uid} with error $e")
                         }
                         isError(true)
                     } finally {
@@ -149,12 +158,19 @@ suspend fun findBookCovers(
         }
     } catch (e: Exception) {
         withContext(Dispatchers.Main) {
-            Timber.tag("BookCover").d("Failed to fetch covers with error $e")
+            Timber.tag("BookCover").e("Failed to fetch covers with error $e")
             isError(true)
         }
     }
 }
 
+/**
+ * Given a book (that is not a manga), uses its ISBN to try and fetch a cover.
+ *
+ * @param context to access local files
+ * @param book Book object whose cover is being searched for
+ * @return new Book object with the updated cover (same object as given parameter if no cover is found)
+ */
 private suspend fun fetchCoverForBook(context: Context, book: Book): Book =
     withContext(Dispatchers.IO) {
         val fileName = "${book.uid}.jpg"
@@ -205,11 +221,11 @@ private suspend fun fetchCoverForBook(context: Context, book: Book): Book =
                         }
                     }
                 } else {
-                    Timber.tag("BookCover").d("${book.title}: Google Books API failed and returned ${response.code}")
+                    Timber.tag("BookCover").e("${book.title}: Google Books API failed and returned ${response.code}")
                 }
 
             } catch (e: Exception) {
-                Timber.tag("BookCover").d("${book.title}: Google Books attempt failed with $e")
+                Timber.tag("BookCover").e("${book.title}: Google Books attempt failed with $e")
                 val delayTime = (500L * 2.0.pow(attempt.toDouble())).toLong()
                 delay(delayTime)
             }
@@ -228,13 +244,21 @@ private suspend fun fetchCoverForBook(context: Context, book: Book): Book =
                     Timber.tag("BookCover").d("${book.title}: Open Library returned invalid placeholder.")
                 }
             } catch (e: Exception) {
-                Timber.tag("BookCover").d("${book.title}: OpenLibrary attempt failed with $e")
+                Timber.tag("BookCover").e("${book.title}: OpenLibrary attempt failed with $e")
             }
         }
 
         return@withContext book.copy(cover = savedPath)
     }
 
+/**
+ * Given a book that was detected as a manga, uses its series name to try and fetch a cover.
+ *
+ * @param context to access local files
+ * @param book Book object for the manga whose cover is being searched for
+ * @param updateMangaSeriesId suspend lambda that updates all books within a series with a new Mangadex ID
+ * @return new Book object with the new cover (or same object as passed in parameter if no cover was found)
+ */
 private suspend fun fetchCoverForManga(context: Context, book: Book, updateMangaSeriesId: suspend (String, String) -> Unit): Book =
     withContext(Dispatchers.IO) {
         val fileName = "${book.uid}.jpg"
@@ -271,7 +295,7 @@ private suspend fun fetchCoverForManga(context: Context, book: Book, updateManga
 
                 val response = client.newCall(request).execute()
                 if (!response.isSuccessful) {
-                    Timber.tag("BookCover").d("${book.title}: MangaDex search API failed and returned ${response.code}")
+                    Timber.tag("BookCover").e("${book.title}: MangaDex search API failed and returned ${response.code}")
                     return@withContext book
                 }
 
@@ -319,7 +343,6 @@ private suspend fun fetchCoverForManga(context: Context, book: Book, updateManga
 
             }
 
-
             // 4. go to URL https://api.mangadex.org/cover?manga[]=<manga_id>&limit=100
             if (mangaId == null) {
                 Timber.tag("BookCover").d("${book.title}: No matching manga found on MangaDex")
@@ -333,7 +356,7 @@ private suspend fun fetchCoverForManga(context: Context, book: Book, updateManga
             val coversResponse = client.newCall(coversRequest).execute()
 
             if (!coversResponse.isSuccessful) {
-                Timber.tag("BookCover").d("${book.title}: MangaDex covers fetch failed and returned ${coversResponse.code}")
+                Timber.tag("BookCover").e("${book.title}: MangaDex covers fetch failed and returned ${coversResponse.code}")
                 return@withContext book
             }
 
@@ -370,12 +393,19 @@ private suspend fun fetchCoverForManga(context: Context, book: Book, updateManga
             }
 
         } catch (e: Exception) {
-            Timber.tag("BookCover").d("${book.title}: MangaDex search attempt failed with $e")
+            Timber.tag("BookCover").e("${book.title}: MangaDex search attempt failed with $e")
         }
 
         return@withContext book.copy(cover = savedPath)
     }
 
+/**
+ * Downloads an image from a web page and saves a local copy on the phone's app files.
+ *
+ * @param coverURL URL of the web page containing just the cover image
+ * @param file local File where the image copy should be kept
+ * @return the absolute path of the image copy
+ */
 private fun downloadAndSaveCover(coverURL: String, file: File): String? {
      return try {
          val url = URL(coverURL)
@@ -389,11 +419,21 @@ private fun downloadAndSaveCover(coverURL: String, file: File): String? {
              file.absolutePath
          } else null
      } catch (e: Exception) {
-         Timber.tag("BookCover").d("Failed to download cover from $coverURL with error $e")
+         Timber.tag("BookCover").e("Failed to download cover from $coverURL with error $e")
          null
      }
 }
 
+/**
+ * Specifically for OpenLibrary: some book cover searches return a single white pixel instead of a clear no-result.
+ * This function filters such results out as invalid placeholders.
+ * If the cover image is valid, save a local copy.
+ *
+ * @param context to access local files
+ * @param coverURL URL of the web page containing just the cover image
+ * @param uid of the book whose cover is being searched for
+ * @return the absolute path of the image copy
+ */
 private suspend fun validateAndSaveCover(context: Context, coverURL: String, uid: String): String? =
     withContext(Dispatchers.IO) {
         try {
@@ -406,11 +446,19 @@ private suspend fun validateAndSaveCover(context: Context, coverURL: String, uid
                 return@withContext saveBitmapToFile(context, bitmap, uid)
             }
         } catch (e: Exception) {
-            Timber.tag("BookCover").d("Failed cover validation from $coverURL with error $e")
+            Timber.tag("BookCover").e("Failed cover validation from $coverURL with error $e")
         }
         return@withContext null
 }
 
+/**
+ * Saves an image given as a bitmap into a local jpg copy.
+ *
+ * @param context to access local files
+ * @param bitmap array representing the cover image
+ * @param uid of the book whose cover is being searched for
+ * @return absolute path of the image copy
+ */
 private fun saveBitmapToFile(context: Context, bitmap: Bitmap, uid: String): String {
     val file = File(context.filesDir, "${uid}.jpg")
     FileOutputStream(file).use { outputStream ->
@@ -422,9 +470,9 @@ private fun saveBitmapToFile(context: Context, bitmap: Bitmap, uid: String): Str
 /**
  * Imports books from a CSV file into the local database.
  *
- * @param context used to display a Toast in case of an error
  * @param file the CSV file to import
  * @param insertBooks a suspend lambda that receives the list of parsed books and inserts them in the repository
+ * @param getBookById a suspend lambda that received a book's ID an fetches its Book object from the repository
  * @param callBack function to be called after the import is complete
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
  */
@@ -435,6 +483,7 @@ suspend fun importBooksFromCsv(
     callBack: () -> Unit,
     isError: (Boolean) -> Unit
 ) {
+    // Opens and starts reading the CSV file
     val reader = CSVReader(FileReader(file))
     val allLines = reader.readAll()
     reader.close()
@@ -450,11 +499,11 @@ suspend fun importBooksFromCsv(
     val headers = allLines.first().map { it.trim() }
     val columnIndex = headers.mapIndexed { index, name -> name to index }.toMap()
 
-    // Fetch the cell value of a given row at a given column name
+    // Fetches the cell value of a given row at a given column name
     fun getCol(cols: Array<String>, name: String): String {
         val idx = columnIndex[name]
         if (idx == null) {
-            Timber.tag("BookImport").d("Column name $name not found for book number ${cols[0]}")
+            Timber.tag("BookImport").e("Column name $name not found for book number ${cols[0]}")
             errorOccurred = true
             return ""
         }
@@ -499,6 +548,9 @@ suspend fun importBooksFromCsv(
         } ?: System.currentTimeMillis()
 
         val uid = getCol(cols, UUID)
+
+        // since covers is the only element not present in CSV files -> avoid erasing them
+        // if a book already exists, all its data except for an existing cover are overwritten with CSV file data.
         val existingBook = getBookById(uid)
 
         val book = Book(
@@ -531,6 +583,12 @@ suspend fun importBooksFromCsv(
     if (!errorOccurred) isError(false)
 }
 
+/**
+ * Exports all books present in the app's repository into a CSV file. All book data except covers is exported.
+ *
+ * @param books list of all books from repository
+ * @return CSV file built as an array of bytes
+ */
 fun exportBooksToCSV(books: List<Book>): ByteArray {
     // start writing CSV file
     val csvBuilder = StringBuilder()
@@ -607,6 +665,12 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
     return output
 }
 
+/**
+ * Modifies a text that is supposed to fit in a single CSV file cell, to sanitize special characters (, \ \n ")
+ *
+ * @param text string to be sanitized
+ * @return sanitized string
+ */
 private fun escapeCSVChar(text: String): String {
     val needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n")
     val escaped = text.replace("\"", "\"\"")
@@ -614,12 +678,11 @@ private fun escapeCSVChar(text: String): String {
 }
 
 /**
- * Parses a date string into a Long (milliseconds since epoch).
- * The date can be of format "dd/mm/yyyy", "yyyy/mm/dd", "yyyy-MM-dd", "yyyy-MM", "yyyy" or ISO 8601 (yyyy-MM-ddTHH:mm:ssZ).
+ * Parses a date string into a Long (milliseconds since Unix epoch).
  *
  * @param dateStr the date string to parse
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
- * @return the parsed date in milliseconds since epoch, or null if parsing failed
+ * @return the parsed date in milliseconds since Unix epoch, or null if parsing failed
  */
 private fun parseDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
     val str = dateStr.trim()
@@ -661,13 +724,13 @@ private fun parseDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
                 locale.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
             }
             else -> {
-                Timber.tag("BookImport").d("Unknown date format: $str")
+                Timber.tag("BookImport").e("Unknown date format: $str")
                 isError(true)
                 null
             }
         }
     } catch (e: DateTimeParseException) {
-        Timber.tag("BookImport").d("Failed to parse date: $str with error $e")
+        Timber.tag("BookImport").e("Failed to parse date: $str with error $e")
         isError(true)
         null
     }
@@ -675,11 +738,11 @@ private fun parseDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
 
 /**
  * Parses a date string into a Long (milliseconds since epoch).
- * The date is of format dd/mm/yyyy hh:mm or dd-MM-yyyy HH:mm.
+ * This is specifically for a book's dateAdded field which also stores hour and minutes.
  *
  * @param dateStr the date string to parse
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
- * @return the parsed date in milliseconds since epoch, or null if parsing failed
+ * @return the parsed date in milliseconds since Unix epoch, or null if parsing failed
  */
 private fun parseAddedDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
     val str = dateStr.trim()
@@ -714,7 +777,7 @@ private fun parseAddedDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
             }
         }
     } catch (e: DateTimeParseException) {
-        Timber.tag("BookImport").d("Failed to parse added date: $str with error $e")
+        Timber.tag("BookImport").e("Failed to parse added date: $str with error $e")
         isError(true)
         null
     }

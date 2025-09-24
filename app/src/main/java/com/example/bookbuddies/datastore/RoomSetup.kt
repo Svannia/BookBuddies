@@ -30,6 +30,7 @@ class Converters {
 // Data Access Object (DAO) for the Book entity
 @Dao
 interface BookDao {
+
     @Query("SELECT * FROM books ORDER BY title ASC")
     fun getAllBooks(): Flow<List<Book>>
 
@@ -43,7 +44,7 @@ interface BookDao {
     suspend fun insertBooks(books: List<Book>)
 
     @Query("UPDATE books SET mangaSeriesId = :mangaId WHERE seriesName = :seriesName")
-    suspend fun updateMangaSeriesId(seriesName: String, mangaId: String)
+    suspend fun updateMangaSeriesId(mangaId: String, seriesName: String)
 
     @Delete
     suspend fun deleteBook(book: Book)

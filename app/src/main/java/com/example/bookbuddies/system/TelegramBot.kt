@@ -14,7 +14,7 @@ object TelegramBot {
     private const val CHAT_ID = BuildConfig.TELEGRAM_CHAT_ID
 
     /**
-     * Send a bug report to the FoodieBuddiesBot on Telegram.
+     * Sends a bug report to the BookBuddiesBot on Telegram.
      *
      * @param message: bug description written by the user
      * @param logFile: text file containing all the app logs
@@ -24,7 +24,7 @@ object TelegramBot {
         return withContext(Dispatchers.IO) {
             try {
                 // post an API request to the Telegram bot as an HTTP request
-                val boundary = "----FoodieBuddiesBoundary${System.currentTimeMillis()}"
+                val boundary = "----BookBuddiesBoundary${System.currentTimeMillis()}"
                 val url = URL("https://api.telegram.org/bot$BOT_TOKEN/sendDocument")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
@@ -40,7 +40,7 @@ object TelegramBot {
                 connection.disconnect()
                 responseCode == 200
             } catch (e: Exception) {
-                Timber.tag("Error").d("Failed to send bug report with error:\n$e")
+                Timber.tag("Error").e("Failed to send bug report with error:\n$e")
                 false
             }
         }

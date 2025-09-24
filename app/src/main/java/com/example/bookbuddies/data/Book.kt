@@ -1,10 +1,8 @@
 package com.example.bookbuddies.data
 
 import android.content.Context
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import androidx.room.migration.Migration
 import com.example.bookbuddies.R
 import java.util.Calendar
 import java.util.Locale
@@ -33,6 +31,13 @@ data class Book(
     val dateAdded: Long
 )
 
+/**
+ * Displays an author's name as <First Name> <Last Name>, instead of how it's stored as <Last Name>, <First Name>.
+ * All the authors are displayed comma-separated in case the authors list is longer than 1.
+ *
+ * @param authorsList each item is an author stored as <Last Name>, <First Name>
+ * @return single string with the author(s)
+ */
 fun displayAuthors(authorsList: List<String>): String {
     if (authorsList.isEmpty()) return ""
 
@@ -48,6 +53,19 @@ fun displayAuthors(authorsList: List<String>): String {
     }
 }
 
+/**
+ * Translates a date stored as an Epoch number into a human-readable string, depending on the desired date format.
+ *
+ * @param date represents a date in milliseconds since the Unix epoch
+ * @param format DateFormat entry for different types of date parsing:
+ * FULL_DATE : 24 July 2001,
+ * FULL_SHORT_DATE : 24 Jul 2001,
+ * MONTH_YEAR : July 2001,
+ * NUMBERED : 24/07/2001,
+ * NUMBERED_REVERSE : 2001/07/24,
+ * NUMBERED_WITH_TIME : 24/07/2001 19:50
+ * @return date as text
+ */
 fun displayDate(date: Long, format: DateFormat): String {
     if (date <= 0L) return ""
     val calendar = Calendar.getInstance().apply { timeInMillis = date }
@@ -88,15 +106,17 @@ fun displayDate(date: Long, format: DateFormat): String {
     }
 }
 
+// Various date formats for parsing
 enum class DateFormat {
     FULL_DATE, FULL_SHORT_DATE, MONTH_YEAR, NUMBERED, NUMBERED_REVERSE, NUMBERED_WITH_TIME
 }
 
+// The different possible methods to sort and group books in the main page
 enum class BookSorting {
     AUTHOR_SERIES, SERIES, TITLE, RECENTLY_ADDED, RATING, GENRE, LANGUAGE, FORMAT, BOUGHT_AT
 }
 
-val sortingsMap = mapOf(
+val sortingMap = mapOf(
     BookSorting.AUTHOR_SERIES to R.string.sorting_author,
     BookSorting.SERIES to R.string.sorting_series,
     BookSorting.TITLE to R.string.sorting_title,
@@ -108,12 +128,24 @@ val sortingsMap = mapOf(
     BookSorting.BOUGHT_AT to R.string.sorting_bought
 )
 
+/**
+ * Translates a BookSorting element into its corresponding string from strings.xml.
+ *
+ * @param context used to access the string resources
+ * @return user-readable string
+ */
 fun BookSorting.getString(context: Context): String {
-    return context.getString(sortingsMap[this] ?: R.string.sorting_author)
+    return context.getString(sortingMap[this] ?: R.string.sorting_author)
 }
 
+/**
+ * Translates a string stored in strings.xml into its corresponding BookSorting element.
+ *
+ * @param context used to access the string resources
+ * @return entry from BookSorting enum
+ */
 fun String.getBookSorting(context: Context): BookSorting {
-    return sortingsMap.entries.firstOrNull {
+    return sortingMap.entries.firstOrNull {
         context.getString(it.value) == this
     }?.key ?: BookSorting.AUTHOR_SERIES
 }
