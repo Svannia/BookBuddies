@@ -34,10 +34,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
                     .thenBy { it.seriesName }
                     .thenBy { it.seriesNumber }
             )
+
             BookSorting.SERIES -> books.sortedWith(
                 compareBy<Book> { it.seriesName }
                     .thenBy { it.seriesNumber }
             )
+
             BookSorting.TITLE -> books.sortedBy { it.title }
             BookSorting.RECENTLY_ADDED -> books.sortedByDescending { it.dateAdded }
             BookSorting.RATING -> books.sortedByDescending { it.rating }
@@ -54,21 +56,30 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param uid book ID
      * @return Book object for this ID. Can be null if no book was found with this ID
      */
-    suspend fun getBookById(uid: String) = repository.getBookById(uid)
+    suspend fun getBookById(uid: String): Book? {
+        Timber.tag("BookVM").d("Recovering book with ID $uid")
+        return repository.getBookById(uid)
+    }
 
     /**
      * Inserts new books in the repository. If the book already exists, its data is overwritten with the new one.
      *
      * @param books list of Book objects to be added
      */
-    suspend fun insertBooks(books: List<Book>) = repository.insertBooks(books)
+    suspend fun insertBooks(books: List<Book>) {
+        repository.insertBooks(books)
+        Timber.tag("BookVM").d("Inserting ${books.size} into repository")
+    }
 
     /**
      * Inserts a new book in the repository. If the book already exists, its data is overwritten with the new one.
      *
      * @param book Book object to be added
      */
-    suspend fun insertBook(book: Book) = repository.insertBook(book)
+    suspend fun insertBook(book: Book) {
+        repository.insertBook(book)
+        Timber.tag("BookVM").d("Inserting book \"${book.title}\" into repository")
+    }
 
     /**
      * Updates all the volumes of a manga with their series ID from Mangadex.
@@ -76,8 +87,10 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param mangaId Mangadex ID for this manga series
      * @param seriesName all volumes with this series name will update their mangaID
      */
-    suspend fun updateMangaSeriesId(mangaId: String, seriesName: String) =
+    suspend fun updateMangaSeriesId(mangaId: String, seriesName: String) {
         repository.updateMangaSeriesId(mangaId, seriesName)
+        Timber.tag("BookVM").d("Update manga series \"$seriesName\" with new Mangadex ID $mangaId")
+    }
 
     /**
      * Removes the covers (replacing them with default placeholder) of some selected books.
@@ -103,7 +116,10 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             book.copy(cover = null)
         }
         repository.insertBooks(clearedBooks)
-        if (errorOccurred) isError(true) else callBack()
+        if (errorOccurred) isError(true) else {
+            Timber.tag("BookVM").d("Successfully deleted covers for ${booksToClear.size} books")
+            callBack()
+        }
     }
 
     /**
@@ -114,7 +130,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      */
     suspend fun clearAllCovers(isError: (Boolean) -> Unit, callBack: () -> Unit) {
         val currentBooks = allBooks.first()
-        clearCovers(currentBooks, { isError(it) }, { callBack() })
+        var errorOccurred = false
+        clearCovers(currentBooks, { if (it) errorOccurred = true })
+        {
+            if (errorOccurred) isError(true)
+            else callBack()
+        }
     }
 
     /**
@@ -126,6 +147,49 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     suspend fun updateRead(isRead: Boolean, book: Book) {
         val updatedBook = book.copy(read = isRead)
         repository.insertBook(updatedBook)
+        Timber.tag("BookVM").d("Updated the \"read\" mark for book \"${book.title}\"")
+    }
+
+    /**
+     * Deletes book entry from the repository, along with its local copy of the book cover.
+     *
+     * @param bookToDelete Book object of the book to delete
+     * @param isError returns true if an error occurred while executing the function
+     * @param callBack block that runs once the book and its cover were successfully deleted
+     */
+    suspend fun deleteBook(bookToDelete: Book, isError: (Boolean) -> Unit, callBack: () -> Unit) {
+        // first try to delete book cover in local files
+        bookToDelete.cover?.let { path ->
+            try {
+                val file = File(path)
+                if (file.exists()) file.delete()
+            } catch (e: Exception) {
+                Timber.tag("BookVM").e("Failed to delete cover when trying to delete book ${bookToDelete.title} with error: $e")
+                isError(true)
+            }
+        }
+        repository.deleteBook(bookToDelete)
+        Timber.tag("BookVM").d("Deleted book \"${bookToDelete.title} from the repository")
+        callBack()
+    }
+
+    /**
+     * Deletes multiple book entries from the repository, along with its local copy of the book cover.
+     *
+     * @param booksToDelete list of Book objects to be deleted
+     * @param isError returns true if an error occurred while executing the function
+     * @param callBack block that runs once the book and its cover were successfully deleted
+     */
+    suspend fun deleteBooks(booksToDelete: List<Book>, isError: (Boolean) -> Unit, callBack: () -> Unit) {
+        var errorOccurred = false
+
+        booksToDelete.forEach { book ->
+            deleteBook(book, { if (it) errorOccurred = true })
+            {
+                if (errorOccurred) isError(true)
+                else callBack()
+            }
+        }
     }
 
     /**

@@ -88,4 +88,7 @@
     <string name="toast_bugReportFail">Failed to send bug report</string>
     <string name="toast_coverSearchFail">An error occurred while finding covers.</string>
     <string name="toast_coverRemoveFail">Failed to remove some covers.</string>
+    <string name="button_deleteBooks">Delete books</string>
+    <string name="toast_multiDeleteFail">Failed to delete some books.</string>
+    <string name="toast_successMultiDelete">Successfully deleted the selected books.</string>
 </resources>

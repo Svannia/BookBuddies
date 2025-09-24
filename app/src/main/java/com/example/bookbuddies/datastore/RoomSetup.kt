@@ -49,8 +49,6 @@ interface BookDao {
     @Delete
     suspend fun deleteBook(book: Book)
 
-    @Query("DELETE FROM books")
-    suspend fun deleteAll()
 }
 
 // Room database that holds the Book entity and provides the BookDao

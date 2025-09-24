@@ -235,7 +235,32 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                     }
                                 },
                             // option to delete books
-                            // todo
+                            stringResource(R.string.button_deleteBooks) to  {
+                                loading.value = true
+                                scope.launch {
+                                    val booksToDelete = books.filter { selectedEntries[it.uid] == true }
+                                    bookVM.deleteBooks(
+                                        booksToDelete = booksToDelete,
+                                        isError = {
+                                            if (it) {
+                                                loading.value = false
+                                                handleError(context, context.getString(R.string.toast_multiDeleteFail))
+                                            }
+                                        }
+                                    ) {
+                                        loading.value = false
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.toast_successMultiDelete),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        selectionModeActive.value = false
+                                        selectedEntries.keys.forEach { key ->
+                                            selectedEntries[key] = false
+                                        }
+                                    }
+                                }
+                            },
                             // option to add some covers
                             stringResource(R.string.button_addCover) to {
                                 progressing.value = true

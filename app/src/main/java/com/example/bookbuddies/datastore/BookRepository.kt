@@ -56,7 +56,6 @@ class BookRepository(context: Context) {
      */
     suspend fun updateMangaSeriesId(mangaId: String, seriesName: String) = bookDao.updateMangaSeriesId(mangaId, seriesName)
     suspend fun deleteBook(book: Book) = bookDao.deleteBook(book)
-    suspend fun deleteAll() = bookDao.deleteAll()
 }
 
 // CSV Headers
