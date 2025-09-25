@@ -29,7 +29,22 @@ data class Book(
     val dateFinished: Long,
     val boughtAt: String,
     val dateAdded: Long
-)
+) {
+    companion object {
+        /**
+         * Creates an empty Book data object.
+         *
+         * @return empty Book data object.
+         */
+        fun empty(): Book {
+            return Book("", "", "", emptyList(), null,
+                "", -1, null, "",
+                "", "", 0L, 0.0, "", "",
+                false, 0L, 0L, "", System.currentTimeMillis()
+            )
+        }
+    }
+}
 
 /**
  * Displays an author's name as <First Name> <Last Name>, instead of how it's stored as <Last Name>, <First Name>.
@@ -51,6 +66,11 @@ fun displayAuthors(authorsList: List<String>): String {
             author
         }
     }
+}
+
+fun displaySeries(seriesName: String, seriesNumber: Int): String {
+    val number = if (seriesNumber >= 0) "#$seriesNumber" else ""
+    return "$seriesName $number"
 }
 
 /**

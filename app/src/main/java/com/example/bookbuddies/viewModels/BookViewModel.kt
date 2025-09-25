@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import java.io.File
 
@@ -26,6 +28,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     private val allBooks = repository.allBooks
 
+    // ---------- FETCHING DATA ----------
     // the raw list of stored books is private. Instead we only expose the books sorted by one method ("author > series" by default)
     val sortedBooks: Flow<List<Book>> = combine(allBooks, _bookSorting) { books, sorting ->
         when (sorting) {
@@ -61,6 +64,14 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         return repository.getBookById(uid)
     }
 
+    fun getBookFlowById(uid: String): Flow<Book> {
+        Timber.tag("BookVM").d("Recovering book flow with ID $uid")
+        return allBooks.map { list -> list.find { it.uid == uid }}.filterNotNull()
+    }
+
+
+    // ---------- ADDING NEW ENTRIES ----------
+
     /**
      * Inserts new books in the repository. If the book already exists, its data is overwritten with the new one.
      *
@@ -81,6 +92,9 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         Timber.tag("BookVM").d("Inserting book \"${book.title}\" into repository")
     }
 
+
+    // ---------- UPDATING REPOSITORY ----------
+
     /**
      * Updates all the volumes of a manga with their series ID from Mangadex.
      *
@@ -91,6 +105,33 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         repository.updateMangaSeriesId(mangaId, seriesName)
         Timber.tag("BookVM").d("Update manga series \"$seriesName\" with new Mangadex ID $mangaId")
     }
+
+    /**
+     * Updates the "rating" field of a Book object with a new value.
+     *
+     * @param newRating new value for the "rating" field
+     * @param book Book object whose value to change
+     */
+    suspend fun updateRating(newRating: Double, book: Book) {
+        val updatedBook = book.copy(rating = newRating)
+        repository.insertBook(updatedBook)
+        Timber.tag("BookVM").d("Updated the \"rating\" field for book \"${book.title}\"")
+    }
+
+    /**
+     * Updates the "read" field of a Book object with a new value.
+     *
+     * @param isRead new value for the "read" field
+     * @param book Book object to mark as (un)read
+     */
+    suspend fun updateRead(isRead: Boolean, book: Book) {
+        val updatedBook = book.copy(read = isRead)
+        repository.insertBook(updatedBook)
+        Timber.tag("BookVM").d("Updated the \"read\" mark for book \"${book.title}\"")
+    }
+
+
+    // ---------- UPDATING COVERS ----------
 
     /**
      * Removes the covers (replacing them with default placeholder) of some selected books.
@@ -138,17 +179,8 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         }
     }
 
-    /**
-     * Updates the "read" field of a Book object with a new value.
-     *
-     * @param isRead new value for the "read" field
-     * @param book Book object to mark as (un)read
-     */
-    suspend fun updateRead(isRead: Boolean, book: Book) {
-        val updatedBook = book.copy(read = isRead)
-        repository.insertBook(updatedBook)
-        Timber.tag("BookVM").d("Updated the \"read\" mark for book \"${book.title}\"")
-    }
+
+    // ---------- DELETING FROM REPOSITORY ----------
 
     /**
      * Deletes book entry from the repository, along with its local copy of the book cover.
@@ -191,6 +223,9 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             }
         }
     }
+
+
+    // ---------- SORTING METHODS AND FILTER ----------
 
     /**
      * Updates the sorting method, re-sorting the displayed books.

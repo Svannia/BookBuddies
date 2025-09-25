@@ -13,15 +13,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.ui.settings.Settings
 import com.example.bookbuddies.ui.home.HomeScreen
 import com.example.bookbuddies.ui.theme.BookBuddiesTheme
 import com.example.bookbuddies.datastore.BookRepository
+import com.example.bookbuddies.ui.book.BookView
 import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.BookViewModelFactory
 import com.example.bookbuddies.viewModels.DataViewModel
@@ -64,6 +67,14 @@ class MainActivity : ComponentActivity() {
                         composable(Route.SETTINGS) {
                             Settings(dataVM, bookVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen Settings")
+                        }
+                        composable(
+                            route = "${Route.BOOK}/{bookID}",
+                            arguments = listOf(navArgument("bookID") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val bookID = backStackEntry.arguments?.getString("bookID") ?: return@composable
+                            BookView(bookID, bookVM, navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen BookView")
                         }
                     }
                 }

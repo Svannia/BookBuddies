@@ -91,4 +91,10 @@
     <string name="button_deleteBooks">Delete books</string>
     <string name="toast_multiDeleteFail">Failed to delete some books.</string>
     <string name="toast_successMultiDelete">Successfully deleted the selected books.</string>
+    <string name="desc_edit">edit button</string>
+    <string name="button_deleteBook">Delete book</string>
+    <string name="toast_deleteFail">Failed to delete this book.</string>
+    <string name="desc_rating">book rating (0-5 stars)</string>
+    <string name="txt_startReading">"Started reading on: "</string>
+    <string name="title_readingStatus">Reading status</string>
 </resources>

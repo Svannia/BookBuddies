@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,6 +83,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.focusRequester
@@ -91,6 +93,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -113,6 +117,7 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
@@ -339,12 +344,14 @@ fun FastScroll(
                                 change.consume()
 
                                 // change the position of the thumb on the screen
-                                val maxThumbOffset = containerHeight.floatValue - thumbHeight.dp.toPx()
+                                val maxThumbOffset =
+                                    containerHeight.floatValue - thumbHeight.dp.toPx()
                                 thumbOffset.floatValue = (thumbOffset.floatValue + offset.y)
                                     .coerceIn(0f, maxThumbOffset)
 
                                 // sync LazyColum position with dragged thumb
-                                val scrollFraction = (thumbOffset.floatValue / maxThumbOffset).coerceIn(0f, 1f)
+                                val scrollFraction =
+                                    (thumbOffset.floatValue / maxThumbOffset).coerceIn(0f, 1f)
                                 val totalItems = listState.layoutInfo.totalItemsCount
                                 if (totalItems > 0) {
                                     val targetIndex = (scrollFraction * (totalItems - 1)).toInt()
@@ -379,7 +386,8 @@ fun FastScroll(
                     .offset {
                         IntOffset(
                             -(8 + maxThumbWidth + 20).dp.roundToPx(),
-                            thumbOffset.floatValue.roundToInt())
+                            thumbOffset.floatValue.roundToInt()
+                        )
                     }
                     .align(Alignment.TopEnd)
                     .width(bubbleWidth.dp)
@@ -873,15 +881,90 @@ fun CoverImage(height: Dp, picture: String?, contentDescription: String) {
             .height(height)
             .width(height * 0.6f)
             .clip(RectangleShape)
-            .background(Color.Transparent)
     ) {
         Image(
+            modifier = Modifier.fillMaxSize(),
             painter = rememberAsyncImagePainter(
                 model = picture ?: R.drawable.default_cover
             ),
             contentDescription = contentDescription,
             contentScale = ContentScale.FillHeight
         )
+    }
+}
+
+/**
+ * Creates a row of 5 star icons that are filled according to the rating value.
+ *
+ * @param rating rating value from 0 to 5, with half-values
+ * @param starSize size of each star icon
+ * @param starSpacing spacing between the stars
+ */
+@Composable
+fun RatingStars(rating: Double, starSize: Dp, starSpacing: Dp, emptyStarColor: Color, onRatingChange: ((Double) -> Unit)? = null) {
+    val density = LocalDensity.current
+    val starSizePx = with(density) { starSize.toPx() }
+    val spacingPx = with(density) { starSpacing.toPx() }
+    val totalWidth = 5 * starSizePx + 4 * spacingPx
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(starSpacing),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .then(
+                if (onRatingChange != null) {
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures { offset ->
+                            val newRating = ((offset.x / totalWidth) * 5)
+                                .coerceIn(0.0f, 5.0f)
+                            onRatingChange((newRating * 2).roundToInt() / 2.0) // snap to a half-star
+                        }
+                    }.pointerInput(Unit) {
+                        detectDragGestures { change, _ ->
+                            val newRating = ((change.position.x / totalWidth) * 5)
+                                .coerceIn(0.0f, 5.0f)
+                            onRatingChange((newRating * 2).roundToInt() / 2.0)
+                        }
+                    }
+                } else Modifier
+            )
+    ) {
+        for (i in 1..5) {
+            val fillRatio = when {
+                i <= rating -> 1f
+                i - rating < 1 -> (rating - floor(rating)).toFloat()
+                else -> 0f
+            }
+
+            Box(
+                modifier = Modifier.size(starSize)
+            ) {
+                // background outlined star
+                Icon(
+                    painter = painterResource(R.drawable.star_filled),
+                    contentDescription = stringResource(R.string.desc_rating),
+                    modifier = Modifier.fillMaxSize(),
+                    tint = emptyStarColor
+                )
+
+                // star filling
+                if (fillRatio > 0f) {
+                    Icon(
+                        painter = painterResource(R.drawable.star_filled),
+                        contentDescription = stringResource(R.string.desc_rating),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawWithContent {
+                                val width = size.width * fillRatio
+                                clipRect(right = width) {
+                                    this@drawWithContent.drawContent()
+                                }
+                            }
+                    )
+                }
+            }
+        }
     }
 }
 

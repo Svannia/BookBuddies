@@ -6,6 +6,7 @@ object Route{
     const val HOME = "Home"
     const val SETTINGS = "Settings"
     const val BOOK = "Book"
+    const val BOOK_EDIT = "BookEdit"
 }
 
 /**
