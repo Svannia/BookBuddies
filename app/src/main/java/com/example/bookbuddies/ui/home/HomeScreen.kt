@@ -3,6 +3,7 @@ package com.example.bookbuddies.ui.home
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -332,6 +334,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     } else {
                         // Number of books displayed
                         Text(
+                            modifier = Modifier.height(32.dp),
                             text = "Displaying $displayedCount books",
                             style = MyTypography.bodyMedium
                         )
@@ -650,6 +653,12 @@ private fun BookEntry(
     selectedEntries: MutableMap<String, Boolean>,
     onClick: () -> Unit,
 ) {
+    // to animate the elements sliding left/right when exiting/entering Selection mode
+    val animatedPadding by animateDpAsState(
+        targetValue = if (selectionModeActive.value) 36.dp else 0.dp,
+        label = "rowSlide"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -665,27 +674,30 @@ private fun BookEntry(
                 }
             )
     ) {
+        // checkbox to select this book entry if the selection mode is active
+        if (selectionModeActive.value) {
+            Checkbox(
+                modifier = Modifier
+                    .size(20.dp)
+                    .align(Alignment.CenterStart)
+                    .padding(start = 16.dp),
+                checked = selectedEntries[book.uid] ?: false,
+                onCheckedChange = { checked ->
+                    selectedEntries[book.uid] = checked
+                },
+                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+            )
+        }
+
+        // rest of the book data
         Row (
             modifier = Modifier
                 .fillMaxWidth()
+                .offset(x = animatedPadding)
                 .padding(start = 16.dp, end = 46.dp, top = 3.dp, bottom = 3.dp)
                 .align(Alignment.CenterStart),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // checkbox to select this book entry if the selection mode is active
-            if (selectionModeActive.value) {
-                Checkbox(
-                    modifier = Modifier.size(20.dp),
-                    checked = selectedEntries[book.uid] ?: false,
-                    onCheckedChange = { checked ->
-                        selectedEntries[book.uid] = checked
-                    },
-                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-            }
-
             // book cover (or placeholder if null)
             CoverImage(
                 65.dp,
