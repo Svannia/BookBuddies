@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,7 +45,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
+import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.displayAuthors
+import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.data.displaySeries
 import com.example.bookbuddies.datastore.fetchCoverForBook
 import com.example.bookbuddies.datastore.fetchCoverForManga
@@ -240,36 +243,96 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                             )
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.5.dp)
-                        // start reading
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = stringResource(R.string.txt_startReading),
-                                style = MyTypography.bodyLarge
-                            )
-                            TextButton(
-                                modifier = Modifier
-                                    .border(
-                                        width = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        shape = RoundedCornerShape(50)
-                                    )
-                                    .background(
-                                        color = Color.Transparent, shape = RoundedCornerShape(50)
-                                    ),
-                                onClick = {
-                                    // todo: update with bookVM
-                                }
+                            // start reading
+                            Column(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = stringResource(R.string.txt_startedToday), style = MyTypography.bodySmall, color = MaterialTheme.colorScheme.primary
+                                    text = stringResource(R.string.txt_startReading),
+                                    style = MyTypography.bodyLarge
                                 )
+                                if (book.dateStarted <= 0L) {
+                                    TextButton(
+                                        modifier = Modifier
+                                            .padding(0.dp)
+                                            .border(
+                                                width = 2.dp,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .background(
+                                                color = Color.Transparent, shape = RoundedCornerShape(50)
+                                            ),
+                                        onClick = {
+                                            scope.launch {
+                                                bookVM.updateStart(System.currentTimeMillis(), book)
+                                            }
+                                        }
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.button_startedToday), style = MyTypography.bodySmall, color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = displayDate(book.dateStarted, DateFormat.FULL_DATE),
+                                        style = MyTypography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            // finish reading
+                            Column(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.txt_finishReading),
+                                    style = MyTypography.bodyLarge
+                                )
+                                if (book.dateFinished <= 0L) {
+                                    TextButton(
+                                        modifier = Modifier
+                                            .padding(0.dp)
+                                            .border(
+                                                width = 2.dp,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .background(
+                                                color = Color.Transparent,
+                                                shape = RoundedCornerShape(50)
+                                            ),
+                                        onClick = {
+                                            scope.launch {
+                                                bookVM.updateFinish(System.currentTimeMillis(), book)
+                                            }
+                                        }
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.button_finishedToday),
+                                            style = MyTypography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = displayDate(book.dateFinished, DateFormat.FULL_DATE),
+                                        style = MyTypography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
-
                     }
                 }
             }

@@ -170,6 +170,31 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         Timber.tag("BookVM").d("Updated the \"read\" mark for book \"${book.title}\"")
     }
 
+    /**
+     * Updates the "dateStarted" field of a Book object with a new value.
+     *
+     * @param dateStarted new value for the "dateStarted" field
+     * @param book Book object to mark as started
+     */
+    suspend fun updateStart(dateStarted: Long, book: Book) {
+        val updatedBook = book.copy(dateStarted = dateStarted)
+        repository.insertBook(updatedBook)
+        Timber.tag("BookVM").d("Updated the \"dateStarted\" for book \"${book.title}\"")
+    }
+
+    /**
+     * Updates the "dateFinished" field of a Book object with a new value.
+     *
+     * @param dateFinished new value for the "dateFinished" field
+     * @param book Book object to mark as finished
+     */
+    suspend fun updateFinish(dateFinished: Long, book: Book) {
+        val updatedBook = book.copy(dateFinished = dateFinished)
+        repository.insertBook(updatedBook)
+        Timber.tag("BookVM").d("Updated the \"dateFinished\" for book \"${book.title}\"")
+    }
+
+
 
     // ---------- UPDATING COVERS ----------
 
