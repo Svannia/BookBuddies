@@ -2,31 +2,40 @@
 <resources>
     <string name="app_name">BookBuddies</string>
 
+    <string name="button_addCover">Search for covers</string>
     <string name="button_cancel">Cancel</string>
     <string name="button_collapseAll">Collapse all</string>
-    <string name="button_markAsRead">Mark as Read</string>
-    <string name="button_removeCover">Remove covers</string>
-    <string name="button_addCover">Search for covers</string>
     <string name="button_confirm">Confirm</string>
+    <string name="button_deleteBook">Delete book</string>
+    <string name="button_deleteBooks">Delete books</string>
     <string name="button_expandAll">Expand all</string>
     <string name="button_export">Export to CSV file</string>
     <string name="button_findCovers">Find covers</string>
     <string name="button_import">Import CSV file</string>
+    <string name="button_markAsRead">Mark as Read</string>
+    <string name="button_removeCover">Remove covers</string>
     <string name="button_removeCovers">Remove all covers</string>
     <string name="button_send">Send</string>
     <string name="button_sendBug">Report a bug</string>
+    <string name="button_singleBookCoverAuto">Search for book cover</string>
+    <string name="button_singleMangaCoverAuto">Search for manga cover</string>
+    <string name="button_singleCoverDelete">Delete cover</string>
+    <string name="button_singleCoverManual">Manually replace cover</string>
     <string name="button_unread">Only unread</string>
 
     <string name="desc_burgerMenu">burger menu</string>
-    <string name="desc_copy">copy button</string>
     <string name="desc_cancel">cancel operation</string>
+    <string name="desc_copy">copy button</string>
     <string name="desc_coverImage">book cover image</string>
     <string name="desc_dstIcon">destination icon</string>
+    <string name="desc_edit">edit button</string>
     <string name="desc_expandCollapse">Expand/collapse</string>
     <string name="desc_filters">sorting and filters icon</string>
     <string name="desc_goBack">go back</string>
     <string name="desc_loading">loading</string>
     <string name="desc_options">options menu</string>
+    <string name="desc_rating">book rating (0-5 stars)</string>
+    <string name="desc_read">is read</string>
     <string name="desc_textFieldIcon">text field icon</string>
     <string name="desc_tooltip">tooltip info</string>
 
@@ -49,14 +58,29 @@
     <string name="title_data">Book Data</string>
     <string name="title_failedCovers">The following covers have not been found:</string>
     <string name="title_homeScreen">My Books</string>
+    <string name="title_readingStatus">Reading status</string>
+    <string name="title_settings">Settings</string>
     <string name="title_sortBy">Sort by</string>
     <string name="title_theme">Theme</string>
 
     <string name="toast_bugReport">Thank you for reporting the bug!</string>
+    <string name="toast_bugReportFail">Failed to send bug report</string>
+    <string name="toast_coverDeleteFail">Failed to delete this book\'s cover.</string>
+    <string name="toast_coverRemoveFail">Failed to remove some covers.</string>
+    <string name="toast_coverSearchFail">An error occurred while finding covers.</string>
+    <string name="toast_deleteFail">Failed to delete this book.</string>
+    <string name="toast_deleteMultiFail">Failed to delete some books.</string>
     <string name="toast_emptyBugReport">Please describe the bug to send a report.</string>
+    <string name="toast_failExport">Failed to export books as a CSV file.</string>
+    <string name="toast_fileOpenFailure">Failed to open the selected file.</string>
+    <string name="toast_importError">An error occurred while importing the selected file.</string>
     <string name="toast_invalidCSV">Invalid file type, please select a CSV document.</string>
+    <string name="toast_multiDeleteFail">Failed to delete some books.</string>
     <string name="toast_removeCovers">All covers have been deleted.</string>
     <string name="toast_removeSomeCovers">The selected covers have been deleted.</string>
+    <string name="toast_singleCoverFail">No cover found for this book.</string>
+    <string name="toast_successDelete">Book successfully deleted!</string>
+    <string name="toast_successMultiDelete">Successfully deleted the selected books.</string>
     <string name="toast_successfulCovers">All possible covers have been added!</string>
     <string name="toast_successfulExport">The books have been successfully exported</string>
     <string name="toast_successfulImport">The books have been successfully imported!</string>
@@ -66,35 +90,23 @@
     <string name="txt_coversTooltip">Concerning Manga covers:\n
         \nIn order to get more results, please use the word \"manga\" within the corresponding books\' \"format\" field.\n
         \nThis will trigger a different search mechanism for those volumes.</string>
+    <string name="txt_deleteConfirm">Are you sure you want to delete this book?</string>
     <string name="txt_failedCoversClipboard">Covers not found</string>
     <string name="txt_iconsBy">"Icons by "</string>
     <string name="txt_importTooltip">This functionality is made to import books from the app \"Book Catalogue\".\n
         \nUse \"Admin &gt; Export to CSV file\" to get your backup in the correct format.\n
         \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
+    <string name="txt_multiDeleteConfirm">Are you sure you want to delete these books:</string>
+    <string name="txt_nbSelected">%1$d selected</string>
     <string name="txt_noResults">You don\'t have any books yet.</string>
     <string name="txt_reportBugNote">Reporting a bug will also send this app\'s log files that it locally saved on your phone.</string>
+    <string name="txt_startReading">"Started reading on: "</string>
     <string name="txt_systemDark">Dark</string>
     <string name="txt_systemDefault">System default</string>
     <string name="txt_systemLight">Light</string>
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
-    <string name="txt_nbSelected">%1$d selected</string>
-    <string name="desc_read">is read</string>
-    <string name="toast_importError">An error occurred while importing the selected file.</string>
-    <string name="toast_fileOpenFailure">Failed to open the selected file.</string>
-    <string name="toast_failExport">Failed to export books as a CSV file.</string>
-    <string name="title_settings">Settings</string>
-    <string name="toast_bugReportFail">Failed to send bug report</string>
-    <string name="toast_coverSearchFail">An error occurred while finding covers.</string>
-    <string name="toast_coverRemoveFail">Failed to remove some covers.</string>
-    <string name="button_deleteBooks">Delete books</string>
-    <string name="toast_multiDeleteFail">Failed to delete some books.</string>
-    <string name="toast_successMultiDelete">Successfully deleted the selected books.</string>
-    <string name="desc_edit">edit button</string>
-    <string name="button_deleteBook">Delete book</string>
-    <string name="toast_deleteFail">Failed to delete this book.</string>
-    <string name="desc_rating">book rating (0-5 stars)</string>
-    <string name="txt_startReading">"Started reading on: "</string>
-    <string name="title_readingStatus">Reading status</string>
+    <string name="txt_startedToday">started today</string>
+    <string name="toast_manualCoverFail">Failed to save selected picture as cover.</string>
 </resources>

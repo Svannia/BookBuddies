@@ -170,13 +170,13 @@ suspend fun findBookCovers(
  * @param book Book object whose cover is being searched for
  * @return new Book object with the updated cover (same object as given parameter if no cover is found)
  */
-private suspend fun fetchCoverForBook(context: Context, book: Book): Book =
+suspend fun fetchCoverForBook(context: Context, book: Book, allowOverwrite: Boolean = false): Book =
     withContext(Dispatchers.IO) {
         val fileName = "${book.uid}.jpg"
         val file = File(context.filesDir, fileName)
 
         // if the cover is already stored locally -> use it
-        if (file.exists()) {
+        if (!allowOverwrite && file.exists()) {
             return@withContext book.copy(cover = file.absolutePath)
         }
 
@@ -247,6 +247,9 @@ private suspend fun fetchCoverForBook(context: Context, book: Book): Book =
             }
         }
 
+        if (allowOverwrite && savedPath == null) {
+            return@withContext book
+        }
         return@withContext book.copy(cover = savedPath)
     }
 
@@ -258,13 +261,13 @@ private suspend fun fetchCoverForBook(context: Context, book: Book): Book =
  * @param updateMangaSeriesId suspend lambda that updates all books within a series with a new Mangadex ID
  * @return new Book object with the new cover (or same object as passed in parameter if no cover was found)
  */
-private suspend fun fetchCoverForManga(context: Context, book: Book, updateMangaSeriesId: suspend (String, String) -> Unit): Book =
+suspend fun fetchCoverForManga(context: Context, book: Book, updateMangaSeriesId: suspend (String, String) -> Unit, allowOverwrite: Boolean = false): Book =
     withContext(Dispatchers.IO) {
         val fileName = "${book.uid}.jpg"
         val file = File(context.filesDir, fileName)
 
         // if the cover is already stored locally -> use it
-        if (file.exists()) {
+        if (!allowOverwrite && file.exists()) {
             return@withContext book.copy(cover = file.absolutePath)
         }
 
@@ -395,6 +398,9 @@ private suspend fun fetchCoverForManga(context: Context, book: Book, updateManga
             Timber.tag("BookCover").e("${book.title}: MangaDex search attempt failed with $e")
         }
 
+        if (allowOverwrite && savedPath == null) {
+            return@withContext book
+        }
         return@withContext book.copy(cover = savedPath)
     }
 

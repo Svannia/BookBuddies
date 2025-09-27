@@ -1,10 +1,13 @@
 package com.example.bookbuddies.viewModels
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
 import com.example.bookbuddies.datastore.BookRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 
@@ -94,6 +98,42 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
 
     // ---------- UPDATING REPOSITORY ----------
+
+    /**
+     * Updates an existing book's cover with an image copied from the user's gallery.
+     *
+     * @param context for accessing local files
+     * @param image Uri of the user's picture
+     * @param book that needs to be updated
+     * @param isError returns true if there was an error executing the function
+     * @param callBack block that runs after the cover was successfully updated
+     */
+    suspend fun updateCoverFromGallery(context: Context, image: Uri, book: Book, isError: (Boolean) -> Unit, callBack: () -> Unit) {
+        val newCover = withContext(Dispatchers.IO) {
+            try {
+                val file = File(context.filesDir, "${book.uid}.jpg")
+                context.contentResolver.openInputStream(image)?.use { inputStream ->
+                    file.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                } ?: return@withContext null
+                file.absolutePath
+            } catch (e: Exception) {
+                Timber.tag("BookVM").e("Failed to save cover from gallery Uri $image with error: $e")
+                isError(true)
+                null
+            }
+        }
+        if (newCover == null) {
+            Timber.tag("BookVM").e("Failed to save cover from gallery Uri $image: returned a null file.")
+            isError(true)
+        } else {
+            val updatedBook = book.copy(cover = newCover)
+            repository.insertBook(updatedBook)
+            Timber.tag("BookVM").d("Update book \"${book.title}\" with new cover.")
+            callBack()
+        }
+    }
 
     /**
      * Updates all the volumes of a manga with their series ID from Mangadex.

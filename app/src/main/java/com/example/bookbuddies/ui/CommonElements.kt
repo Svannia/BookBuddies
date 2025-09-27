@@ -94,7 +94,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -223,9 +222,7 @@ fun SecondaryScreen(
                     },
                     actions = {
                         Row(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .padding(16.dp),
+                            modifier = Modifier.fillMaxHeight(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
@@ -875,12 +872,21 @@ fun GoBackButton(navigationActions: NavigationActions, navExtraActions: () -> Un
  * @param contentDescription image description
  */
 @Composable
-fun CoverImage(height: Dp, picture: String?, contentDescription: String) {
+fun CoverImage(height: Dp, picture: String?, contentDescription: String, onClick: (() -> Unit) ?= null) {
     Box(
-        modifier = Modifier
-            .height(height)
-            .width(height * 0.6f)
-            .clip(RectangleShape)
+        modifier = if (onClick != null) {
+            Modifier
+                .height(height)
+                .width(height * 0.6f)
+                .clip(RectangleShape)
+                .clickable { onClick() }
+        } else {
+            Modifier
+                .height(height)
+                .width(height * 0.6f)
+                .clip(RectangleShape)
+        }
+
     ) {
         Image(
             modifier = Modifier.fillMaxSize(),

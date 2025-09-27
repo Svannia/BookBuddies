@@ -92,6 +92,8 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     val sorting by bookVM.sorting.collectAsState()
     val onlyUnread by bookVM.onlyUnread.collectAsState()
 
+    val deleteVisible = remember { mutableStateOf(false) }
+
     // variables specifically for the "remove some covers" functionality
     val progressing = remember { mutableStateOf(false) }
     val processed = remember { mutableIntStateOf(0) }
@@ -237,30 +239,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                 },
                             // option to delete books
                             stringResource(R.string.button_deleteBooks) to  {
-                                loading.value = true
-                                scope.launch {
-                                    val booksToDelete = books.filter { selectedEntries[it.uid] == true }
-                                    bookVM.deleteBooks(
-                                        booksToDelete = booksToDelete,
-                                        isError = {
-                                            if (it) {
-                                                loading.value = false
-                                                handleError(context, context.getString(R.string.toast_multiDeleteFail))
-                                            }
-                                        }
-                                    ) {
-                                        loading.value = false
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.toast_successMultiDelete),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        selectionModeActive.value = false
-                                        selectedEntries.keys.forEach { key ->
-                                            selectedEntries[key] = false
-                                        }
-                                    }
-                                }
+                                deleteVisible.value = true
                             },
                             // option to add some covers
                             stringResource(R.string.button_addCover) to {
@@ -530,7 +509,8 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .wrapContentHeight()
-                                    .heightIn(max = 350.dp),
+                                    .heightIn(max = 350.dp)
+                                    .padding(vertical = 8.dp),
                                 horizontalAlignment = Alignment.Start
                             ) {
                                 failedCovers.forEach { cover ->
@@ -566,6 +546,81 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             selectionModeActive.value = false
                             selectedEntries.keys.forEach { key ->
                                 selectedEntries[key] = false
+                            }
+                        }
+                    )
+                }
+
+                // delete confirmation
+                if (deleteVisible.value) {
+                    val booksToDelete = books.filter { selectedEntries[it.uid] == true }
+
+                    CustomContentDialogWindow(
+                        visible = deleteVisible,
+                        content = {
+                            Text(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                text = stringResource(R.string.txt_multiDeleteConfirm),
+                                style = MyTypography.bodyLarge
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.inversePrimary, thickness = 1.5.dp)
+                            // list of book titles that have been selected for deletion
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentHeight()
+                                    .heightIn(max = 350.dp)
+                                    .padding(vertical = 8.dp),
+                                horizontalAlignment = Alignment.Start
+                            ) {
+                                booksToDelete.forEach { book ->
+                                    item {
+                                        Text(text = book.title, style = MyTypography.bodyMedium)
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.inversePrimary, thickness = 1.5.dp)
+                        },
+                        bottomButtons = true,
+                        leftButtonContent = {
+                            Text(
+                                text = stringResource(R.string.button_cancel),
+                                style = MyTypography.bodyLarge,
+                                color = MaterialTheme.colorScheme.inversePrimary
+                            )
+                        },
+                        leftButtonOnClick = { deleteVisible.value = false },
+                        rightButtonContent = {
+                            Text(
+                                text = stringResource(R.string.button_confirm),
+                                style = MyTypography.bodyLarge,
+                                color = ValidGreen
+                            )
+                        },
+                        rightButtonOnClick = {
+                            loading.value = true
+                            scope.launch {
+                                bookVM.deleteBooks(
+                                    booksToDelete = booksToDelete,
+                                    isError = {
+                                        if (it) {
+                                            loading.value = false
+                                            handleError(context, context.getString(R.string.toast_multiDeleteFail))
+                                        }
+                                    }
+                                ) {
+                                    deleteVisible.value = false
+                                    loading.value = false
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.toast_successMultiDelete),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    selectionModeActive.value = false
+                                    selectedEntries.keys.forEach { key ->
+                                        selectedEntries[key] = false
+                                    }
+                                }
                             }
                         }
                     )
