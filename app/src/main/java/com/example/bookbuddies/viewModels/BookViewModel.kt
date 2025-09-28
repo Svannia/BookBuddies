@@ -184,12 +184,20 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     /**
      * Updates the "dateFinished" field of a Book object with a new value.
+     * This function also checks that this date is >= dateStarted and marks the book as read.
      *
      * @param dateFinished new value for the "dateFinished" field
      * @param book Book object to mark as finished
+     * @param isError block that returns true if the input date is incoherent with the dateStarted
      */
-    suspend fun updateFinish(dateFinished: Long, book: Book) {
-        val updatedBook = book.copy(dateFinished = dateFinished)
+    suspend fun updateFinish(dateFinished: Long, book: Book, isError: (Boolean) -> Unit) {
+        if (book.dateStarted <= 0L || dateFinished < book.dateStarted) {
+            Timber.tag("BookVM").e("Failed to update dateFinished for book \"${book.title}\": smaller than dateStarted")
+            isError(true)
+            return
+        }
+
+        val updatedBook = book.copy(dateFinished = dateFinished, read = true)
         repository.insertBook(updatedBook)
         Timber.tag("BookVM").d("Updated the \"dateFinished\" for book \"${book.title}\"")
     }

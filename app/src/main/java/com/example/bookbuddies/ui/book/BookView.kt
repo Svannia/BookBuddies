@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -43,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
@@ -68,6 +70,7 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.BookViewModel
 import kotlinx.coroutines.launch
+import kotlin.collections.set
 
 @Composable
 fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: NavigationActions) {
@@ -135,6 +138,11 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 }
                 OptionsMenu(
                     icon = R.drawable.options,
+                    stringResource(R.string.button_markAsRead) to  {
+                        scope.launch {
+                            bookVM.updateRead(true, book)
+                        }
+                    },
                     stringResource(R.string.button_deleteBook) to {
                         deleteVisible.value = true
                     }
@@ -153,7 +161,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    // first row has main book data
+                    // ----- MAIN DATA -----
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -173,7 +181,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                         Column(
                             modifier = Modifier
                                 .padding(start = 16.dp, end = 8.dp)
-                                .heightIn(min = 180.dp),
+                                .heightIn(min = 190.dp),
                             verticalArrangement = Arrangement.SpaceBetween,
                             horizontalAlignment = Alignment.Start
                         ) {
@@ -200,6 +208,24 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                     text = displayAuthors(book.authors),
                                     style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start, fontWeight = FontWeight.Normal)
                                 )
+                                // genre tag
+                                if (book.genre.isNotBlank()) {
+                                    Box(
+                                        modifier = Modifier.background(
+                                            color = MaterialTheme.colorScheme.outline,
+                                            shape = RoundedCornerShape(50)
+                                        ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = book.genre,
+                                            style = MyTypography.bodyMedium,
+                                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
                             // rating
                             Row(
@@ -219,7 +245,8 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                         }
                     }
                 }
-                // Reading status
+
+                // ----- READING STATUS -----
                 item {
                     Column(
                         modifier = Modifier
@@ -230,18 +257,22 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                     ) {
                         // title + read icon
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .height(32.dp)
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Text(
                                 text = stringResource(R.string.title_readingStatus),
                                 style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
                             )
-                            Icon(
-                                modifier = Modifier.size(32.dp),
-                                painter = painterResource(R.drawable.tick),
-                                contentDescription = context.getString(R.string.desc_read)
-                            )
+                            if (book.read) {
+                                Icon(
+                                    modifier = Modifier.size(32.dp),
+                                    painter = painterResource(R.drawable.tick),
+                                    contentDescription = context.getString(R.string.desc_read)
+                                )
+                            }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.5.dp)
                         Row(
@@ -269,7 +300,8 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                                 shape = RoundedCornerShape(50)
                                             )
                                             .background(
-                                                color = Color.Transparent, shape = RoundedCornerShape(50)
+                                                color = Color.Transparent,
+                                                shape = RoundedCornerShape(50)
                                             ),
                                         onClick = {
                                             scope.launch {
@@ -289,8 +321,6 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                     )
                                 }
                             }
-
-                            VerticalDivider(modifier = Modifier.fillMaxHeight(), color = MaterialTheme.colorScheme.outline, thickness = 1.5.dp)
 
                             // finish reading
                             Column(
@@ -317,7 +347,15 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                             ),
                                         onClick = {
                                             scope.launch {
-                                                bookVM.updateFinish(System.currentTimeMillis(), book)
+                                                bookVM.updateFinish(System.currentTimeMillis(), book) {
+                                                    if (it) {
+                                                        Toast.makeText(
+                                                            context,
+                                                            context.getString(R.string.toast_wrongDateFinished),
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                }
                                             }
                                         }
                                     ) {

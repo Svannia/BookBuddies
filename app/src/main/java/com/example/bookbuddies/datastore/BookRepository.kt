@@ -544,10 +544,18 @@ suspend fun importBooksFromCsv(
             isError(isError)
             errorOccurred = true
         } ?: 0L
-        val dateFinished = parseDate(getCol(cols, END)) { isError ->
-            isError(isError)
-            errorOccurred = true
-        } ?: 0L
+        var dateFinished = if (dateStarted <= 0L) 0L else {
+            parseDate(getCol(cols, END)) { isError ->
+                isError(isError)
+                errorOccurred = true
+            } ?: 0L
+        }
+        // ensure that dateFinished is not smaller than dateStarted
+        if (dateStarted > dateFinished) {
+            Timber.tag("BookImport").d("Book number ${cols[0]}: incoherent dateFinished -> changing to 0")
+            dateFinished = 0L
+        }
+
         val dateAdded = parseAddedDate(getCol(cols, DATE_ADDED)) { isError ->
             isError(isError)
             errorOccurred = true
