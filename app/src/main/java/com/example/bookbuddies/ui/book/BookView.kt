@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -246,12 +247,12 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.Top
                         ) {
                             // start reading
                             Column(
                                 modifier = Modifier.padding(vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
@@ -289,10 +290,12 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                 }
                             }
 
+                            VerticalDivider(modifier = Modifier.fillMaxHeight(), color = MaterialTheme.colorScheme.outline, thickness = 1.5.dp)
+
                             // finish reading
                             Column(
                                 modifier = Modifier.padding(vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(

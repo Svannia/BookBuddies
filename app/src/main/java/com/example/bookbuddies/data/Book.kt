@@ -27,6 +27,7 @@ data class Book(
     val read: Boolean,
     val dateStarted: Long,
     val dateFinished: Long,
+    val bookshelf: String,
     val boughtAt: String,
     val dateAdded: Long
 ) {
@@ -40,7 +41,7 @@ data class Book(
             return Book("", "", "", emptyList(), null,
                 "", -1, null, "",
                 "", "", 0L, 0.0, "", "",
-                false, 0L, 0L, "", System.currentTimeMillis()
+                false, 0L, 0L, "", "", System.currentTimeMillis()
             )
         }
     }

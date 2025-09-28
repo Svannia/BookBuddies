@@ -68,6 +68,7 @@ const val DATE_PUBLISHED = "date_published"
 const val RATING = "rating"
 const val READ = "read"
 const val SERIES = "series_details"
+const val BOOKSHELF = "bookshelf"
 const val LOCATION = "location"
 const val START = "read_start"
 const val END = "read_end"
@@ -576,6 +577,7 @@ suspend fun importBooksFromCsv(
             read = read,
             dateStarted = dateStarted,
             dateFinished = dateFinished,
+            bookshelf = getCol(cols, BOOKSHELF),
             boughtAt = getCol(cols, LOCATION),
             dateAdded = dateAdded
         )
@@ -612,6 +614,7 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
         "$LOCATION," +
         "$START," +
         "$END," +
+        "$BOOKSHELF," +
         "$FORMAT," +
         "$DESCRIPTION," +
         "$GENRE," +
@@ -653,6 +656,7 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
         val dateEnd = displayDate(book.dateFinished, DateFormat.NUMBERED_REVERSE)
         csvBuilder.append("$dateEnd,")
 
+        csvBuilder.append("${escapeCSVChar(book.bookshelf)},")
         csvBuilder.append("${escapeCSVChar(book.format)},")
         csvBuilder.append("${escapeCSVChar(book.description)},")
         csvBuilder.append("${escapeCSVChar(book.genre)},")
