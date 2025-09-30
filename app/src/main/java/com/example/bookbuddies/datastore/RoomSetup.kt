@@ -52,7 +52,7 @@ interface BookDao {
 }
 
 // Room database that holds the Book entity and provides the BookDao
-@Database(entities = [Book::class], version = 2)
+@Database(entities = [Book::class], version = 3)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
@@ -68,7 +68,7 @@ object DatabaseProvider {
             AppDatabase::class.java,
             "bookbuddies.db"
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build().also { db = it }
     }
 }

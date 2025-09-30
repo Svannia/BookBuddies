@@ -48,7 +48,7 @@
 
     <string name="sorting_added">Recently added</string>
     <string name="sorting_author"><![CDATA[Author > Series]]></string>
-    <string name="sorting_bought">Bought at</string>
+    <string name="sorting_source">Source</string>
     <string name="sorting_format">Format</string>
     <string name="sorting_genre">Genre</string>
     <string name="sorting_language">Language</string>
@@ -112,4 +112,15 @@
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
     <string name="toast_wrongDateFinished">The date finished must be later than the date started.</string>
+    <string name="title_pubEdition"><![CDATA[Publishing & Edition]]></string>
+    <string name="title_isbn">ISBN</string>
+    <string name="txt_placeHolder"><![CDATA[<unknown>]]></string>
+    <string name="title_publishing">Publishing</string>
+    <string name="title_language">Language</string>
+    <string name="title_format">Format</string>
+    <string name="title_collection">In My Collection</string>
+    <string name="title_dateAdded">Added on the</string>
+    <string name="title_gifted">Gift from</string>
+    <string name="title_bought">Bought at</string>
+    <string name="title_bookshelf">Bookshelf</string>
 </resources>

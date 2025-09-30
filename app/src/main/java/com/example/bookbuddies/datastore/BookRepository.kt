@@ -70,6 +70,8 @@ const val READ = "read"
 const val SERIES = "series_details"
 const val BOOKSHELF = "bookshelf"
 const val LOCATION = "location"
+const val SOURCE = "source"
+const val IS_GIFT = "isGift"
 const val START = "read_start"
 const val END = "read_end"
 const val FORMAT = "format"
@@ -509,8 +511,10 @@ suspend fun importBooksFromCsv(
     fun getCol(cols: Array<String>, name: String): String {
         val idx = columnIndex[name]
         if (idx == null) {
-            Timber.tag("BookImport").e("Column name $name not found for book number ${cols[0]}")
-            errorOccurred = true
+            if (name != SOURCE && name != IS_GIFT && name != LOCATION) {
+                Timber.tag("BookImport").e("Column name $name not found for book number ${cols[0]}")
+                errorOccurred = true
+            }
             return ""
         }
         return cols.getOrNull(idx)?.trim() ?: ""
@@ -537,9 +541,6 @@ suspend fun importBooksFromCsv(
             errorOccurred = true
         } ?: 0L
 
-        val readValue = getCol(cols, READ).trim()
-        val read = (readValue == "1")
-
         val dateStarted = parseDate(getCol(cols, START)) { isError ->
             isError(isError)
             errorOccurred = true
@@ -555,6 +556,13 @@ suspend fun importBooksFromCsv(
             Timber.tag("BookImport").d("Book number ${cols[0]}: incoherent dateFinished -> changing to 0")
             dateFinished = 0L
         }
+
+        val readValue = getCol(cols, READ).trim()
+        val read = if (dateFinished > 0L) true else (readValue == "1")
+
+        val source = getCol(cols, LOCATION).ifBlank { getCol(cols, SOURCE) }
+        val isGiftInt = getCol(cols, IS_GIFT)
+        val isGift = if (isGiftInt.isBlank()) false else (isGiftInt == "1")
 
         val dateAdded = parseAddedDate(getCol(cols, DATE_ADDED)) { isError ->
             isError(isError)
@@ -586,7 +594,8 @@ suspend fun importBooksFromCsv(
             dateStarted = dateStarted,
             dateFinished = dateFinished,
             bookshelf = getCol(cols, BOOKSHELF),
-            boughtAt = getCol(cols, LOCATION),
+            source = source,
+            isGift = isGift,
             dateAdded = dateAdded
         )
         books.add(book)
@@ -619,7 +628,8 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
         "$RATING," +
         "$READ," +
         "$SERIES," +
-        "$LOCATION," +
+        "$SOURCE," +
+        "$IS_GIFT," +
         "$START," +
         "$END," +
         "$BOOKSHELF," +
@@ -656,7 +666,9 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
                 if (book.seriesNumber >= 0) " (${book.seriesNumber})" else ""
         csvBuilder.append("$series,")
 
-        csvBuilder.append("${escapeCSVChar(book.boughtAt)},")
+        csvBuilder.append("${escapeCSVChar(book.source)},")
+        val isGift = if (book.isGift) "1" else "0"
+        csvBuilder.append("$isGift,")
 
         val dateStart = displayDate(book.dateStarted, DateFormat.NUMBERED_REVERSE)
         csvBuilder.append("$dateStart,")

@@ -28,7 +28,8 @@ data class Book(
     val dateStarted: Long,
     val dateFinished: Long,
     val bookshelf: String,
-    val boughtAt: String,
+    val source: String,
+    val isGift: Boolean,
     val dateAdded: Long
 ) {
     companion object {
@@ -41,7 +42,7 @@ data class Book(
             return Book("", "", "", emptyList(), null,
                 "", -1, null, "",
                 "", "", 0L, 0.0, "", "",
-                false, 0L, 0L, "", "", System.currentTimeMillis()
+                false, 0L, 0L, "", "", false,  System.currentTimeMillis()
             )
         }
     }
@@ -52,7 +53,7 @@ data class Book(
  * All the authors are displayed comma-separated in case the authors list is longer than 1.
  *
  * @param authorsList each item is an author stored as <Last Name>, <First Name>
- * @return single string with the author(s)
+ * @return single string with the author(s), or empty String if there are no authors
  */
 fun displayAuthors(authorsList: List<String>): String {
     if (authorsList.isEmpty()) return ""
@@ -85,7 +86,7 @@ fun displaySeries(seriesName: String, seriesNumber: Int): String {
  * NUMBERED : 24/07/2001,
  * NUMBERED_REVERSE : 2001/07/24,
  * NUMBERED_WITH_TIME : 24/07/2001 19:50
- * @return date as text
+ * @return date as text, or empty String if input date is 0L
  */
 fun displayDate(date: Long, format: DateFormat): String {
     if (date <= 0L) return ""
@@ -134,7 +135,7 @@ enum class DateFormat {
 
 // The different possible methods to sort and group books in the main page
 enum class BookSorting {
-    AUTHOR_SERIES, SERIES, TITLE, RECENTLY_ADDED, RATING, GENRE, LANGUAGE, FORMAT, BOUGHT_AT
+    AUTHOR_SERIES, SERIES, TITLE, RECENTLY_ADDED, RATING, GENRE, LANGUAGE, FORMAT, SOURCE
 }
 
 val sortingMap = mapOf(
@@ -146,7 +147,7 @@ val sortingMap = mapOf(
     BookSorting.GENRE to R.string.sorting_genre,
     BookSorting.LANGUAGE to R.string.sorting_language,
     BookSorting.FORMAT to R.string.sorting_format,
-    BookSorting.BOUGHT_AT to R.string.sorting_bought
+    BookSorting.SOURCE to R.string.sorting_source
 )
 
 /**

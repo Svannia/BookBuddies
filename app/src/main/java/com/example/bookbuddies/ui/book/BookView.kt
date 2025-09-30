@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,14 +39,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.stylusHoverIcon
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.room.util.TableInfo
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
@@ -199,15 +204,30 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                     )
                                 }
                                 // title
-                                Text(
-                                    text = book.title,
-                                    style = MyTypography.titleMedium.copy(textAlign = TextAlign.Start)
-                                )
+                                if (book.title.isNotBlank()) {
+                                    Text(
+                                        text = book.title,
+                                        style = MyTypography.titleMedium.copy(textAlign = TextAlign.Start)
+                                    )
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.txt_placeHolder),
+                                        style = MyTypography.titleMedium.copy(textAlign = TextAlign.Start)
+                                    )
+                                }
                                 // author(s)
-                                Text(
-                                    text = displayAuthors(book.authors),
-                                    style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start, fontWeight = FontWeight.Normal)
-                                )
+                                val authors = displayAuthors(book.authors)
+                                if (authors.isNotBlank()) {
+                                    Text(
+                                        text = authors,
+                                        style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start, fontWeight = FontWeight.Normal)
+                                    )
+                                } else {
+                                    Text(
+                                        text = stringResource(R.string.txt_placeHolder),
+                                        style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Italic)
+                                    )
+                                }
                                 // genre tag
                                 if (book.genre.isNotBlank()) {
                                     Box(
@@ -248,36 +268,21 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
 
                 // ----- READING STATUS -----
                 item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 8.dp),
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // title + read icon
-                        Row(
-                            modifier = Modifier
-                                .height(32.dp)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.title_readingStatus),
-                                style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
+                    InfoSection(stringResource(R.string.title_readingStatus), {
+                        if (book.read) {
+                            Icon(
+                                modifier = Modifier.size(32.dp),
+                                painter = painterResource(R.drawable.tick),
+                                contentDescription = context.getString(R.string.desc_read)
                             )
-                            if (book.read) {
-                                Icon(
-                                    modifier = Modifier.size(32.dp),
-                                    painter = painterResource(R.drawable.tick),
-                                    contentDescription = context.getString(R.string.desc_read)
-                                )
-                            }
                         }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.5.dp)
+                    }) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                8.dp,
+                                Alignment.CenterHorizontally
+                            ),
                             verticalAlignment = Alignment.Top
                         ) {
                             // start reading
@@ -310,7 +315,9 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                         }
                                     ) {
                                         Text(
-                                            text = stringResource(R.string.button_startedToday), style = MyTypography.bodySmall, color = MaterialTheme.colorScheme.primary
+                                            text = stringResource(R.string.button_startedToday),
+                                            style = MyTypography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 } else {
@@ -347,7 +354,10 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                             ),
                                         onClick = {
                                             scope.launch {
-                                                bookVM.updateFinish(System.currentTimeMillis(), book) {
+                                                bookVM.updateFinish(
+                                                    System.currentTimeMillis(),
+                                                    book
+                                                ) {
                                                     if (it) {
                                                         Toast.makeText(
                                                             context,
@@ -373,6 +383,58 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+
+                // ----- PUBLISHING AND EDITION -----
+                if (book.isbn.isNotBlank() && book.publisher.isNotBlank() && book.publishedDate > 0L && book.language.isNotBlank() && book.format.isNotBlank()) {
+                    item {
+                        InfoSection(stringResource(R.string.title_pubEdition), {}
+                        ) {
+                            // ISBN
+                            InfoDetail(stringResource(R.string.title_isbn), book.isbn)
+
+                            // publisher and publishing date
+                            var publishing = book.publisher
+                            val publishedDate = displayDate(book.publishedDate, DateFormat.FULL_DATE)
+                            if (publishing.isNotBlank() && publishedDate.isNotBlank()) publishing = "$publishing, on the "
+                            publishing = "$publishing$publishedDate"
+                            InfoDetail(
+                                stringResource(R.string.title_publishing), publishing)
+
+                            // language
+                            InfoDetail(
+                                stringResource(R.string.title_language), book.language)
+                            // format
+                            InfoDetail(
+                                stringResource(R.string.title_format), book.format)
+                        }
+                    }
+                }
+
+                // ----- IN MY COLLECTION -----
+                item {
+                    InfoSection(stringResource(R.string.title_collection), {}
+                    ) {
+                        // date added
+                        InfoDetail(stringResource(R.string.title_dateAdded), displayDate(book.dateAdded, DateFormat.FULL_DATE))
+                        // Bought at
+                        val source = if (book.isGift) stringResource(R.string.title_gifted) else stringResource(
+                            R.string.title_bought
+                        )
+                        InfoDetail(source, book.source)
+                        // bookshelf
+                        InfoDetail(stringResource(R.string.title_bookshelf), book.bookshelf)
+                    }
+                }
+
+                // ----- DESCRIPTION -----
+                if (book.description.isNotBlank()) {
+                    item {
+                        InfoSection(stringResource(R.string.title_collection), {}
+                        ) {
+                            Text(text = book.description, style = MyTypography.bodyLarge)
                         }
                     }
                 }
@@ -545,5 +607,52 @@ private fun RowTextButton(text: String, onClick: () -> Unit) {
         Text(
             text = text, style = MyTypography.bodyLarge
         )
+    }
+}
+
+@Composable
+private fun InfoSection(title: String, extraTitleContent: @Composable (() -> Unit), content: @Composable (() -> Unit)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 8.dp),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .height(32.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = title,
+                style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
+            )
+            extraTitleContent()
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.5.dp)
+        content()
+    }
+}
+
+@Composable
+fun InfoDetail(detailTitle: String, detailValue: String) {
+    if (detailValue.isNotBlank()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Text(
+                modifier = Modifier.width(110.dp),
+                text = detailTitle, style = MyTypography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold)
+            )
+            Text(
+                modifier = Modifier.padding(start = 16.dp),
+                text = detailValue,
+                style = MyTypography.bodyLarge
+            )
+        }
     }
 }

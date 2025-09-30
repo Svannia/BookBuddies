@@ -905,8 +905,8 @@ private fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSor
         BookSorting.FORMAT -> filteredBooks.groupBy { book ->
             book.format.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
         }
-        BookSorting.BOUGHT_AT -> filteredBooks.groupBy { book ->
-            book.boughtAt.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
+        BookSorting.SOURCE -> filteredBooks.groupBy { book ->
+            book.source.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
         }
     }
 }

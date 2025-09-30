@@ -53,7 +53,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             BookSorting.GENRE -> books.sortedBy { it.genre }
             BookSorting.LANGUAGE -> books.sortedBy { it.language }
             BookSorting.FORMAT -> books.sortedBy { it.format }
-            BookSorting.BOUGHT_AT -> books.sortedBy { it.boughtAt }
+            BookSorting.SOURCE -> books.sortedBy { it.source }
         }
     }
 
