@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,18 +37,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.stylusHoverIcon
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.room.util.TableInfo
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
@@ -59,7 +53,6 @@ import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.data.displaySeries
 import com.example.bookbuddies.datastore.fetchCoverForBook
 import com.example.bookbuddies.datastore.fetchCoverForManga
-import com.example.bookbuddies.datastore.findBookCovers
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
@@ -75,7 +68,6 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.BookViewModel
 import kotlinx.coroutines.launch
-import kotlin.collections.set
 
 @Composable
 fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: NavigationActions) {
@@ -165,8 +157,8 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // ----- MAIN DATA -----
                 item {
-                    // ----- MAIN DATA -----
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -301,7 +293,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                             .padding(0.dp)
                                             .border(
                                                 width = 2.dp,
-                                                color = MaterialTheme.colorScheme.primary,
+                                                color = MaterialTheme.colorScheme.inversePrimary,
                                                 shape = RoundedCornerShape(50)
                                             )
                                             .background(
@@ -317,14 +309,13 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                         Text(
                                             text = stringResource(R.string.button_startedToday),
                                             style = MyTypography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.inversePrimary
                                         )
                                     }
                                 } else {
                                     Text(
                                         text = displayDate(book.dateStarted, DateFormat.FULL_DATE),
-                                        style = MyTypography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
+                                        style = MyTypography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold)
                                     )
                                 }
                             }
@@ -345,7 +336,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                             .padding(0.dp)
                                             .border(
                                                 width = 2.dp,
-                                                color = MaterialTheme.colorScheme.primary,
+                                                color = MaterialTheme.colorScheme.inversePrimary,
                                                 shape = RoundedCornerShape(50)
                                             )
                                             .background(
@@ -372,14 +363,13 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                         Text(
                                             text = stringResource(R.string.button_finishedToday),
                                             style = MyTypography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.inversePrimary
                                         )
                                     }
                                 } else {
                                     Text(
                                         text = displayDate(book.dateFinished, DateFormat.FULL_DATE),
-                                        style = MyTypography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
+                                        style = MyTypography.bodyLarge.copy(fontWeight = FontWeight.ExtraBold)
                                     )
                                 }
                             }
@@ -594,6 +584,12 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
     }
 }
 
+/**
+ * A clickable high row used as a button for the cover's edit options.
+ *
+ * @param text to be written on the row
+ * @param onClick block that run upon clicking on that row
+ */
 @Composable
 private fun RowTextButton(text: String, onClick: () -> Unit) {
     Row(
@@ -610,6 +606,13 @@ private fun RowTextButton(text: String, onClick: () -> Unit) {
     }
 }
 
+/**
+ * Creates a BookView section with a title, a horizontal divider and the section's content within a Column.
+ *
+ * @param title of the section
+ * @param extraTitleContent for some extra content to be placed in-line with the title
+ * @param content under the section's title
+ */
 @Composable
 private fun InfoSection(title: String, extraTitleContent: @Composable (() -> Unit), content: @Composable (() -> Unit)) {
     Column(
@@ -636,6 +639,13 @@ private fun InfoSection(title: String, extraTitleContent: @Composable (() -> Uni
     }
 }
 
+/**
+ * A common row for some book detail, with a bold title followed by its content in-line. All the contents are aligned the same horizontally.
+ * If the given detailValue is blank, the row is not created.
+ *
+ * @param detailTitle name of the book info
+ * @param detailValue value of that book info
+ */
 @Composable
 fun InfoDetail(detailTitle: String, detailValue: String) {
     if (detailValue.isNotBlank()) {

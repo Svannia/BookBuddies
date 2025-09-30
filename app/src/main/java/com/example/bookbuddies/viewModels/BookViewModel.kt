@@ -68,6 +68,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
         return repository.getBookById(uid)
     }
 
+    /**
+     * Fetches an observable FlowState of a book given its unique ID.
+     *
+     * @param uid book ID
+     * @return Flow for the book
+     */
     fun getBookFlowById(uid: String): Flow<Book> {
         Timber.tag("BookVM").d("Recovering book flow with ID $uid")
         return allBooks.map { list -> list.find { it.uid == uid }}.filterNotNull()
