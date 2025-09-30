@@ -1,6 +1,7 @@
 package com.example.bookbuddies.ui
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -869,10 +870,9 @@ fun GoBackButton(navigationActions: NavigationActions, navExtraActions: () -> Un
  *
  * @param height height of the image
  * @param picture text linking to the cover image's storage location
- * @param contentDescription image description
  */
 @Composable
-fun CoverImage(height: Dp, picture: String?, contentDescription: String, onClick: (() -> Unit) ?= null) {
+fun CoverImage(height: Dp, picture: String?, onClick: (() -> Unit) ?= null) {
     Box(
         modifier = if (onClick != null) {
             Modifier
@@ -893,7 +893,39 @@ fun CoverImage(height: Dp, picture: String?, contentDescription: String, onClick
             painter = rememberAsyncImagePainter(
                 model = picture ?: R.drawable.default_cover
             ),
-            contentDescription = contentDescription,
+            contentDescription = stringResource(R.string.desc_coverImage),
+            contentScale = ContentScale.FillHeight
+        )
+    }
+}
+
+/**
+ * Sizes a cover image to a fix height, keeping original proportions.
+ *
+ * @param height height of the image
+ * @param picture Uri of the picture
+ */
+@Composable
+fun CoverImage(height: Dp, picture: Uri, onClick: (() -> Unit) ?= null) {
+    Box(
+        modifier = if (onClick != null) {
+            Modifier
+                .height(height)
+                .width(height * 0.6f)
+                .clip(RectangleShape)
+                .clickable { onClick() }
+        } else {
+            Modifier
+                .height(height)
+                .width(height * 0.6f)
+                .clip(RectangleShape)
+        }
+
+    ) {
+        Image(
+            modifier = Modifier.fillMaxSize(),
+            painter = rememberAsyncImagePainter(picture),
+            contentDescription = stringResource(R.string.desc_coverImage),
             contentScale = ContentScale.FillHeight
         )
     }
@@ -1062,5 +1094,28 @@ fun ToggleBox(
             }
             Text(text = optionText, style = textStyle)
         }
+    }
+}
+
+/**
+ * A clickable row used as a button for the cover's edit options.
+ *
+ * @param text to be written on the row
+ * @param height height of the clickable row
+ * @param onClick block that run upon clicking on that row
+ */
+@Composable
+fun RowTextButton(text: String, height: Dp, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clickable { onClick() },
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text, style = MyTypography.bodyLarge
+        )
     }
 }

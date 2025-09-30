@@ -123,4 +123,5 @@
     <string name="title_gifted">Gift from</string>
     <string name="title_bought">Bought at</string>
     <string name="title_bookshelf">Bookshelf</string>
+    <string name="title_editBook">Edit book</string>
 </resources>

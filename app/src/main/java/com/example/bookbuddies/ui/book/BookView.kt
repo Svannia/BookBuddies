@@ -63,6 +63,7 @@ import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.MiniLoading
 import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.RatingStars
+import com.example.bookbuddies.ui.RowTextButton
 import com.example.bookbuddies.ui.SecondaryScreen
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
@@ -168,13 +169,9 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // book cover
-                        CoverImage(
-                            180.dp,
-                            book.cover,
-                            context.getString(R.string.desc_coverImage)
-                        ) {
-                            coverOptions.value = true
-                        }
+                        CoverImage(180.dp, book.cover)
+                        { coverOptions.value = true }
+
                         Column(
                             modifier = Modifier
                                 .padding(start = 16.dp, end = 8.dp)
@@ -536,12 +533,12 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
             CustomContentDialogWindow(
                 visible = coverOptions,
                 content = {
-                    RowTextButton(stringResource(R.string.button_singleCoverManual)) {
+                    RowTextButton(stringResource(R.string.button_singleCoverManual), 52.dp) {
                         checkPermission(context, imagePermission, requestMediaPermissionLauncher) {
                             getImage.launch(imageInput)
                         }
                     }
-                    RowTextButton(stringResource(R.string.button_singleBookCoverAuto)) {
+                    RowTextButton(stringResource(R.string.button_singleBookCoverAuto), 52.dp) {
                         coverOptions.value = false
                         loading.value = true
                         scope.launch {
@@ -550,7 +547,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                             loading.value = false
                         }
                     }
-                    RowTextButton(stringResource(R.string.button_singleMangaCoverAuto)) {
+                    RowTextButton(stringResource(R.string.button_singleMangaCoverAuto), 52.dp) {
                         coverOptions.value = false
                         loading.value = true
                         scope.launch {
@@ -559,7 +556,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                             loading.value = false
                         }
                     }
-                    RowTextButton(stringResource(R.string.button_singleCoverDelete)) {
+                    RowTextButton(stringResource(R.string.button_singleCoverDelete), 52.dp) {
                         loading.value = true
                         scope.launch {
                             bookVM.clearCovers(
@@ -581,28 +578,6 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 bottomButtons = false
             )
         }
-    }
-}
-
-/**
- * A clickable high row used as a button for the cover's edit options.
- *
- * @param text to be written on the row
- * @param onClick block that run upon clicking on that row
- */
-@Composable
-private fun RowTextButton(text: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .clickable { onClick() },
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = text, style = MyTypography.bodyLarge
-        )
     }
 }
 

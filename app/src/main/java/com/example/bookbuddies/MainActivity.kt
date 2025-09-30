@@ -24,6 +24,7 @@ import com.example.bookbuddies.ui.settings.Settings
 import com.example.bookbuddies.ui.home.HomeScreen
 import com.example.bookbuddies.ui.theme.BookBuddiesTheme
 import com.example.bookbuddies.datastore.BookRepository
+import com.example.bookbuddies.ui.book.BookEdit
 import com.example.bookbuddies.ui.book.BookView
 import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.BookViewModelFactory
@@ -75,6 +76,14 @@ class MainActivity : ComponentActivity() {
                             val bookID = backStackEntry.arguments?.getString("bookID") ?: return@composable
                             BookView(bookID, bookVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen BookView")
+                        }
+                        composable(
+                            route = "${Route.BOOK_EDIT}/{bookID}",
+                            arguments = listOf(navArgument("bookID") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val bookID = backStackEntry.arguments?.getString("bookID") ?: return@composable
+                            BookEdit(bookID, bookVM, navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen BookEdit")
                         }
                     }
                 }

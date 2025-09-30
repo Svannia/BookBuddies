@@ -753,11 +753,7 @@ private fun BookEntry(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // book cover (or placeholder if null)
-            CoverImage(
-                65.dp,
-                book.cover,
-                stringResource(R.string.desc_coverImage)
-            )
+            CoverImage(65.dp, book.cover)
 
             // book data
             Column(
