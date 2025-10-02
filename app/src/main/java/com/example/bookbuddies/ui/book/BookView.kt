@@ -88,22 +88,20 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
     val getImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { imageUri ->
             loading.value = true
-            scope.launch {
-                bookVM.updateCoverFromGallery(
-                    context = context,
-                    image = imageUri,
-                    book = book,
-                    isError = {
-                        if (it) {
-                            coverOptions.value = false
-                            loading.value = false
-                            handleError(context, context.getString(R.string.toast_manualCoverFail))
-                        }
+            bookVM.updateCoverFromGallery(
+                context = context,
+                image = imageUri,
+                book = book,
+                isError = {
+                    if (it) {
+                        coverOptions.value = false
+                        loading.value = false
+                        handleError(context, context.getString(R.string.toast_manualCoverFail))
                     }
-                ) {
-                    coverOptions.value = false
-                    loading.value = false
                 }
+            ) {
+                coverOptions.value = false
+                loading.value = false
             }
         }
     }
@@ -137,9 +135,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 OptionsMenu(
                     icon = R.drawable.options,
                     stringResource(R.string.button_markAsRead) to  {
-                        scope.launch {
-                            bookVM.updateRead(true, book)
-                        }
+                        bookVM.updateRead(true, book)
                     },
                     stringResource(R.string.button_deleteBook) to {
                         deleteVisible.value = true
@@ -298,9 +294,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                                 shape = RoundedCornerShape(50)
                                             ),
                                         onClick = {
-                                            scope.launch {
-                                                bookVM.updateStart(System.currentTimeMillis(), book)
-                                            }
+                                            bookVM.updateStart(System.currentTimeMillis(), book)
                                         }
                                     ) {
                                         Text(
@@ -341,18 +335,16 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                                 shape = RoundedCornerShape(50)
                                             ),
                                         onClick = {
-                                            scope.launch {
-                                                bookVM.updateFinish(
-                                                    System.currentTimeMillis(),
-                                                    book
-                                                ) {
-                                                    if (it) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            context.getString(R.string.toast_wrongDateFinished),
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    }
+                                            bookVM.updateFinish(
+                                                System.currentTimeMillis(),
+                                                book
+                                            ) {
+                                                if (it) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.toast_wrongDateFinished),
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             }
                                         }
@@ -457,26 +449,24 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 },
                 rightButtonOnClick = {
                     loading.value = true
-                    scope.launch {
-                        bookVM.deleteBook(
-                            bookToDelete = book,
-                            isError = {
-                                if (it) {
-                                    loading.value = false
-                                    handleError(context,
-                                        context.getString(R.string.toast_deleteFail))
-                                }
+                    bookVM.deleteBook(
+                        bookToDelete = book,
+                        isError = {
+                            if (it) {
+                                loading.value = false
+                                handleError(context,
+                                    context.getString(R.string.toast_deleteFail))
                             }
-                        ) {
-                            deleteVisible.value = false
-                            loading.value = false
-                            navigationActions.navigateTo(Route.HOME, true)
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.toast_successDelete),
-                                Toast.LENGTH_SHORT
-                            ).show()
                         }
+                    ) {
+                        deleteVisible.value = false
+                        loading.value = false
+                        navigationActions.navigateTo(Route.HOME, true)
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.toast_successDelete),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             )
@@ -520,9 +510,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                     )
                 },
                 rightButtonOnClick = {
-                    scope.launch {
-                        bookVM.updateRating(currentRating.doubleValue, book)
-                    }
+                    bookVM.updateRating(currentRating.doubleValue, book)
                     showRating.value = false
                 }
             )
@@ -558,20 +546,18 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                     }
                     RowTextButton(stringResource(R.string.button_singleCoverDelete), 52.dp) {
                         loading.value = true
-                        scope.launch {
-                            bookVM.clearCovers(
-                                booksToClear = listOf(book),
-                                isError = {
-                                    if (it) {
-                                        loading.value = false
-                                        handleError(context,
-                                            context.getString(R.string.toast_coverDeleteFail))
-                                    }
+                        bookVM.clearCovers(
+                            booksToClear = listOf(book),
+                            isError = {
+                                if (it) {
+                                    loading.value = false
+                                    handleError(context,
+                                        context.getString(R.string.toast_coverDeleteFail))
                                 }
-                            ) {
-                                loading.value = false
-                                coverOptions.value = false
                             }
+                        ) {
+                            loading.value = false
+                            coverOptions.value = false
                         }
                     }
                 },

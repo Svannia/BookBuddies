@@ -226,15 +226,13 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
 
                             // option to mark some books as read
                                 stringResource(R.string.button_markAsRead) to {
-                                    scope.launch {
-                                        val booksToUpdate = books.filter { selectedEntries[it.uid] == true }
-                                        booksToUpdate.forEach { book ->
-                                            bookVM.updateRead(true, book)
-                                        }
-                                        selectionModeActive.value = false
-                                        selectedEntries.keys.forEach { key ->
-                                            selectedEntries[key] = false
-                                        }
+                                    val booksToUpdate = books.filter { selectedEntries[it.uid] == true }
+                                    booksToUpdate.forEach { book ->
+                                        bookVM.updateRead(true, book)
+                                    }
+                                    selectionModeActive.value = false
+                                    selectedEntries.keys.forEach { key ->
+                                        selectedEntries[key] = false
                                     }
                                 },
                             // option to delete books
@@ -286,25 +284,23 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             // option to remove some covers
                             stringResource(R.string.button_removeCover) to {
                                 loading.value = true
-                                scope.launch {
-                                    bookVM.clearCovers(
-                                        books.filter { selectedEntries[it.uid] == true },
-                                        {
-                                            if (it) {
-                                                loading.value = false
-                                                handleError(context, context.getString(R.string.toast_coverRemoveFail))
-                                            }
-                                        }) {
-                                        loading.value = false
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.toast_removeSomeCovers),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        selectionModeActive.value = false
-                                        selectedEntries.keys.forEach { key ->
-                                            selectedEntries[key] = false
+                                bookVM.clearCovers(
+                                    books.filter { selectedEntries[it.uid] == true },
+                                    {
+                                        if (it) {
+                                            loading.value = false
+                                            handleError(context, context.getString(R.string.toast_coverRemoveFail))
                                         }
+                                    }) {
+                                    loading.value = false
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.toast_removeSomeCovers),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    selectionModeActive.value = false
+                                    selectedEntries.keys.forEach { key ->
+                                        selectedEntries[key] = false
                                     }
                                 }
                             }
