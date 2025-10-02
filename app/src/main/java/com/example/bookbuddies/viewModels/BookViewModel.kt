@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
 import com.example.bookbuddies.datastore.BookRepository
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
@@ -63,9 +65,13 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param uid book ID
      * @return Book object for this ID. Can be null if no book was found with this ID
      */
-    suspend fun getBookById(uid: String): Book? {
-        Timber.tag("BookVM").d("Recovering book with ID $uid")
-        return repository.getBookById(uid)
+    fun getBookById(uid: String): Book? {
+        var returnedBook: Book? = Book.empty()
+        viewModelScope.launch {
+            Timber.tag("BookVM").d("Recovering book with ID $uid")
+            returnedBook = repository.getBookById(uid)
+        }
+        return returnedBook
     }
 
     /**
@@ -87,9 +93,11 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      *
      * @param books list of Book objects to be added
      */
-    suspend fun insertBooks(books: List<Book>) {
-        repository.insertBooks(books)
-        Timber.tag("BookVM").d("Inserting ${books.size} into repository")
+    fun insertBooks(books: List<Book>) {
+        viewModelScope.launch {
+            repository.insertBooks(books)
+            Timber.tag("BookVM").d("Inserting ${books.size} into repository")
+        }
     }
 
     /**
@@ -97,9 +105,11 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      *
      * @param book Book object to be added
      */
-    suspend fun insertBook(book: Book) {
-        repository.insertBook(book)
-        Timber.tag("BookVM").d("Inserting book \"${book.title}\" into repository")
+    fun insertBook(book: Book) {
+        viewModelScope.launch {
+            repository.insertBook(book)
+            Timber.tag("BookVM").d("Inserting book \"${book.title}\" into repository")
+        }
     }
 
 
@@ -114,30 +124,34 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param isError returns true if there was an error executing the function
      * @param callBack block that runs after the cover was successfully updated
      */
-    suspend fun updateCoverFromGallery(context: Context, image: Uri, book: Book, isError: (Boolean) -> Unit, callBack: () -> Unit) {
-        val newCover = withContext(Dispatchers.IO) {
-            try {
-                val file = File(context.filesDir, "${book.uid}.jpg")
-                context.contentResolver.openInputStream(image)?.use { inputStream ->
-                    file.outputStream().use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                } ?: return@withContext null
-                file.absolutePath
-            } catch (e: Exception) {
-                Timber.tag("BookVM").e("Failed to save cover from gallery Uri $image with error: $e")
-                isError(true)
-                null
+    fun updateCoverFromGallery(context: Context, image: Uri, book: Book, isError: (Boolean) -> Unit, callBack: () -> Unit) {
+        viewModelScope.launch {
+            val newCover = withContext(Dispatchers.IO) {
+                try {
+                    val file = File(context.filesDir, "${book.uid}.jpg")
+                    context.contentResolver.openInputStream(image)?.use { inputStream ->
+                        file.outputStream().use { outputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                    } ?: return@withContext null
+                    file.absolutePath
+                } catch (e: Exception) {
+                    Timber.tag("BookVM")
+                        .e("Failed to save cover from gallery Uri $image with error: $e")
+                    isError(true)
+                    null
+                }
             }
-        }
-        if (newCover == null) {
-            Timber.tag("BookVM").e("Failed to save cover from gallery Uri $image: returned a null file.")
-            isError(true)
-        } else {
-            val updatedBook = book.copy(cover = newCover)
-            repository.insertBook(updatedBook)
-            Timber.tag("BookVM").d("Update book \"${book.title}\" with new cover.")
-            callBack()
+            if (newCover == null) {
+                Timber.tag("BookVM")
+                    .e("Failed to save cover from gallery Uri $image: returned a null file.")
+                isError(true)
+            } else {
+                val updatedBook = book.copy(cover = newCover)
+                repository.insertBook(updatedBook)
+                Timber.tag("BookVM").d("Update book \"${book.title}\" with new cover.")
+                callBack()
+            }
         }
     }
 
@@ -147,9 +161,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param mangaId Mangadex ID for this manga series
      * @param seriesName all volumes with this series name will update their mangaID
      */
-    suspend fun updateMangaSeriesId(mangaId: String, seriesName: String) {
-        repository.updateMangaSeriesId(mangaId, seriesName)
-        Timber.tag("BookVM").d("Update manga series \"$seriesName\" with new Mangadex ID $mangaId")
+    fun updateMangaSeriesId(mangaId: String, seriesName: String) {
+        viewModelScope.launch {
+            repository.updateMangaSeriesId(mangaId, seriesName)
+            Timber.tag("BookVM")
+                .d("Update manga series \"$seriesName\" with new Mangadex ID $mangaId")
+        }
     }
 
     /**
@@ -158,10 +175,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param newRating new value for the "rating" field
      * @param book Book object whose value to change
      */
-    suspend fun updateRating(newRating: Double, book: Book) {
-        val updatedBook = book.copy(rating = newRating)
-        repository.insertBook(updatedBook)
-        Timber.tag("BookVM").d("Updated the \"rating\" field for book \"${book.title}\"")
+    fun updateRating(newRating: Double, book: Book) {
+        viewModelScope.launch {
+            val updatedBook = book.copy(rating = newRating)
+            repository.insertBook(updatedBook)
+            Timber.tag("BookVM").d("Updated the \"rating\" field for book \"${book.title}\"")
+        }
     }
 
     /**
@@ -170,10 +189,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param isRead new value for the "read" field
      * @param book Book object to mark as (un)read
      */
-    suspend fun updateRead(isRead: Boolean, book: Book) {
-        val updatedBook = book.copy(read = isRead)
-        repository.insertBook(updatedBook)
-        Timber.tag("BookVM").d("Updated the \"read\" mark for book \"${book.title}\"")
+    fun updateRead(isRead: Boolean, book: Book) {
+        viewModelScope.launch {
+            val updatedBook = book.copy(read = isRead)
+            repository.insertBook(updatedBook)
+            Timber.tag("BookVM").d("Updated the \"read\" mark for book \"${book.title}\"")
+        }
     }
 
     /**
@@ -182,10 +203,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param dateStarted new value for the "dateStarted" field
      * @param book Book object to mark as started
      */
-    suspend fun updateStart(dateStarted: Long, book: Book) {
-        val updatedBook = book.copy(dateStarted = dateStarted)
-        repository.insertBook(updatedBook)
-        Timber.tag("BookVM").d("Updated the \"dateStarted\" for book \"${book.title}\"")
+    fun updateStart(dateStarted: Long, book: Book) {
+        viewModelScope.launch {
+            val updatedBook = book.copy(dateStarted = dateStarted)
+            repository.insertBook(updatedBook)
+            Timber.tag("BookVM").d("Updated the \"dateStarted\" for book \"${book.title}\"")
+        }
     }
 
     /**
@@ -196,16 +219,19 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param book Book object to mark as finished
      * @param isError block that returns true if the input date is incoherent with the dateStarted
      */
-    suspend fun updateFinish(dateFinished: Long, book: Book, isError: (Boolean) -> Unit) {
+    fun updateFinish(dateFinished: Long, book: Book, isError: (Boolean) -> Unit) {
         if (book.dateStarted <= 0L || dateFinished < book.dateStarted) {
-            Timber.tag("BookVM").e("Failed to update dateFinished for book \"${book.title}\": smaller than dateStarted")
+            Timber.tag("BookVM")
+                .e("Failed to update dateFinished for book \"${book.title}\": smaller than dateStarted")
             isError(true)
             return
         }
 
-        val updatedBook = book.copy(dateFinished = dateFinished, read = true)
-        repository.insertBook(updatedBook)
-        Timber.tag("BookVM").d("Updated the \"dateFinished\" for book \"${book.title}\"")
+        viewModelScope.launch {
+            val updatedBook = book.copy(dateFinished = dateFinished, read = true)
+            repository.insertBook(updatedBook)
+            Timber.tag("BookVM").d("Updated the \"dateFinished\" for book \"${book.title}\"")
+        }
     }
 
 
@@ -220,7 +246,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param callBack block to run after the covers have been deleted
      * @return
      */
-    suspend fun clearCovers(booksToClear: List<Book>, isError: (Boolean) -> Unit, callBack: () -> Unit) {
+    fun clearCovers(booksToClear: List<Book>, isError: (Boolean) -> Unit, callBack: () -> Unit) {
         var errorOccurred = false
 
         val clearedBooks = booksToClear.map { book ->
@@ -235,10 +261,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             }
             book.copy(cover = null)
         }
-        repository.insertBooks(clearedBooks)
-        if (errorOccurred) isError(true) else {
-            Timber.tag("BookVM").d("Successfully deleted covers for ${booksToClear.size} books")
-            callBack()
+        viewModelScope.launch {
+            repository.insertBooks(clearedBooks)
+            if (errorOccurred) isError(true) else {
+                Timber.tag("BookVM").d("Successfully deleted covers for ${booksToClear.size} books")
+                callBack()
+            }
         }
     }
 
@@ -248,13 +276,15 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param isError returns true if an error occurred while running the function
      * @param callBack block to run after the covers have been deleted
      */
-    suspend fun clearAllCovers(isError: (Boolean) -> Unit, callBack: () -> Unit) {
-        val currentBooks = allBooks.first()
-        var errorOccurred = false
-        clearCovers(currentBooks, { if (it) errorOccurred = true })
-        {
-            if (errorOccurred) isError(true)
-            else callBack()
+    fun clearAllCovers(isError: (Boolean) -> Unit, callBack: () -> Unit) {
+        viewModelScope.launch {
+            val currentBooks = allBooks.first()
+            var errorOccurred = false
+            clearCovers(currentBooks, { if (it) errorOccurred = true })
+            {
+                if (errorOccurred) isError(true)
+                else callBack()
+            }
         }
     }
 
@@ -268,7 +298,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param isError returns true if an error occurred while executing the function
      * @param callBack block that runs once the book and its cover were successfully deleted
      */
-    suspend fun deleteBook(bookToDelete: Book, isError: (Boolean) -> Unit, callBack: () -> Unit) {
+    fun deleteBook(bookToDelete: Book, isError: (Boolean) -> Unit, callBack: () -> Unit) {
         // first try to delete book cover in local files
         bookToDelete.cover?.let { path ->
             try {
@@ -279,9 +309,12 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
                 isError(true)
             }
         }
-        repository.deleteBook(bookToDelete)
-        Timber.tag("BookVM").d("Deleted book \"${bookToDelete.title} from the repository")
-        callBack()
+
+        viewModelScope.launch {
+            repository.deleteBook(bookToDelete)
+            Timber.tag("BookVM").d("Deleted book \"${bookToDelete.title} from the repository")
+            callBack()
+        }
     }
 
     /**
@@ -291,7 +324,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param isError returns true if an error occurred while executing the function
      * @param callBack block that runs once the book and its cover were successfully deleted
      */
-    suspend fun deleteBooks(booksToDelete: List<Book>, isError: (Boolean) -> Unit, callBack: () -> Unit) {
+    fun deleteBooks(booksToDelete: List<Book>, isError: (Boolean) -> Unit, callBack: () -> Unit) {
         var errorOccurred = false
 
         booksToDelete.forEach { book ->
