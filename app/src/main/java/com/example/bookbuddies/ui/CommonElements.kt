@@ -197,7 +197,6 @@ fun PrimaryScreen(
  *
  * @param title display in the top bar (can be empty)
  * @param navigationActions to handle screen navigation
- * @param route optional Route to navigate to when pressing the Back button, instead of navigating back
  * @param navExtraActions optional extra block to run when navigating back (e.g navigating back from CreateAccount screen also signs out)
  * @param topBarIcons extra composable on the right-side of the top bar (optional)
  * @param content screen body
@@ -207,7 +206,6 @@ fun PrimaryScreen(
 fun SecondaryScreen(
     title: String,
     navigationActions: NavigationActions,
-    route: String ?= null,
     navExtraActions: () -> Unit,
     topBarIcons: @Composable () -> Unit,
     content: @Composable (PaddingValues) -> Unit,
@@ -219,7 +217,7 @@ fun SecondaryScreen(
                 CenterAlignedTopAppBar(
                     title = { Text(text = title, style = MyTypography.titleMedium)},
                     navigationIcon = {
-                        GoBackButton(navigationActions, navExtraActions, route)
+                        GoBackButton(navigationActions, navExtraActions)
                     },
                     actions = {
                         Row(

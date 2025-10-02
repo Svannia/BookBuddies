@@ -171,6 +171,7 @@ suspend fun findBookCovers(
  *
  * @param context to access local files
  * @param book Book object whose cover is being searched for
+ * @param allowOverwrite false by default. If true, will look for a new cover even if one already exists.
  * @return new Book object with the updated cover (same object as given parameter if no cover is found)
  */
 suspend fun fetchCoverForBook(context: Context, book: Book, allowOverwrite: Boolean = false): Book =

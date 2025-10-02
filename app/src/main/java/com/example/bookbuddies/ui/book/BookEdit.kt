@@ -30,20 +30,11 @@ import com.example.bookbuddies.datastore.fetchCoverForBook
 import com.example.bookbuddies.datastore.fetchCoverForManga
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
-import com.example.bookbuddies.system.checkPermission
-import com.example.bookbuddies.system.imagePermissionVersion
-import com.example.bookbuddies.ui.CoverImage
-import com.example.bookbuddies.ui.MiniLoading
-import com.example.bookbuddies.ui.RowTextButton
-import com.example.bookbuddies.ui.SecondaryScreen
 import com.example.bookbuddies.viewModels.BookViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun BookEdit(bookID: String, bookVM: BookViewModel, navigationActions: NavigationActions) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val loading = remember { mutableStateOf(false) }
 
     val book by bookVM.getBookFlowById(bookID).collectAsState(initial = Book.empty())
 
@@ -54,95 +45,16 @@ fun BookEdit(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
         cover.value = book.cover
     }
 
-    // getting image and image permissions
-    val imageInput = "image/*"
-    val getImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { imageUri ->
-            tempCover.value = uri
-        }
-    }
-    val imagePermission = imagePermissionVersion()
-    val requestMediaPermissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) getImage.launch(imageInput)
-        }
 
-    SecondaryScreen(
-        title = stringResource(R.string.title_editBook),
-        navigationActions = navigationActions,
-        navExtraActions = {},
-        topBarIcons = {}
-    ) { paddingValues ->
-        if (loading.value) MiniLoading(paddingValues)
-        else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // cover
-                item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.Start),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (tempCover.value != Uri.EMPTY) {
-                                CoverImage(height = 130.dp, picture = tempCover.value)
-                            } else {
-                                CoverImage(height = 130.dp, picture = cover.value)
-                            }
 
-                            Column {
-                                RowTextButton(stringResource(R.string.button_singleCoverManual), 34.dp) {
-                                    checkPermission(context, imagePermission, requestMediaPermissionLauncher) {
-                                        getImage.launch(imageInput)
-                                    }
-                                }
-                                RowTextButton(stringResource(R.string.button_singleBookCoverAuto), 34.dp) {
-                                    loading.value = true
-                                    scope.launch {
-                                        val updatedBook = fetchCoverForBook(context, book, true)
-                                        bookVM.insertBook(updatedBook)
-                                        loading.value = false
-                                    }
-                                }
-                                RowTextButton(stringResource(R.string.button_singleMangaCoverAuto), 34.dp) {
-                                    loading.value = true
-                                    scope.launch {
-                                        val updatedBook = fetchCoverForManga(context, book, bookVM::updateMangaSeriesId, true)
-                                        bookVM.insertBook(updatedBook)
-                                        loading.value = false
-                                    }
-                                }
-                                RowTextButton(stringResource(R.string.button_singleCoverDelete), 34.dp) {
-                                    loading.value = true
-                                    scope.launch {
-                                        bookVM.clearCovers(
-                                            booksToClear = listOf(book),
-                                            isError = {
-                                                if (it) {
-                                                    loading.value = false
-                                                    handleError(context,
-                                                        context.getString(R.string.toast_coverDeleteFail))
-                                                }
-                                            }
-                                        ) {
-                                            loading.value = false
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.5.dp)
-                    }
-                }
-            }
-        }
-    }
+    val cancelVisible = remember { mutableStateOf(false) }
+    EditShared(
+        context = context,
+        screenTitle = context.getString(R.string.title_editBook),
+        warningText = stringResource(R.string.txt_editLeave),
+        onGoBack = { navigationActions.goBack() },
+        book = book
+    )
+
+
 }
