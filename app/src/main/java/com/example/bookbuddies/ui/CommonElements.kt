@@ -1,6 +1,8 @@
 package com.example.bookbuddies.ui
 
 import android.annotation.SuppressLint
+import android.app.DatePickerDialog
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
@@ -18,6 +20,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,11 +31,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -47,6 +52,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -97,6 +106,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -111,12 +121,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookbuddies.R
+import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.ui.theme.MyTypography
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -656,6 +668,7 @@ fun CustomTextField(
 @Composable
 fun CustomContentDialogWindow(
     visible: MutableState<Boolean>,
+    padding: Int = 16,
     content: @Composable (ColumnScope.() -> Unit),
     bottomButtons: Boolean,
     leftButtonContent: @Composable (RowScope.() -> Unit)? = null,
@@ -668,12 +681,12 @@ fun CustomContentDialogWindow(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.outline,
             tonalElevation = 0.dp,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(padding.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(padding.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.Start
             ) {
@@ -707,6 +720,44 @@ fun CustomContentDialogWindow(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomDatePicker(
+    context: Context,
+    themeChoice: ThemeChoice,
+    visible: MutableState<Boolean>,
+    dateMillis: Long,
+    onDateSelected: (Long) -> Unit
+) {
+    if (visible.value) {
+        val calendar = Calendar.getInstance().apply {
+            if (dateMillis > 0L) timeInMillis = dateMillis
+        }
+        val datePickerStyle = when (themeChoice) {
+            ThemeChoice.LIGHT -> R.style.MyDatePickerThemeLight
+            ThemeChoice.DARK -> R.style.MyDatePickerThemeDark
+            ThemeChoice.SYSTEM_DEFAULT -> R.style.MyDatePickerTheme
+        }
+
+        val dialog = DatePickerDialog(
+            context,
+            datePickerStyle,
+            { _, year, month, dayOfMonth ->
+                val cal = Calendar.getInstance()
+                cal.set(year, month, dayOfMonth, 0, 0, 0)
+                onDateSelected(cal.timeInMillis)
+                visible.value = false
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+
+        dialog.setOnDismissListener { visible.value = false }
+        dialog.show()
     }
 }
 

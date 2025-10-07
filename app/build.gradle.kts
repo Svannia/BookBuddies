@@ -87,6 +87,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    // material3
+    implementation("com.google.android.material:material:1.13.0")
+
     // compose
     implementation(platform("androidx.compose:compose-bom:2025.08.00")) // optional but recommended
     implementation("androidx.compose.ui:ui")

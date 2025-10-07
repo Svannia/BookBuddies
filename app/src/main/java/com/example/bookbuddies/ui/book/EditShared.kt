@@ -5,19 +5,28 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,28 +37,59 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
+import com.example.bookbuddies.data.DateFormat
+import com.example.bookbuddies.data.displayAuthor
+import com.example.bookbuddies.data.displayDate
+import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.system.checkPermission
 import com.example.bookbuddies.system.imagePermissionVersion
 import com.example.bookbuddies.ui.CoverImage
 import com.example.bookbuddies.ui.CustomContentDialogWindow
+import com.example.bookbuddies.ui.CustomDatePicker
 import com.example.bookbuddies.ui.MiniLoading
+import com.example.bookbuddies.ui.RatingStars
 import com.example.bookbuddies.ui.RowTextButton
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
+import com.example.bookbuddies.viewModels.BookViewModel
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import kotlin.math.roundToInt
+
+private const val FULL_LENGTH = 300
+private const val PUB_DATE = "pub"
+private const val START_DATE = "start"
+private const val FINISH_DATE = "finish"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,9 +98,13 @@ fun EditShared(
     screenTitle: String,
     warningText: String,
     onGoBack: () -> Unit,
+    themeChoice: ThemeChoice,
+    bookVM: BookViewModel,
     book: Book? = null
 ) {
     val loading = remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val lazyListState = rememberLazyListState()
 
     val cancelVisible = remember { mutableStateOf(false) }
     val dataEdited = remember { mutableStateOf(false) }
@@ -69,15 +113,65 @@ fun EditShared(
         else onGoBack()
     }
 
-    val isbn = remember { mutableStateOf(book?.isbn ?: "") }
-    val cover = remember { mutableStateOf(book?.cover) }
+    val allAuthors by bookVM.allAuthors.collectAsState()
+    val allSeries by bookVM.allSeries.collectAsState()
+    val allGenres by bookVM.allGenres.collectAsState()
+    val allPublishers by bookVM.allPublishers.collectAsState()
+    val allLanguages by bookVM.allLanguages.collectAsState()
+    val allFormats by bookVM.allFormats.collectAsState()
+    val allBookshelves by bookVM.allBookshelves.collectAsState()
+    val allBought by bookVM.allBought.collectAsState()
+    val allGivers by bookVM.allGivers.collectAsState()
+
     val tempCover = remember { mutableStateOf(Uri.EMPTY) }
-    val deleteCover = remember { mutableStateOf(false) }
+
+    val isbn = remember { mutableStateOf(book?.isbn ?: "") }
+    val title = remember { mutableStateOf(book?.title ?: "") }
+    val authors = remember { mutableStateListOf<String>().apply {
+        addAll(book?.authors?.map { displayAuthor(it) } ?: emptyList()) }
+    }
+    val cover = remember { mutableStateOf(book?.cover) }
+    val seriesName = remember { mutableStateOf(book?.seriesName ?: "") }
+    val seriesNb = remember { mutableIntStateOf(book?.seriesNumber ?: -1) }
+    val description = remember { mutableStateOf(book?.description ?: "") }
+    val genre = remember { mutableStateOf(book?.genre ?: "") }
+    val publisher = remember { mutableStateOf(book?.publisher ?: "") }
+    val pubDate = remember { mutableLongStateOf(book?.publishedDate ?: 0L) }
+    val rating = remember { mutableDoubleStateOf(book?.rating ?: 0.0) }
+    val language = remember { mutableStateOf(book?.language ?: "") }
+    val format = remember { mutableStateOf(book?.format ?: "") }
+    val read = remember { mutableStateOf(false) }
+    val startDate = remember { mutableLongStateOf(book?.dateStarted ?: 0L) }
+    val finishDate = remember { mutableLongStateOf(book?.dateFinished ?: 0L) }
+    val bookshelf = remember { mutableStateOf(book?.bookshelf ?: "") }
+    val source = remember { mutableStateOf(book?.source ?: "") }
+    val isGift = remember { mutableStateOf(book?.isGift ?: false) }
+
     LaunchedEffect(book) {
         if (book != null) {
+            isbn.value = book.isbn
+            title.value = book.title
+            authors.clear()
+            authors.addAll(book.authors.map { displayAuthor(it) })
             cover.value = book.cover
+            seriesName.value = book.seriesName
+            seriesNb.intValue = book.seriesNumber
+            description.value = book.description
+            genre.value = book.genre
+            publisher.value = book.publisher
+            pubDate.longValue = book.publishedDate
+            rating.doubleValue = book.rating
+            language.value = book.language
+            format.value = book.format
+            read.value = book.read
+            startDate.longValue = book.dateStarted
+            finishDate.longValue = book.dateFinished
+            bookshelf.value = book.bookshelf
+            source.value = book.source
+            isGift.value = book.isGift
         }
     }
+    val deleteCover = remember { mutableStateOf(false) }
 
     // getting image and image permissions
     val imageInput = "image/*"
@@ -93,6 +187,10 @@ fun EditShared(
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) getImage.launch(imageInput)
         }
+
+    // for picking a date
+    var activeDateField by remember { mutableStateOf<String?>(null) }
+    val datePickerVisible = remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -146,16 +244,21 @@ fun EditShared(
             }
         },
         content = { paddingValues ->
+            val topPaddingPx = with(LocalDensity.current) {
+                40.dp.toPx().roundToInt()
+            }
+
             if (loading.value) MiniLoading(paddingValues)
             else {
                 LazyColumn(
+                    state = lazyListState,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // cover
+                    // cover (index 0)
                     item {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -193,7 +296,186 @@ fun EditShared(
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.5.dp)
                         }
                     }
+
+                    // title (index 1)
+                    item {
+                        SingleInputField(
+                            title = stringResource(R.string.title_title),
+                            value = title.value,
+                            fieldWidth = FULL_LENGTH,
+                            icon = R.drawable.open_book,
+                            maxLength = 65,
+                            showSuggestions = false,
+                            suggestions = { emptyList() },
+                            onFocusEvent = {},
+                            onValueChange = { title.value = it; dataEdited.value = true }
+                        )
+                    }
+
+                    // authors (index 2)
+                    item {
+                        AuthorsListInputFields(
+                            title = stringResource(R.string.title_authors),
+                            listValues = authors,
+                            icon = R.drawable.user,
+                            suggestions = { bookVM.filterAuthors(it, allAuthors) },
+                            onFocusEvent = { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch { lazyListState.animateScrollToItem(2, topPaddingPx) }
+                                }
+                            }
+                        ) { newValue, idx ->
+                            authors[idx] = newValue
+                            dataEdited.value = true
+                        }
+                    }
+
+                    // series (index 3)
+                    item {
+                        SingleInputField(
+                            title = "Series",
+                            value = seriesName.value,
+                            fieldWidth = FULL_LENGTH - 100,
+                            icon = R.drawable.sheets,
+                            maxLength = 30,
+                            showSuggestions = true,
+                            suggestions = { bookVM.filterSeries(it, allSeries) },
+                            onFocusEvent = { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch { lazyListState.animateScrollToItem(3, topPaddingPx) }
+                                }
+                            },
+                            onValueChange = { seriesName.value = it; dataEdited.value = true }
+                        ) {
+                            Spacer(modifier = Modifier.size(16.dp))
+                            NumberField(
+                                number = seriesNb,
+                            ) { seriesNb.intValue = it; dataEdited.value = true }
+                        }
+                    }
+
+                    // rating (index 4)
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = stringResource(R.string.title_rating),
+                                style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                RatingStars(
+                                    rating = rating.doubleValue,
+                                    starSize = 48.dp,
+                                    starSpacing = 0.dp,
+                                    emptyStarColor = MaterialTheme.colorScheme.outline
+                                ) { newRating ->
+                                    rating.doubleValue = newRating
+                                    dataEdited.value = true
+                                }
+                            }
+                        }
+                    }
+
+                    // genre (index 5)
+                    item {
+                        SingleInputField(
+                            title = stringResource(R.string.title_genre),
+                            value = genre.value,
+                            fieldWidth = FULL_LENGTH,
+                            icon = R.drawable.tag,
+                            maxLength = 30,
+                            showSuggestions = true,
+                            suggestions = { bookVM.filterGenres(it, allGenres) },
+                            onFocusEvent = { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch { lazyListState.animateScrollToItem(5, topPaddingPx) }
+                                }
+                            },
+                            onValueChange = { genre.value = it; dataEdited.value = true },
+                        )
+                    }
+
+                    // isbn (index 6)
+                    item {
+                        SingleInputField(
+                            title = stringResource(R.string.title_isbn),
+                            value = isbn.value,
+                            fieldWidth = FULL_LENGTH,
+                            icon = R.drawable.barcode,
+                            maxLength = 13,
+                            showSuggestions = false,
+                            suggestions = { emptyList() },
+                            onFocusEvent = {},
+                            onValueChange = { isbn.value = it; dataEdited.value = true },
+                        )
+                    }
+
+                    // publisher (index 7)
+                    item {
+                        SingleInputField(
+                            title = stringResource(R.string.title_publishing),
+                            value = publisher.value,
+                            fieldWidth = FULL_LENGTH,
+                            icon = R.drawable.house,
+                            maxLength = 40,
+                            showSuggestions = true,
+                            suggestions = { bookVM.filterPublishers(it, allPublishers) },
+                            onFocusEvent = { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch { lazyListState.animateScrollToItem(7, topPaddingPx) }
+                                }
+                            },
+                            onValueChange = { publisher.value = it; dataEdited.value = true },
+                        )
+                    }
+
+                    // published date (index 8)
+                    item {
+                        DateInput(
+                            title = stringResource(R.string.title_publishedDate),
+                            date = pubDate.longValue,
+                            onClear = { pubDate.longValue = 0L; dataEdited.value = true }
+                        ) {
+                            activeDateField = PUB_DATE
+                            datePickerVisible.value = true
+                        }
+                    }
+
+                    // todo: remove when done designing the screen
+                    item {
+                        Spacer(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(500.dp)
+                        )
+                    }
                 }
+
+                CustomDatePicker(
+                    context = context,
+                    themeChoice = themeChoice,
+                    visible = datePickerVisible,
+                    dateMillis = when (activeDateField) {
+                        PUB_DATE -> pubDate.longValue
+                        START_DATE -> startDate.longValue
+                        FINISH_DATE -> finishDate.longValue
+                        else -> 0L
+                    },
+                    onDateSelected = { millis ->
+                        when (activeDateField) {
+                            PUB_DATE -> pubDate.longValue = millis
+                            START_DATE -> startDate.longValue = millis
+                            FINISH_DATE -> finishDate.longValue = millis
+                        }
+                        dataEdited.value = true
+                    }
+                )
 
                 if (cancelVisible.value) {
                     CustomContentDialogWindow(
@@ -216,7 +498,7 @@ fun EditShared(
                         leftButtonOnClick = { cancelVisible.value = false },
                         rightButtonContent = {
                             Text(
-                                text = stringResource(R.string.button_confirm),
+                                text = stringResource(R.string.button_leave),
                                 style = MyTypography.bodyLarge,
                                 color = ValidGreen
                             )
@@ -230,4 +512,293 @@ fun EditShared(
             }
         }
     )
+}
+
+@Composable
+private fun SingleInputField(
+    title: String,
+    value: String,
+    fieldWidth: Int,
+    icon: Int,
+    maxLength: Int,
+    showSuggestions: Boolean,
+    suggestions: ((String) -> List<String>),
+    onFocusEvent: (FocusState) -> Unit,
+    onValueChange: (String) -> Unit,
+    extraActions: (@Composable RowScope.() -> Unit)? = null
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text(text = title, style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start))
+        Row(modifier = Modifier.padding(start = 16.dp)
+        ) {
+            InputField(
+                value, icon, fieldWidth, maxLength, showSuggestions,
+                { suggestions(it) },
+                { onFocusEvent(it) }
+            ) { onValueChange(it) }
+            if (extraActions != null) extraActions()
+        }
+    }
+}
+
+@Composable
+private fun AuthorsListInputFields(
+    title: String,
+    listValues: MutableList<String>,
+    icon: Int,
+    suggestions: ((String) -> List<String>),
+    onFocusEvent: (FocusState) -> Unit,
+    onValueChange: (String, Int) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text(text = title, style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start))
+        listValues.forEachIndexed { index, value ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                InputField(
+                    value, icon, 250, 30, true,
+                    { suggestions(it) },
+                    { onFocusEvent(it) }
+                ) { onValueChange(it, index) }
+                // bin icon to delete an author
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clickable { listValues.remove(value) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        modifier = Modifier.fillMaxSize(),
+                        painter = painterResource(R.drawable.bin),
+                        contentDescription = stringResource(R.string.desc_deleteButton)
+                    )
+                }
+            }
+        }
+        // plus button to add an author
+        IconButton(
+            modifier = Modifier.padding(start = 8.dp),
+            onClick = { listValues.add("") }
+        ) {
+            Icon(
+                modifier = Modifier.size(26.dp),
+                painter = painterResource(R.drawable.add),
+                contentDescription = stringResource(R.string.desc_addButton)
+            )
+        }
+    }
+}
+
+@Composable
+private fun InputField(
+    value: String,
+    icon: Int,
+    width: Int,
+    maxLength: Int,
+    canExpand: Boolean,
+    suggestions: ((String) -> List<String>),
+    onFocusEvent: (FocusState) -> Unit,
+    onValueChange: (String) -> Unit
+) {
+    val showMaxChar = remember { mutableStateOf(false) }
+    val expanded = remember { mutableStateOf(false) }
+    val suggestions by remember(value) { mutableStateOf(suggestions(value)) }
+
+    Column(modifier = Modifier.width(width.dp))
+    {
+        TextField(
+            modifier = Modifier
+                .padding(0.dp)
+                .onFocusEvent { onFocusEvent(it) },
+            value = value,
+            onValueChange = {
+                Timber.tag("Debug").d("inside TextField: suggestions ${suggestions.size}")
+                if (it.length <= maxLength) { onValueChange(it) }
+                showMaxChar.value = it.length >= maxLength
+                expanded.value = true
+            },
+            textStyle = MyTypography.bodyLarge,
+            leadingIcon = {
+                Row{
+                    Icon(
+                        painter = painterResource(id = icon),
+                        contentDescription = stringResource(R.string.desc_textFieldIcon),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.size(16.dp))
+                }
+            },
+            placeholder = {
+                Text(text = stringResource(R.string.txt_inputFieldPlaceholder), style = MyTypography.bodySmall)
+            },
+            singleLine = true,
+            supportingText = {
+                if (showMaxChar.value) {
+                    Text(
+                        text = stringResource(R.string.txt_maxChar, maxLength.toString()),
+                        style = MyTypography.labelSmall
+                    )
+                }
+            },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary
+            )
+        )
+
+        if (canExpand && expanded.value && suggestions.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .heightIn(max = 200.dp)
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            ) {
+                LazyColumn {
+                    items(suggestions.size) { index ->
+                        val suggestion = suggestions[index]
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onValueChange(suggestion)
+                                    expanded.value = false
+                                }
+                                .padding(8.dp),
+                            text = suggestion,
+                            style = MyTypography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Suppress("UNUSED_PARAMETER")
+@Composable
+private fun NumberField(
+    number: MutableIntState,
+    onValueChange: (Int) -> Unit
+) {
+    val text = remember(number.intValue) { mutableStateOf(
+        if (number.intValue >= 0) number.intValue.toString() else ""
+    ) }
+
+    TextField(
+        modifier = Modifier
+            .width(70.dp)
+            .padding(0.dp),
+        value = if (text.value.isBlank() || text.value.toInt() < 0) ""
+                else text.value,
+        onValueChange = { input ->
+            if (input.isBlank()) {
+                text.value = ""
+                onValueChange(-1)
+            } else {
+                val filteredInput = input.filter { it.isDigit() }
+                text.value = filteredInput
+                filteredInput.toIntOrNull()?.let { onValueChange(it) }
+            }
+        },
+        textStyle = MyTypography.bodyLarge,
+        prefix = { Text(text = "#", style = MyTypography.bodyLarge) },
+        singleLine = true,
+        supportingText = {},
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary
+        ),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Done
+        )
+    )
+}
+
+@Composable
+private fun DateInput(
+    title: String,
+    date: Long,
+    onClear: () -> Unit,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text(text = title, style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start))
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp)
+        ) {
+            TextField(
+                modifier = Modifier
+                    .padding(0.dp)
+                    .clickable { onClick() },
+                value = if (date > 0L) displayDate(date, DateFormat.NUMBERED)
+                        else "",
+                onValueChange = {},
+                enabled = false,
+                textStyle = MyTypography.bodyLarge,
+                leadingIcon = {
+                    Row{
+                        IconButton(onClick = { onClick() }) {
+                            Icon(
+                                painter = painterResource(R.drawable.calendar),
+                                contentDescription = stringResource(R.string.desc_textFieldIcon),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.size(16.dp))
+                    }
+                },
+                trailingIcon = {
+                    if (date > 0L) {
+                        IconButton(onClick = { onClear() }) {
+                            Icon(
+                                painter = painterResource(R.drawable.cancel),
+                                contentDescription = stringResource(R.string.desc_clearDate),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                },
+                placeholder = {
+                    Text(text = stringResource(R.string.field_date), style = MyTypography.bodySmall)
+                },
+                colors = TextFieldDefaults.colors(
+                    disabledContainerColor = Color.Transparent,
+                    disabledIndicatorColor = MaterialTheme.colorScheme.inversePrimary,
+                    disabledTextColor = MaterialTheme.colorScheme.inversePrimary,
+                    disabledLeadingIconColor = MaterialTheme.colorScheme.inversePrimary,
+                    disabledTrailingIconColor = MaterialTheme.colorScheme.inversePrimary
+                )
+            )
+        }
+    }
 }

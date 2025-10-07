@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.BookBuddies" parent="Theme.Material3.DayNight.NoActionBar" />
+
+    <style name="MyDatePickerThemeDark" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="android:datePickerMode">calendar</item>
+        <item name="android:colorAccent">@color/primaryPurple</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/veryLightGrey</item>
+        <item name="android:headerBackground">@color/primaryPurple</item>
+        <item name="android:background">@color/darkGrey</item>
+    </style>
+
+    <style name="MyDatePickerTheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="android:datePickerMode">calendar</item>
+        <item name="android:colorAccent">@color/primaryPurple</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/veryLightGrey</item>
+        <item name="android:headerBackground">@color/primaryPurple</item>
+        <item name="android:background">@color/darkGrey</item>
+    </style>
+
+</resources>

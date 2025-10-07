@@ -9,18 +9,22 @@ import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.viewModels.BookViewModel
+import com.example.bookbuddies.viewModels.DataViewModel
 
 @Composable
-fun BookEdit(bookID: String, bookVM: BookViewModel, navigationActions: NavigationActions) {
+fun BookEdit(bookID: String, bookVM: BookViewModel, dataVM: DataViewModel, navigationActions: NavigationActions) {
     val context = LocalContext.current
 
     val book by bookVM.getBookFlowById(bookID).collectAsState(initial = Book.empty())
+    val themeChoice by dataVM.currentTheme.collectAsState()
 
     EditShared(
         context = context,
         screenTitle = context.getString(R.string.title_editBook),
         warningText = stringResource(R.string.txt_editLeave),
         onGoBack = { navigationActions.goBack() },
+        themeChoice = themeChoice,
+        bookVM = bookVM,
         book = book
     )
 

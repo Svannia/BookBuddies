@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("bookID") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val bookID = backStackEntry.arguments?.getString("bookID") ?: return@composable
-                            BookEdit(bookID, bookVM, navigationActions)
+                            BookEdit(bookID, bookVM, dataVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen BookEdit")
                         }
                     }

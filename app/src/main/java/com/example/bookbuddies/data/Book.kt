@@ -70,6 +70,11 @@ fun displayAuthors(authorsList: List<String>): String {
     }
 }
 
+fun displayAuthor(author: String): String {
+    val parts = author.split(",").map { it.trim() }
+    return if (parts.size == 2) "${parts[1]} ${parts[0]}" else author
+}
+
 fun displaySeries(seriesName: String, seriesNumber: Int): String {
     val number = if (seriesNumber >= 0) "#$seriesNumber" else ""
     return "$seriesName $number"

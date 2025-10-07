@@ -7,17 +7,21 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
+import com.example.bookbuddies.data.displayAuthor
 import com.example.bookbuddies.datastore.BookRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.internal.wait
 import timber.log.Timber
 import java.io.File
 
@@ -33,6 +37,61 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     val onlyUnread: StateFlow<Boolean> = _onlyUnread
 
     private val allBooks = repository.allBooks
+
+    // ---------- FOR AUTO-COMPLETE ----------
+    private val _allAuthors = MutableStateFlow<List<String>>(emptyList())
+    val allAuthors: StateFlow<List<String>> = _allAuthors
+    private val _allSeries = MutableStateFlow<List<String>>(emptyList())
+    val allSeries: StateFlow<List<String>> = _allSeries
+    private val _allGenres = MutableStateFlow<List<String>>(emptyList())
+    val allGenres: StateFlow<List<String>> = _allGenres
+    private val _allPublishers = MutableStateFlow<List<String>>(emptyList())
+    val allPublishers: StateFlow<List<String>> = _allPublishers
+    private val _allLanguages = MutableStateFlow<List<String>>(emptyList())
+    val allLanguages: StateFlow<List<String>> = _allLanguages
+    private val _allFormats = MutableStateFlow<List<String>>(emptyList())
+    val allFormats: StateFlow<List<String>> = _allFormats
+    private val _allBookshelves = MutableStateFlow<List<String>>(emptyList())
+    val allBookshelves: StateFlow<List<String>> = _allBookshelves
+    private val _allBought = MutableStateFlow<List<String>>(emptyList())
+    val allBought: StateFlow<List<String>> = _allBought
+    private val _allGivers = MutableStateFlow<List<String>>(emptyList())
+    val allGivers: StateFlow<List<String>> = _allGivers
+
+    init {
+        viewModelScope.launch {
+            allBooks.collect { books ->
+                _allAuthors.value = books.flatMap { it.authors }.distinct()
+                _allSeries.value = books.map { it.seriesName }.distinct()
+                _allGenres.value = books.map { it.genre }.distinct()
+                _allPublishers.value = books.map { it.publisher }.distinct()
+                _allLanguages.value = books.map { it.language }.distinct()
+                _allFormats.value = books.map { it.format }.distinct()
+                _allBookshelves.value = books.map { it.bookshelf }.distinct()
+                _allBought.value = books.filter { !it.isGift }.map { it.source }.distinct()
+                _allGivers.value = books.filter { it.isGift }.map { it.source }.distinct()
+            }
+        }
+    }
+
+    // ---------- FILTERING OUT AUTO-COMPLETION RESULTS ----------
+    private fun filterList(input: String, list: List<String>, transform: (String) -> String = { it }): List<String> {
+        val query = input.lowercase()
+        return list
+            .filter { it.isNotBlank() }
+            .filter { it.trim().lowercase().startsWith(query) }
+            .map { transform(it.trim()) }
+    }
+    fun filterAuthors(input: String, authors: List<String>) =
+        filterList(input, authors) { displayAuthor(it) }
+    fun filterSeries(input: String, series: List<String>) = filterList(input, series)
+    fun filterGenres(input: String, genres: List<String>) = filterList(input, genres)
+    fun filterPublishers(input: String, publishers: List<String>) = filterList(input, publishers)
+    fun filterLanguages(input: String, languages: List<String>) = filterList(input, languages)
+    fun filterFormats(input: String, formats: List<String>) = filterList(input, formats)
+    fun filterBookshelves(input: String, bookshelves: List<String>) = filterList(input, bookshelves)
+    fun filterBoughtSources(input: String, bought: List<String>) = filterList(input, bought)
+    fun filterGivers(input: String, givers: List<String>) = filterList(input, givers)
 
     // ---------- FETCHING DATA ----------
     // the raw list of stored books is private. Instead we only expose the books sorted by one method ("author > series" by default)

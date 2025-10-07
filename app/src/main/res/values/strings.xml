@@ -13,6 +13,7 @@
     <string name="button_findCovers">Find covers</string>
     <string name="button_finishedToday">finished today</string>
     <string name="button_import">Import CSV file</string>
+    <string name="button_leave">Leave</string>
     <string name="button_markAsRead">Mark as Read</string>
     <string name="button_removeCover">Remove covers</string>
     <string name="button_removeCovers">Remove all covers</string>
@@ -26,10 +27,14 @@
     <string name="button_startedToday">started today</string>
     <string name="button_unread">Only unread</string>
 
+    <string name="desc_addButton">add button</string>
     <string name="desc_burgerMenu">burger menu</string>
+    <string name="desc_calendar">open calendar button</string>
     <string name="desc_cancel">cancel operation</string>
+    <string name="desc_clearDate">clear date button</string>
     <string name="desc_copy">copy button</string>
     <string name="desc_coverImage">book cover image</string>
+    <string name="desc_deleteButton">delete button</string>
     <string name="desc_dstIcon">destination icon</string>
     <string name="desc_edit">edit button</string>
     <string name="desc_expandCollapse">Expand/collapse</string>
@@ -45,6 +50,7 @@
     <string name="dst_settings">Settings</string>
 
     <string name="field_bugReport">Please describe what the bug is and what led to it.</string>
+    <string name="field_date">Select a date...</string>
     <string name="field_maxChar">max. %1$s characters</string>
 
     <string name="sorting_added">Recently added</string>
@@ -58,6 +64,7 @@
     <string name="sorting_title">Title</string>
 
     <string name="title_about">About</string>
+    <string name="title_authors">Authors</string>
     <string name="title_bookshelf">Bookshelf</string>
     <string name="title_bought">Bought at</string>
     <string name="title_collection">In My Collection</string>
@@ -66,16 +73,20 @@
     <string name="title_editBook">Edit book</string>
     <string name="title_failedCovers">The following covers have not been found:</string>
     <string name="title_format">Format</string>
+    <string name="title_genre">Genre</string>
     <string name="title_gifted">Gift from</string>
     <string name="title_homeScreen">My Books</string>
     <string name="title_isbn">ISBN</string>
     <string name="title_language">Language</string>
     <string name="title_pubEdition"><![CDATA[Publishing & Edition]]></string>
+    <string name="title_publishedDate">Published date</string>
     <string name="title_publishing">Publishing</string>
+    <string name="title_rating">Rating</string>
     <string name="title_readingStatus">Reading status</string>
     <string name="title_settings">Settings</string>
     <string name="title_sortBy">Sort by</string>
     <string name="title_theme">Theme</string>
+    <string name="title_title">Title</string>
 
     <string name="toast_bugReport">Thank you for reporting the bug!</string>
     <string name="toast_bugReportFail">Failed to send bug report</string>
@@ -115,8 +126,11 @@
     <string name="txt_importTooltip">This functionality is made to import books from the app \"Book Catalogue\".\n
         \nUse \"Admin &gt; Export to CSV file\" to get your backup in the correct format.\n
         \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
+    <string name="txt_inputFieldPlaceholder">Input here...</string>
+    <string name="txt_maxChar">max. %1$s characters</string>
     <string name="txt_multiDeleteConfirm">Are you sure you want to delete these books:</string>
     <string name="txt_nbSelected">%1$d selected</string>
+    <string name="txt_noDate">No date selected</string>
     <string name="txt_noResults">You don\'t have any books yet.</string>
     <string name="txt_placeHolder"><![CDATA[<unknown>]]></string>
     <string name="txt_reportBugNote">Reporting a bug will also send this app\'s log files that it locally saved on your phone.</string>
