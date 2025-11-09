@@ -20,6 +20,7 @@ fun BookEdit(bookID: String, bookVM: BookViewModel, dataVM: DataViewModel, navig
 
     EditShared(
         context = context,
+        navigationActions = navigationActions,
         screenTitle = context.getString(R.string.title_editBook),
         warningText = stringResource(R.string.txt_editLeave),
         onGoBack = { navigationActions.goBack() },

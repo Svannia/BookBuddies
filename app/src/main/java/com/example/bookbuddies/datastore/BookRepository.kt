@@ -537,6 +537,9 @@ suspend fun importBooksFromCsv(
             name.trim() to (number.toIntOrNull() ?: -1) // set series number to -1 if not available
         } ?: (seriesDetails.trim() to -1)
 
+        var description = getCol(cols, DESCRIPTION).replace("\\n", "\n").replace("\"\"", "\"").replace("<br />", "\n")
+        description = description.replace(Regex("\\n+"), "\n").trim()
+
         val publishedDate = parseDate(getCol(cols, DATE_PUBLISHED)) { isError ->
             isError(isError)
             errorOccurred = true
@@ -584,7 +587,7 @@ suspend fun importBooksFromCsv(
             cover = existingBook?.cover,
             seriesName = seriesName,
             seriesNumber = seriesNumber,
-            description = getCol(cols, DESCRIPTION),
+            description = description,
             genre = getCol(cols, GENRE),
             publisher = getCol(cols, PUBLISHER),
             publishedDate = publishedDate,
@@ -702,7 +705,7 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
  * @return sanitized string
  */
 private fun escapeCSVChar(text: String): String {
-    val needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n")
+    val needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\\n")
     val escaped = text.replace("\"", "\"\"")
     return if (needsQuotes) "\"$escaped\"" else escaped
 }

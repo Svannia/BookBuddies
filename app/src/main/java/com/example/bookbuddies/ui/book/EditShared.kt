@@ -2,6 +2,7 @@ package com.example.bookbuddies.ui.book
 
 import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -61,8 +63,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
@@ -71,6 +75,8 @@ import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.displayAuthor
 import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.datastore.ThemeChoice
+import com.example.bookbuddies.navigation.NavigationActions
+import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.system.checkPermission
 import com.example.bookbuddies.system.imagePermissionVersion
 import com.example.bookbuddies.ui.CoverImage
@@ -79,11 +85,12 @@ import com.example.bookbuddies.ui.CustomDatePicker
 import com.example.bookbuddies.ui.MiniLoading
 import com.example.bookbuddies.ui.RatingStars
 import com.example.bookbuddies.ui.RowTextButton
+import com.example.bookbuddies.ui.ToggleBox
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.BookViewModel
 import kotlinx.coroutines.launch
-import timber.log.Timber
+import java.util.UUID
 import kotlin.math.roundToInt
 
 private const val FULL_LENGTH = 300
@@ -95,6 +102,7 @@ private const val FINISH_DATE = "finish"
 @Composable
 fun EditShared(
     context: Context,
+    navigationActions: NavigationActions,
     screenTitle: String,
     warningText: String,
     onGoBack: () -> Unit,
@@ -231,7 +239,80 @@ fun EditShared(
             ) {
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = {},
+                    onClick = {
+                        // check dates validity
+                        if (finishDate.longValue > 0L && startDate.longValue <= 0L) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_missingStartDate),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@Button
+                        }
+                        if (startDate.longValue > 0L && finishDate.longValue > 0L && finishDate.longValue < startDate.longValue) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_wrongDateFinished),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@Button
+                        }
+                        if (finishDate.longValue > 0L) read.value = true
+                        loading.value = true
+
+                        val uid = book?.uid ?: UUID.randomUUID().toString().replace("-", "")
+                        val updatedBook = book?.copy(
+                            isbn = isbn.value,
+                            title = title.value,
+                            authors = authors.filter { it.isNotBlank() },
+                            cover = if (deleteCover.value) null
+                                    else cover.value,
+                            seriesName = seriesName.value,
+                            seriesNumber = seriesNb.intValue,
+                            description = description.value,
+                            genre = genre.value,
+                            publisher = publisher.value,
+                            publishedDate = pubDate.longValue,
+                            rating = rating.doubleValue,
+                            language = language.value,
+                            format = format.value,
+                            read = read.value,
+                            dateStarted = startDate.longValue,
+                            dateFinished = finishDate.longValue,
+                            bookshelf = bookshelf.value,
+                            source = source.value,
+                            isGift = isGift.value
+                        ) ?: Book(
+                            uid = uid,
+                            isbn = isbn.value,
+                            title = title.value,
+                            authors = authors.filter { it.isNotBlank() },
+                            cover = if (deleteCover.value) null
+                                    else cover.value,
+                            seriesName = seriesName.value,
+                            seriesNumber = seriesNb.intValue,
+                            description = description.value,
+                            genre = genre.value,
+                            publisher = publisher.value,
+                            publishedDate = pubDate.longValue,
+                            rating = rating.doubleValue,
+                            language = language.value,
+                            format = format.value,
+                            read = read.value,
+                            dateStarted = startDate.longValue,
+                            dateFinished = finishDate.longValue,
+                            bookshelf = bookshelf.value,
+                            source = source.value,
+                            isGift = isGift.value,
+                            dateAdded = System.currentTimeMillis()
+                        )
+                        scope.launch {
+                            bookVM.insertBook(updatedBook)
+                        }
+                        navigationActions.navigateTo("${Route.BOOK}/$uid")
+
+                        loading.value = false
+                    },
                     enabled = dataEdited.value,
                     shape = RoundedCornerShape(50)
                 ) {
@@ -398,7 +479,7 @@ fun EditShared(
                                     scope.launch { lazyListState.animateScrollToItem(5, topPaddingPx) }
                                 }
                             },
-                            onValueChange = { genre.value = it; dataEdited.value = true },
+                            onValueChange = { genre.value = it; dataEdited.value = true }
                         )
                     }
 
@@ -413,7 +494,7 @@ fun EditShared(
                             showSuggestions = false,
                             suggestions = { emptyList() },
                             onFocusEvent = {},
-                            onValueChange = { isbn.value = it; dataEdited.value = true },
+                            onValueChange = { isbn.value = it; dataEdited.value = true }
                         )
                     }
 
@@ -432,27 +513,238 @@ fun EditShared(
                                     scope.launch { lazyListState.animateScrollToItem(7, topPaddingPx) }
                                 }
                             },
-                            onValueChange = { publisher.value = it; dataEdited.value = true },
+                            onValueChange = { publisher.value = it; dataEdited.value = true }
                         )
                     }
 
                     // published date (index 8)
                     item {
-                        DateInput(
-                            title = stringResource(R.string.title_publishedDate),
-                            date = pubDate.longValue,
-                            onClear = { pubDate.longValue = 0L; dataEdited.value = true }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp),
+                            horizontalAlignment = Alignment.Start
                         ) {
-                            activeDateField = PUB_DATE
-                            datePickerVisible.value = true
+                            Text(
+                                text = stringResource(R.string.title_publishedDate),
+                                style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
+                            )
+                            DateInput(
+                                date = pubDate.longValue,
+                                onClear = { pubDate.longValue = 0L; dataEdited.value = true }
+                            ) {
+                                activeDateField = PUB_DATE
+                                datePickerVisible.value = true
+                            }
                         }
                     }
 
-                    // todo: remove when done designing the screen
+                    // language (index 9)
                     item {
-                        Spacer(modifier = Modifier
-                            .fillMaxWidth()
-                            .height(500.dp)
+                        SingleInputField(
+                            title = stringResource(R.string.title_language),
+                            value = language.value,
+                            fieldWidth = FULL_LENGTH,
+                            icon = R.drawable.language,
+                            maxLength = 15,
+                            showSuggestions = true,
+                            suggestions = { bookVM.filterLanguages(it, allLanguages) },
+                            onFocusEvent = { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch { lazyListState.animateScrollToItem(9, topPaddingPx) }
+                                }
+                            },
+                            onValueChange = { language.value = it; dataEdited.value = true }
+                        )
+                    }
+
+                    // format (index 10)
+                    item {
+                        SingleInputField(
+                            title = stringResource(R.string.title_format),
+                            value = format.value,
+                            fieldWidth = FULL_LENGTH,
+                            icon = R.drawable.closed_book,
+                            maxLength = 15,
+                            showSuggestions = true,
+                            suggestions = { bookVM.filterFormats(it, allFormats) },
+                            onFocusEvent = { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch { lazyListState.animateScrollToItem(10, topPaddingPx) }
+                                }
+                            },
+                            onValueChange = { format.value = it; dataEdited.value = true }
+                        )
+                    }
+
+                    // source (index 11)
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = stringResource(R.string.title_source),
+                                style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                ToggleBox(
+                                    isRadio = false,
+                                    boxHeight = 20.dp,
+                                    rowPadding = PaddingValues(),
+                                    rowSpacing = 8.dp,
+                                    optionText = stringResource(R.string.txt_isGift),
+                                    textStyle = MyTypography.bodyLarge,
+                                    isToggled = isGift.value
+                                ) { isGift.value = !isGift.value; dataEdited.value = true }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                modifier = Modifier.padding(start = 16.dp),
+                                text = if (isGift.value) stringResource(R.string.txt_giftFrom)
+                                        else stringResource(R.string.txt_boughtAt),
+                                style = MyTypography.bodyLarge
+                            )
+                            Row(
+                                modifier = Modifier.padding(start = 16.dp)
+                            ) {
+                                InputField(
+                                    value = source.value,
+                                    icon = if (isGift.value) R.drawable.gift else R.drawable.cart,
+                                    width = FULL_LENGTH,
+                                    maxLength = 30,
+                                    singleLine = true,
+                                    canExpand = true,
+                                    suggestions = {
+                                        if (isGift.value) {
+                                            bookVM.filterGivers(it, allGivers)
+                                        } else {
+                                            bookVM.filterBoughtSources(it, allBought)
+                                        }
+                                    },
+                                    onFocusEvent = { focusState ->
+                                        if (focusState.isFocused) {
+                                            scope.launch { lazyListState.animateScrollToItem(11, topPaddingPx) }
+                                        }
+                                    },
+                                    onValueChange = { format.value = it; dataEdited.value = true }
+                                )
+                            }
+                        }
+                    }
+
+                    // bookshelf (index 12)
+                    item {
+                        SingleInputField(
+                            title = stringResource(R.string.title_bookshelf),
+                            value = bookshelf.value,
+                            fieldWidth = FULL_LENGTH,
+                            icon = R.drawable.bookshelf,
+                            maxLength = 30,
+                            showSuggestions = true,
+                            suggestions = { bookVM.filterBookshelves(it, allBookshelves) },
+                            onFocusEvent = { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch { lazyListState.animateScrollToItem(12, topPaddingPx) }
+                                }
+                            },
+                            onValueChange = { bookshelf.value = it; dataEdited.value = true }
+                        )
+                    }
+
+                    // read status and dates (index 13)
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = stringResource(R.string.title_readingStatus),
+                                style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                ToggleBox(
+                                    isRadio = false,
+                                    boxHeight = 20.dp,
+                                    rowPadding = PaddingValues(),
+                                    rowSpacing = 8.dp,
+                                    optionText = stringResource(R.string.txt_bookRead),
+                                    textStyle = MyTypography.bodyLarge,
+                                    isToggled = read.value
+                                ) { read.value = !read.value; dataEdited.value = true }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                modifier = Modifier.padding(start = 16.dp),
+                                text = stringResource(R.string.txt_startReading),
+                                style = MyTypography.bodyLarge
+                            )
+                            Row {
+                                DateInput(
+                                    date = startDate.longValue,
+                                    onClear = {
+                                        startDate.longValue = 0L
+                                        dataEdited.value = true
+                                    }
+                                ) {
+                                    activeDateField = START_DATE
+                                    datePickerVisible.value = true
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                modifier = Modifier.padding(start = 16.dp),
+                                text = stringResource(R.string.txt_finishReading),
+                                style = MyTypography.bodyLarge
+                            )
+                            Row {
+                                DateInput(
+                                    date = finishDate.longValue,
+                                    onClear = {
+                                        finishDate.longValue = 0L
+                                        dataEdited.value = true
+                                    }
+                                ) {
+                                    activeDateField = FINISH_DATE
+                                    datePickerVisible.value = true
+                                }
+                            }
+                        }
+                    }
+
+                    // description (index 14)
+                    item {
+                        SingleInputField(
+                            title = stringResource(R.string.title_description),
+                            value = description.value,
+                            fieldWidth = FULL_LENGTH,
+                            icon = R.drawable.quill_ink,
+                            maxLength = 1000,
+                            singleLine = false,
+                            showSuggestions = false,
+                            suggestions = { emptyList() },
+                            onFocusEvent = { focusState ->
+                                if (focusState.isFocused) {
+                                    scope.launch { lazyListState.animateScrollToItem(14, topPaddingPx) }
+                                }
+                            },
+                            onValueChange = { description.value = it; dataEdited.value = true }
                         )
                     }
                 }
@@ -521,6 +813,7 @@ private fun SingleInputField(
     fieldWidth: Int,
     icon: Int,
     maxLength: Int,
+    singleLine: Boolean = true,
     showSuggestions: Boolean,
     suggestions: ((String) -> List<String>),
     onFocusEvent: (FocusState) -> Unit,
@@ -537,7 +830,7 @@ private fun SingleInputField(
         Row(modifier = Modifier.padding(start = 16.dp)
         ) {
             InputField(
-                value, icon, fieldWidth, maxLength, showSuggestions,
+                value, icon, fieldWidth, maxLength, singleLine, showSuggestions,
                 { suggestions(it) },
                 { onFocusEvent(it) }
             ) { onValueChange(it) }
@@ -571,7 +864,7 @@ private fun AuthorsListInputFields(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 InputField(
-                    value, icon, 250, 30, true,
+                    value, icon, 250, 30, singleLine = true, true,
                     { suggestions(it) },
                     { onFocusEvent(it) }
                 ) { onValueChange(it, index) }
@@ -610,6 +903,7 @@ private fun InputField(
     icon: Int,
     width: Int,
     maxLength: Int,
+    singleLine: Boolean,
     canExpand: Boolean,
     suggestions: ((String) -> List<String>),
     onFocusEvent: (FocusState) -> Unit,
@@ -619,21 +913,37 @@ private fun InputField(
     val expanded = remember { mutableStateOf(false) }
     val suggestions by remember(value) { mutableStateOf(suggestions(value)) }
 
+    var textFieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length)))}
+    LaunchedEffect(value) {
+        if (value != textFieldValue.text) {
+            textFieldValue = TextFieldValue(value, TextRange(value.length))
+        }
+    }
+
+    var userTyping by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+
     Column(modifier = Modifier.width(width.dp))
     {
         TextField(
-            modifier = Modifier
+            modifier = if (singleLine) Modifier
                 .padding(0.dp)
+                .onFocusEvent { onFocusEvent(it) }
+            else Modifier
+                .padding(0.dp)
+                .height(400.dp)
                 .onFocusEvent { onFocusEvent(it) },
-            value = value,
+            value = textFieldValue,
             onValueChange = {
-                Timber.tag("Debug").d("inside TextField: suggestions ${suggestions.size}")
-                if (it.length <= maxLength) { onValueChange(it) }
-                showMaxChar.value = it.length >= maxLength
-                expanded.value = true
+                if (it.text.length <= maxLength) {
+                    textFieldValue = it
+                    onValueChange(it.text)
+                }
+                showMaxChar.value = it.text.length >= maxLength
+                if (userTyping) expanded.value = true
             },
             textStyle = MyTypography.bodyLarge,
-            leadingIcon = {
+            prefix = {
                 Row{
                     Icon(
                         painter = painterResource(id = icon),
@@ -647,7 +957,7 @@ private fun InputField(
             placeholder = {
                 Text(text = stringResource(R.string.txt_inputFieldPlaceholder), style = MyTypography.bodySmall)
             },
-            singleLine = true,
+            singleLine = singleLine,
             supportingText = {
                 if (showMaxChar.value) {
                     Text(
@@ -681,8 +991,20 @@ private fun InputField(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
+                                    userTyping = false
+                                    // fill textField with chosen suggestion and jump cursor to end
+                                    textFieldValue = TextFieldValue(
+                                        suggestion,
+                                        TextRange(suggestion.length)
+                                    )
                                     onValueChange(suggestion)
                                     expanded.value = false
+
+                                    // reset userTyping flag (to avoid having the suggestion re-triggering expanded = true)
+                                    scope.launch {
+                                        kotlinx.coroutines.delay(100)
+                                        userTyping = true
+                                    }
                                 }
                                 .padding(8.dp),
                             text = suggestion,
@@ -740,65 +1062,57 @@ private fun NumberField(
 
 @Composable
 private fun DateInput(
-    title: String,
     date: Long,
     onClear: () -> Unit,
     onClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp),
-        horizontalAlignment = Alignment.Start
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(start = 16.dp)
     ) {
-        Text(text = title, style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start))
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp)
-        ) {
-            TextField(
-                modifier = Modifier
-                    .padding(0.dp)
-                    .clickable { onClick() },
-                value = if (date > 0L) displayDate(date, DateFormat.NUMBERED)
-                        else "",
-                onValueChange = {},
-                enabled = false,
-                textStyle = MyTypography.bodyLarge,
-                leadingIcon = {
-                    Row{
-                        IconButton(onClick = { onClick() }) {
-                            Icon(
-                                painter = painterResource(R.drawable.calendar),
-                                contentDescription = stringResource(R.string.desc_textFieldIcon),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.size(16.dp))
+        TextField(
+            modifier = Modifier
+                .padding(0.dp)
+                .clickable { onClick() },
+            value = if (date > 0L) displayDate(date, DateFormat.NUMBERED)
+                    else "",
+            onValueChange = {},
+            enabled = false,
+            textStyle = MyTypography.bodyLarge,
+            leadingIcon = {
+                Row{
+                    IconButton(onClick = { onClick() }) {
+                        Icon(
+                            painter = painterResource(R.drawable.calendar),
+                            contentDescription = stringResource(R.string.desc_textFieldIcon),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
-                },
-                trailingIcon = {
-                    if (date > 0L) {
-                        IconButton(onClick = { onClear() }) {
-                            Icon(
-                                painter = painterResource(R.drawable.cancel),
-                                contentDescription = stringResource(R.string.desc_clearDate),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                    Spacer(modifier = Modifier.size(16.dp))
+                }
+            },
+            trailingIcon = {
+                if (date > 0L) {
+                    IconButton(onClick = { onClear() }) {
+                        Icon(
+                            painter = painterResource(R.drawable.cancel),
+                            contentDescription = stringResource(R.string.desc_clearDate),
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
-                },
-                placeholder = {
-                    Text(text = stringResource(R.string.field_date), style = MyTypography.bodySmall)
-                },
-                colors = TextFieldDefaults.colors(
-                    disabledContainerColor = Color.Transparent,
-                    disabledIndicatorColor = MaterialTheme.colorScheme.inversePrimary,
-                    disabledTextColor = MaterialTheme.colorScheme.inversePrimary,
-                    disabledLeadingIconColor = MaterialTheme.colorScheme.inversePrimary,
-                    disabledTrailingIconColor = MaterialTheme.colorScheme.inversePrimary
-                )
+                }
+            },
+            placeholder = {
+                Text(text = stringResource(R.string.field_date), style = MyTypography.bodySmall)
+            },
+            colors = TextFieldDefaults.colors(
+                disabledContainerColor = Color.Transparent,
+                disabledIndicatorColor = MaterialTheme.colorScheme.inversePrimary,
+                disabledTextColor = MaterialTheme.colorScheme.inversePrimary,
+                disabledLeadingIconColor = MaterialTheme.colorScheme.inversePrimary,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.inversePrimary
             )
-        }
+        )
     }
 }

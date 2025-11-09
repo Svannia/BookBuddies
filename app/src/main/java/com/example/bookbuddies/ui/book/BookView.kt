@@ -411,7 +411,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 // ----- DESCRIPTION -----
                 if (book.description.isNotBlank()) {
                     item {
-                        InfoSection(stringResource(R.string.title_collection), {}
+                        InfoSection(stringResource(R.string.title_description), {}
                         ) {
                             Text(text = book.description, style = MyTypography.bodyLarge)
                         }

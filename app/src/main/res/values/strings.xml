@@ -70,6 +70,7 @@
     <string name="title_collection">In My Collection</string>
     <string name="title_data">Book Data</string>
     <string name="title_dateAdded">Added on the</string>
+    <string name="title_description">Description</string>
     <string name="title_editBook">Edit book</string>
     <string name="title_failedCovers">The following covers have not been found:</string>
     <string name="title_format">Format</string>
@@ -85,6 +86,7 @@
     <string name="title_readingStatus">Reading status</string>
     <string name="title_settings">Settings</string>
     <string name="title_sortBy">Sort by</string>
+    <string name="title_source">Source</string>
     <string name="title_theme">Theme</string>
     <string name="title_title">Title</string>
 
@@ -101,6 +103,7 @@
     <string name="toast_importError">An error occurred while importing the selected file.</string>
     <string name="toast_invalidCSV">Invalid file type, please select a CSV document.</string>
     <string name="toast_manualCoverFail">Failed to save selected picture as cover.</string>
+    <string name="toast_missingStartDate">Please select a start date or remove the finish date.</string>
     <string name="toast_multiDeleteFail">Failed to delete some books.</string>
     <string name="toast_noISBN">Cannot find book cover without an ISBN.</string>
     <string name="toast_removeCovers">All covers have been deleted.</string>
@@ -114,6 +117,8 @@
     <string name="toast_unknownError">There was an error.</string>
     <string name="toast_wrongDateFinished">The date finished must be later than the date started.</string>
 
+    <string name="txt_bookRead">I have finished this book</string>
+    <string name="txt_boughtAt">Bought at:</string>
     <string name="txt_coversProgress">Covers %1$d/%2$d</string>
     <string name="txt_coversTooltip">Concerning Manga covers:\n
         \nIn order to get more results, please use the word \"manga\" within the corresponding books\' \"format\" field.\n
@@ -122,11 +127,13 @@
     <string name="txt_editLeave">Are you sure you want to leave? You haven\'t saved your modifications.</string>
     <string name="txt_failedCoversClipboard">Covers not found</string>
     <string name="txt_finishReading">"Finished reading on: "</string>
+    <string name="txt_giftFrom">Gift from:</string>
     <string name="txt_iconsBy">"Icons by "</string>
     <string name="txt_importTooltip">This functionality is made to import books from the app \"Book Catalogue\".\n
         \nUse \"Admin &gt; Export to CSV file\" to get your backup in the correct format.\n
         \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
     <string name="txt_inputFieldPlaceholder">Input here...</string>
+    <string name="txt_isGift">This book is a gift</string>
     <string name="txt_maxChar">max. %1$s characters</string>
     <string name="txt_multiDeleteConfirm">Are you sure you want to delete these books:</string>
     <string name="txt_nbSelected">%1$d selected</string>
