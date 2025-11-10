@@ -806,6 +806,21 @@ fun EditShared(
     )
 }
 
+/**
+ * Section title and input field for a simple, single-line field.
+ *
+ * @param title of the section
+ * @param value inside the input field
+ * @param fieldWidth max width of the input field
+ * @param icon to display at the beginning of the input field
+ * @param maxLength max characters that can be entered in this input field
+ * @param singleLine whether the input field is single line or multi line (default: true)
+ * @param showSuggestions whether to show suggestions when typing
+ * @param suggestions function that provides a list of suggestions based on the current input
+ * @param onFocusEvent callback for focus events on the input field
+ * @param onValueChange callback for when the input field value changes
+ * @param extraActions optional content to display at the end of the input field
+ */
 @Composable
 private fun SingleInputField(
     title: String,
@@ -839,6 +854,16 @@ private fun SingleInputField(
     }
 }
 
+/**
+ * Section title and list of input fields. The user can decide how many input fields to add for this section.
+ *
+ * @param title of the section
+ * @param listValues list of values inside each input field
+ * @param icon to display at the beginning of the input field
+ * @param suggestions function that provides a list of suggestions based on the current input
+ * @param onFocusEvent callback for focus events on the input field
+ * @param onValueChange callback for when the input field value changes
+ */
 @Composable
 private fun AuthorsListInputFields(
     title: String,
@@ -897,6 +922,19 @@ private fun AuthorsListInputFields(
     }
 }
 
+/**
+ * Input field specifically designed to edit book information.
+ *
+ * @param value inside the input field
+ * @param icon to display at the beginning of the input field
+ * @param width of the input field
+ * @param maxLength max characters that can be entered in this input field
+ * @param singleLine whether the input field is single line or multi line
+ * @param canExpand whether or not suggestions should be shown when typing
+ * @param suggestions function that provides a list of suggestions based on the current input
+ * @param onFocusEvent callback for focus events on the input field
+ * @param onValueChange callback for when the input field value changes
+ */
 @Composable
 private fun InputField(
     value: String,
@@ -1017,6 +1055,12 @@ private fun InputField(
     }
 }
 
+/**
+ * Input field for numbers only. A "#" prefix is displayed before the number.
+ *
+ * @param number current number inside the input field
+ * @param onValueChange callback for when the input field value changes
+ */
 @Suppress("UNUSED_PARAMETER")
 @Composable
 private fun NumberField(
@@ -1060,6 +1104,14 @@ private fun NumberField(
     )
 }
 
+/**
+ * Input field for selecting a date. The input field itself is not editable, but clicking on it triggers a date picker dialog.
+ * There is a suffix button to remove the selected date.
+ *
+ * @param date current date inside the input field (in milliseconds since epoch)
+ * @param onClear function that runs when removing the date
+ * @param onClick function that runs when selecting the input field (should open a date picker)
+ */
 @Composable
 private fun DateInput(
     date: Long,

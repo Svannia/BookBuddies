@@ -49,7 +49,7 @@ data class Book(
 }
 
 /**
- * Displays an author's name as <First Name> <Last Name>, instead of how it's stored as <Last Name>, <First Name>.
+ * Displays a book's authors' names as <First Name> <Last Name>, instead of how it's stored as <Last Name>, <First Name>.
  * All the authors are displayed comma-separated in case the authors list is longer than 1.
  *
  * @param authorsList each item is an author stored as <Last Name>, <First Name>
@@ -70,11 +70,24 @@ fun displayAuthors(authorsList: List<String>): String {
     }
 }
 
+/**
+ * Displays a single author's name as <First Name> <Last Name>, instead of how it's stored as <Last Name>, <First Name>.
+ *
+ * @param author string like <Last Name>, <First Name>
+ * @return single string with the author, or empty String if there are no authors
+ */
 fun displayAuthor(author: String): String {
     val parts = author.split(",").map { it.trim() }
     return if (parts.size == 2) "${parts[1]} ${parts[0]}" else author
 }
 
+/**
+ * Displays a series info as <Series Name> #<Series Number>.
+ *
+ * @param seriesName name of the series
+ * @param seriesNumber number in the series. If negative, it is not displayed.
+ * @return single string with all series info
+ */
 fun displaySeries(seriesName: String, seriesNumber: Int): String {
     val number = if (seriesNumber >= 0) "#$seriesNumber" else ""
     return "$seriesName $number"
