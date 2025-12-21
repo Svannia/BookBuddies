@@ -74,6 +74,7 @@ import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.displayAuthor
 import com.example.bookbuddies.data.displayDate
+import com.example.bookbuddies.data.storeAuthor
 import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
@@ -309,7 +310,7 @@ fun EditShared(
                         scope.launch {
                             bookVM.insertBook(updatedBook)
                         }
-                        navigationActions.navigateTo("${Route.BOOK}/$uid")
+                        navigationActions.navigateTo("${Route.BOOK}/$uid", clearPrevious = true)
 
                         loading.value = false
                     },

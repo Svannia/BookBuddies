@@ -82,6 +82,23 @@ fun displayAuthor(author: String): String {
 }
 
 /**
+ * Given an author written as <First Name> <Last Name>, returns it as <Last Name>, <First Name> for storage.
+ *
+ * @param author string like <First Name> <Last Name>
+ * @return single string with the author
+ */
+fun storeAuthor(author: String): String {
+    val parts = author.split(" ").map { it.trim() }
+    return if (parts.size >= 2) {
+        val surname = parts.last()
+        val names = parts.dropLast(1).joinToString(" ")
+        "$surname, $names"
+    } else {
+        author
+    }
+}
+
+/**
  * Displays a series info as <Series Name> #<Series Number>.
  *
  * @param seriesName name of the series

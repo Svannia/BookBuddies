@@ -75,12 +75,17 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     private fun filterList(input: String, list: List<String>, transform: (String) -> String = { it }): List<String> {
         val query = input.lowercase()
         return list
+            .asSequence()
+            .map { it.trim() }
             .filter { it.isNotBlank() }
-            .filter { it.trim().lowercase().startsWith(query) }
-            .map { transform(it.trim()) }
+            .filter { item ->
+                item.lowercase().split(" ", ",", "-", "_").any { part -> part.startsWith(query)}
+            }
+            .map(transform)
+            .toList()
     }
     fun filterAuthors(input: String, authors: List<String>) =
-        filterList(input, authors) { displayAuthor(it) }
+        filterList(input, authors) { it }
     fun filterSeries(input: String, series: List<String>) = filterList(input, series)
     fun filterGenres(input: String, genres: List<String>) = filterList(input, genres)
     fun filterPublishers(input: String, publishers: List<String>) = filterList(input, publishers)
