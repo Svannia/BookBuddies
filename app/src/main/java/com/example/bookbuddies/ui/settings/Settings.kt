@@ -53,9 +53,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.datastore.ThemeChoice
-import com.example.bookbuddies.datastore.exportBooksToCSV
-import com.example.bookbuddies.datastore.findBookCovers
-import com.example.bookbuddies.datastore.importBooksFromCsv
+import com.example.bookbuddies.data.exportBooksToCSV
+import com.example.bookbuddies.data.findBookCovers
+import com.example.bookbuddies.data.importBooksFromCsv
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route

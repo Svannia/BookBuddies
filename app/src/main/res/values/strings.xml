@@ -8,16 +8,19 @@
     <string name="button_confirm">Confirm</string>
     <string name="button_deleteBook">Delete book</string>
     <string name="button_deleteBooks">Delete books</string>
+    <string name="button_enterISBN">Enter ISBN</string>
     <string name="button_expandAll">Expand all</string>
     <string name="button_export">Export to CSV file</string>
     <string name="button_findCovers">Find covers</string>
     <string name="button_finishedToday">finished today</string>
     <string name="button_import">Import CSV file</string>
     <string name="button_leave">Leave</string>
+    <string name="button_manualAdd">Enter manually</string>
     <string name="button_markAsRead">Mark as Read</string>
     <string name="button_removeCover">Remove covers</string>
     <string name="button_removeCovers">Remove all covers</string>
     <string name="button_save">Save</string>
+    <string name="button_scan">Scan barcode</string>
     <string name="button_send">Send</string>
     <string name="button_sendBug">Report a bug</string>
     <string name="button_singleBookCoverAuto">Search for book cover</string>
@@ -47,6 +50,9 @@
     <string name="desc_textFieldIcon">text field icon</string>
     <string name="desc_tooltip">tooltip info</string>
 
+    <string name="dst_addBook">Add new book</string>
+    <string name="dst_calendar">Calendar</string>
+    <string name="dst_home">Home</string>
     <string name="dst_settings">Settings</string>
 
     <string name="field_bugReport">Please describe what the bug is and what led to it.</string>
@@ -148,4 +154,7 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
+    <string name="toast_cameraDenied">Camera permission denied</string>
+    <string name="title_bookCreate">Add New Book</string>
+    <string name="txt_createLeave">Are you sure you want to leave? Your new book entry will not be saved.</string>
 </resources>

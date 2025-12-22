@@ -1,5 +1,6 @@
 package com.example.bookbuddies.system
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -43,4 +44,11 @@ fun imagePermissionVersion(): String {
     } else {
         "android.permission.READ_MEDIA_IMAGES"
     }
+}
+
+const val cameraPermission = Manifest.permission.CAMERA
+enum class CameraPermissionStatus {
+    CHECKING,
+    GRANTED,
+    DENIED,
 }

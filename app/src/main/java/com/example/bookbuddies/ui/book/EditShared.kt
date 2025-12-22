@@ -109,14 +109,15 @@ fun EditShared(
     onGoBack: () -> Unit,
     themeChoice: ThemeChoice,
     bookVM: BookViewModel,
-    book: Book? = null
+    book: Book? = null,
+    alwaysPopupOnLeave: Boolean = false
 ) {
     val loading = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
 
     val cancelVisible = remember { mutableStateOf(false) }
-    val dataEdited = remember { mutableStateOf(false) }
+    val dataEdited = remember { mutableStateOf(alwaysPopupOnLeave) }
     BackHandler {
         if (dataEdited.value) cancelVisible.value = true
         else onGoBack()

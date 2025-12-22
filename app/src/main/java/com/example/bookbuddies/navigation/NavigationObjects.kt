@@ -7,6 +7,10 @@ object Route{
     const val SETTINGS = "Settings"
     const val BOOK = "Book"
     const val BOOK_EDIT = "BookEdit"
+    const val BOOK_CREATE = "BookCreate"
+    const val SCAN_ISBN = "ScanISBN"
+    const val ENTER_ISBN = "EnterISBN"
+    const val CALENDAR = "Calendar"
 }
 
 /**
@@ -23,4 +27,12 @@ data class Destination(val route: String, val icon: Int = 0, val text: Int)
  */
 val BURGER_DESTINATIONS = listOf(
     Destination(route = Route.SETTINGS, icon = R.drawable.settings, text = R.string.dst_settings),
+)
+
+/**
+ * All destinations contained in the bottom navigation bar
+ */
+val BOTTOM_DESTINATIONS = listOf(
+    Destination(route = Route.HOME, icon = R.drawable.home, text = R.string.dst_home),
+    Destination(route = Route.CALENDAR, icon = R.drawable.calendar, text = R.string.dst_calendar),
 )

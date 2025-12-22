@@ -65,7 +65,7 @@ import com.example.bookbuddies.data.displayAuthors
 import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.data.getBookSorting
 import com.example.bookbuddies.data.getString
-import com.example.bookbuddies.datastore.findBookCovers
+import com.example.bookbuddies.data.findBookCovers
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.ui.CoverImage
 import com.example.bookbuddies.ui.CustomContentDialogWindow
@@ -177,6 +177,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     PrimaryScreen(
         navigationActions = navigationActions,
         title = stringResource(R.string.title_homeScreen),
+        navigationIndex = 0,
         topBarIcons = {
             Row(
                 modifier = Modifier.padding(0.dp),

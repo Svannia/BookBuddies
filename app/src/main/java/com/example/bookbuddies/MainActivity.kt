@@ -24,8 +24,11 @@ import com.example.bookbuddies.ui.settings.Settings
 import com.example.bookbuddies.ui.home.HomeScreen
 import com.example.bookbuddies.ui.theme.BookBuddiesTheme
 import com.example.bookbuddies.datastore.BookRepository
+import com.example.bookbuddies.ui.book.BookCreate
 import com.example.bookbuddies.ui.book.BookEdit
 import com.example.bookbuddies.ui.book.BookView
+import com.example.bookbuddies.ui.book.ScanISBN
+import com.example.bookbuddies.ui.home.CalendarScreen
 import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.BookViewModelFactory
 import com.example.bookbuddies.viewModels.DataViewModel
@@ -60,15 +63,21 @@ class MainActivity : ComponentActivity() {
                     val navigationActions = NavigationActions(navController)
 
                     NavHost(navController, Route.HOME) {
+                        // Main screens
                         composable(Route.HOME) {
                             HomeScreen(bookVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen Home")
                         }
-
+                        composable(Route.CALENDAR) {
+                            CalendarScreen(bookVM, navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen Calendar")
+                        }
                         composable(Route.SETTINGS) {
                             Settings(dataVM, bookVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen Settings")
                         }
+
+                        // viewing and editing books
                         composable(
                             route = "${Route.BOOK}/{bookID}",
                             arguments = listOf(navArgument("bookID") { type = NavType.StringType })
@@ -78,12 +87,34 @@ class MainActivity : ComponentActivity() {
                             Timber.tag("Compose").d("Successfully composed screen BookView")
                         }
                         composable(
+                            route = "${Route.BOOK_CREATE}?isbn={isbn}",
+                            arguments = listOf(navArgument("isbn") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                    defaultValue = null
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val isbn = backStackEntry.arguments?.getString("isbn")
+                            BookCreate(isbn, bookVM, dataVM, navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen BookCreate")
+                        }
+                        composable(
                             route = "${Route.BOOK_EDIT}/{bookID}",
                             arguments = listOf(navArgument("bookID") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val bookID = backStackEntry.arguments?.getString("bookID") ?: return@composable
                             BookEdit(bookID, bookVM, dataVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen BookEdit")
+                        }
+
+                        // automatic book adding
+                        composable(Route.SCAN_ISBN) {
+                            ScanISBN(navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen ScanISBN")
+                        }
+                        composable(Route.ENTER_ISBN) {
+
                         }
                     }
                 }

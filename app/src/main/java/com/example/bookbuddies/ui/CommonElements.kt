@@ -26,19 +26,23 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -54,12 +58,17 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.RadioButton
@@ -80,6 +89,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -91,6 +101,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
@@ -114,8 +125,10 @@ import androidx.compose.ui.window.Popup
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookbuddies.R
 import com.example.bookbuddies.datastore.ThemeChoice
+import com.example.bookbuddies.navigation.BOTTOM_DESTINATIONS
 import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
 import com.example.bookbuddies.navigation.NavigationActions
+import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.ui.theme.MyTypography
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -131,6 +144,7 @@ import kotlin.math.roundToInt
  *
  * @param navigationActions to handle screen navigation
  * @param title display in the top bar
+ * @param navigationIndex indicates which primary screen is currently selected (for bottom navigation bar)
  * @param topBarIcons composable for icons on the right-side of the top bar
  * @param content screen body
  */
@@ -139,11 +153,13 @@ import kotlin.math.roundToInt
 fun PrimaryScreen(
     navigationActions: NavigationActions,
     title: String,
+    navigationIndex: Int,
     topBarIcons: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val showAddBookPopup = remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         modifier = Modifier.fillMaxSize(),
@@ -190,7 +206,37 @@ fun PrimaryScreen(
                     )
                 }
             },
-            content = { content(it) }
+            bottomBar = {
+                BottomNavBar(navigationActions, navigationIndex) {
+                    showAddBookPopup.value = true
+                }
+            },
+            content = { padding ->
+                Box(modifier = Modifier.fillMaxSize()) {
+                    content(padding)
+
+                    if (showAddBookPopup.value) {
+                        CustomContentDialogWindow(
+                            visible = showAddBookPopup,
+                            content = {
+                                RowTextButton(stringResource(R.string.button_scan), 52.dp) {
+                                    showAddBookPopup.value = false
+                                    navigationActions.navigateTo(Route.SCAN_ISBN)
+                                }
+                                RowTextButton(stringResource(R.string.button_enterISBN), 52.dp) {
+                                    showAddBookPopup.value = false
+                                    navigationActions.navigateTo(Route.ENTER_ISBN)
+                                }
+                                RowTextButton(stringResource(R.string.button_manualAdd), 52.dp) {
+                                    showAddBookPopup.value = false
+                                    navigationActions.navigateTo(Route.BOOK_CREATE)
+                                }
+                            },
+                            bottomButtons = false
+                        )
+                    }
+                }
+            }
         )
     }
 }
@@ -237,6 +283,105 @@ fun SecondaryScreen(
         },
         content = { content(it) }
     )
+}
+
+/**
+ * Bottom navigation bar displayed on the primary screens. The buttons in the bar itself are for navigation between primary screens.
+ * There is a middle floating button for adding books.
+ *
+ * @param
+ * @param
+ * @param
+ */
+@Composable
+fun BottomNavBar(
+    navigationActions: NavigationActions,
+    navigationIndex: Int,
+    onAddClick: () -> Unit
+) {
+    val destinations = BOTTOM_DESTINATIONS
+    var selectedItemIndex by rememberSaveable { mutableIntStateOf(navigationIndex) }
+
+    val barColour = MaterialTheme.colorScheme.surfaceContainer
+    val iconColour = MaterialTheme.colorScheme.inversePrimary
+    val backgroundColour = MaterialTheme.colorScheme.background
+
+    Box {
+        NavigationBar(
+            tonalElevation = 0.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .height(60.dp),
+            containerColor = barColour
+        ) {
+            destinations.forEachIndexed { index, destination ->
+
+                // divide the list in 2 and leave space in the middle for floating button
+                if (index == destinations.size / 2) {
+                    Spacer(modifier = Modifier.weight(0.2f))
+                }
+
+                NavigationBarItem(
+                    selected = selectedItemIndex == index,
+                    onClick = {
+                        navigationActions.navigateTo(destination.route)
+                        selectedItemIndex = index
+                    },
+                    icon = {
+                        Icon(
+                            modifier = Modifier.size(28.dp),
+                            painter = painterResource(destination.icon),
+                            contentDescription = stringResource(destination.text),
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = iconColour,
+                        unselectedIconColor = iconColour.copy(alpha = 0.6f),
+                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    ),
+                    alwaysShowLabel = true
+                )
+            }
+        }
+
+        // floating Add button
+        Box (
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-35).dp)
+                .size(70.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            // half-circle cutout around the button
+            Canvas(
+                modifier = Modifier.matchParentSize()
+            ) {
+                val diameter = size.height
+                drawArc(
+                    color = backgroundColour,
+                    startAngle = 0f,
+                    sweepAngle = 180f,
+                    useCenter = true,
+                    size = Size(diameter, diameter)
+                )
+            }
+            FloatingActionButton(
+                modifier = Modifier.size(58.dp),
+                onClick = { onAddClick() },
+                shape = CircleShape,
+                containerColor = barColour,
+                contentColor = iconColour,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.plus),
+                    contentDescription = stringResource(R.string.dst_addBook),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+    }
 }
 
 /**
@@ -1002,19 +1147,21 @@ fun RatingStars(rating: Double, starSize: Dp, starSpacing: Dp, emptyStarColor: C
         modifier = Modifier
             .then(
                 if (onRatingChange != null) {
-                    Modifier.pointerInput(Unit) {
-                        detectTapGestures { offset ->
-                            val newRating = ((offset.x / totalWidth) * 5)
-                                .coerceIn(0.0f, 5.0f)
-                            onRatingChange((newRating * 2).roundToInt() / 2.0) // snap to a half-star
+                    Modifier
+                        .pointerInput(Unit) {
+                            detectTapGestures { offset ->
+                                val newRating = ((offset.x / totalWidth) * 5)
+                                    .coerceIn(0.0f, 5.0f)
+                                onRatingChange((newRating * 2).roundToInt() / 2.0) // snap to a half-star
+                            }
                         }
-                    }.pointerInput(Unit) {
-                        detectDragGestures { change, _ ->
-                            val newRating = ((change.position.x / totalWidth) * 5)
-                                .coerceIn(0.0f, 5.0f)
-                            onRatingChange((newRating * 2).roundToInt() / 2.0)
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, _ ->
+                                val newRating = ((change.position.x / totalWidth) * 5)
+                                    .coerceIn(0.0f, 5.0f)
+                                onRatingChange((newRating * 2).roundToInt() / 2.0)
+                            }
                         }
-                    }
                 } else Modifier
             )
     ) {

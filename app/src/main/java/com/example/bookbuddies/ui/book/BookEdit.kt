@@ -28,6 +28,4 @@ fun BookEdit(bookID: String, bookVM: BookViewModel, dataVM: DataViewModel, navig
         bookVM = bookVM,
         book = book
     )
-
-
 }

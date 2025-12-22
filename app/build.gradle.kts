@@ -88,42 +88,52 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // material3
-    implementation("com.google.android.material:material:1.13.0")
+    implementation(libs.material)
 
     // compose
-    implementation(platform("androidx.compose:compose-bom:2025.08.00")) // optional but recommended
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-text") // includes AnnotatedString & LinkAnnotation
-    implementation("androidx.compose.material3:material3")
+    implementation(platform(libs.androidx.compose.bom.v20250800))
+    implementation(libs.ui)
+    implementation(libs.ui.graphics)
+    implementation(libs.androidx.ui.text)
+    implementation(libs.material3)
 
     // navigation
-    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation(libs.androidx.navigation.compose)
 
     // datastore
-    implementation("androidx.datastore:datastore-preferences:1.1.7")
+    implementation(libs.androidx.datastore.preferences)
 
     // timber
-    implementation("com.jakewharton.timber:timber:5.0.1")
+    implementation(libs.timber)
 
     // viewModels
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // permissions
-    implementation("androidx.activity:activity-ktx:1.10.1")
+    implementation(libs.androidx.activity.ktx)
 
     // room
-    implementation("androidx.room:room-runtime:2.7.2") // Or the latest version
-    kapt("androidx.room:room-compiler:2.7.2")
-    annotationProcessor("androidx.room:room-compiler:2.7.2")
-    implementation("androidx.room:room-ktx:2.7.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-    implementation("com.opencsv:opencsv:5.7.1")
+    implementation(libs.androidx.room.runtime) // Or the latest version
+    kapt(libs.androidx.room.compiler)
+    annotationProcessor(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.opencsv)
 
     // images
-    implementation("io.coil-kt:coil-compose:2.1.0")
+    implementation(libs.coil.compose)
 
     // http requests
-    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation(libs.okhttp)
 
+
+    // ML Kit Barcode Scanning
+    implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.camera.mlkit.vision)
+
+    // CameraX dependencies for camera integration
+    implementation(libs.androidx.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
 }

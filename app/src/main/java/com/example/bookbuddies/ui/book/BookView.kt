@@ -51,8 +51,8 @@ import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.displayAuthors
 import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.data.displaySeries
-import com.example.bookbuddies.datastore.fetchCoverForBook
-import com.example.bookbuddies.datastore.fetchCoverForManga
+import com.example.bookbuddies.data.fetchCoverForBook
+import com.example.bookbuddies.data.fetchCoverForManga
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route

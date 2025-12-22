@@ -84,8 +84,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             .map(transform)
             .toList()
     }
-    fun filterAuthors(input: String, authors: List<String>) =
-        filterList(input, authors) { it }
+    fun filterAuthors(input: String, authors: List<String>) = filterList(input, authors) { it }
     fun filterSeries(input: String, series: List<String>) = filterList(input, series)
     fun filterGenres(input: String, genres: List<String>) = filterList(input, genres)
     fun filterPublishers(input: String, publishers: List<String>) = filterList(input, publishers)
