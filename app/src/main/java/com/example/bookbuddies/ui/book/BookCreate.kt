@@ -34,7 +34,7 @@ fun BookCreate(isbn: String?, bookVM: BookViewModel, dataVM: DataViewModel, navi
                 if (it) {
                     newBook = null
                     isLoading = false
-                    handleError(context, "Could not find book with ISBN: $isbn")
+                    handleError(context, "Could not find book with this ISBN.")
                 }
             }) {
                 newBook = it

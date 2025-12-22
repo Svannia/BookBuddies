@@ -4,6 +4,7 @@
 
     <string name="button_addCover">Search for covers</string>
     <string name="button_cancel">Cancel</string>
+    <string name="button_clearAll">Clear all</string>
     <string name="button_collapseAll">Collapse all</string>
     <string name="button_confirm">Confirm</string>
     <string name="button_deleteBook">Delete book</string>
@@ -21,6 +22,7 @@
     <string name="button_removeCovers">Remove all covers</string>
     <string name="button_save">Save</string>
     <string name="button_scan">Scan barcode</string>
+    <string name="button_search">Search</string>
     <string name="button_send">Send</string>
     <string name="button_sendBug">Report a bug</string>
     <string name="button_singleBookCoverAuto">Search for book cover</string>
@@ -57,6 +59,7 @@
 
     <string name="field_bugReport">Please describe what the bug is and what led to it.</string>
     <string name="field_date">Select a date...</string>
+    <string name="field_isbnPlaceholder">Enter ISBN...</string>
     <string name="field_maxChar">max. %1$s characters</string>
 
     <string name="sorting_added">Recently added</string>
@@ -71,6 +74,7 @@
 
     <string name="title_about">About</string>
     <string name="title_authors">Authors</string>
+    <string name="title_bookCreate">Add New Book</string>
     <string name="title_bookshelf">Bookshelf</string>
     <string name="title_bought">Bought at</string>
     <string name="title_collection">In My Collection</string>
@@ -78,6 +82,7 @@
     <string name="title_dateAdded">Added on the</string>
     <string name="title_description">Description</string>
     <string name="title_editBook">Edit book</string>
+    <string name="title_enterISBN">Enter ISBN</string>
     <string name="title_failedCovers">The following covers have not been found:</string>
     <string name="title_format">Format</string>
     <string name="title_genre">Genre</string>
@@ -98,6 +103,7 @@
 
     <string name="toast_bugReport">Thank you for reporting the bug!</string>
     <string name="toast_bugReportFail">Failed to send bug report</string>
+    <string name="toast_cameraDenied">Camera permission denied</string>
     <string name="toast_coverDeleteFail">Failed to delete this book\'s cover.</string>
     <string name="toast_coverRemoveFail">Failed to remove some covers.</string>
     <string name="toast_coverSearchFail">An error occurred while finding covers.</string>
@@ -129,6 +135,7 @@
     <string name="txt_coversTooltip">Concerning Manga covers:\n
         \nIn order to get more results, please use the word \"manga\" within the corresponding books\' \"format\" field.\n
         \nThis will trigger a different search mechanism for those volumes.</string>
+    <string name="txt_createLeave">Are you sure you want to leave? Your new book entry will not be saved.</string>
     <string name="txt_deleteConfirm">Are you sure you want to delete this book?</string>
     <string name="txt_editLeave">Are you sure you want to leave? You haven\'t saved your modifications.</string>
     <string name="txt_failedCoversClipboard">Covers not found</string>
@@ -154,7 +161,4 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
-    <string name="toast_cameraDenied">Camera permission denied</string>
-    <string name="title_bookCreate">Add New Book</string>
-    <string name="txt_createLeave">Are you sure you want to leave? Your new book entry will not be saved.</string>
 </resources>

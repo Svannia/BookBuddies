@@ -10,6 +10,14 @@ import okhttp3.Request
 import org.json.JSONObject
 import timber.log.Timber
 
+/**
+ * Given an ISBN, searches Google Books API for book metadata.
+ *
+ * @param context to fetch cover image
+ * @param isbn ISBN number to search for
+ * @param isError callback for error handling
+ * @param callback returns Book object if found
+ */
 fun searchByISBN(context: Context, isbn: String, isError: (Boolean) -> Unit, callback: (Book) -> Unit) {
     CoroutineScope(Dispatchers.IO).launch {
         try {

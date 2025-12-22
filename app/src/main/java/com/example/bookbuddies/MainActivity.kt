@@ -27,6 +27,7 @@ import com.example.bookbuddies.datastore.BookRepository
 import com.example.bookbuddies.ui.book.BookCreate
 import com.example.bookbuddies.ui.book.BookEdit
 import com.example.bookbuddies.ui.book.BookView
+import com.example.bookbuddies.ui.book.EnterISBN
 import com.example.bookbuddies.ui.book.ScanISBN
 import com.example.bookbuddies.ui.home.CalendarScreen
 import com.example.bookbuddies.viewModels.BookViewModel
@@ -114,7 +115,8 @@ class MainActivity : ComponentActivity() {
                             Timber.tag("Compose").d("Successfully composed screen ScanISBN")
                         }
                         composable(Route.ENTER_ISBN) {
-
+                            EnterISBN(navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen EnterISBN")
                         }
                     }
                 }
