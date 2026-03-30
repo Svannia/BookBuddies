@@ -1,6 +1,7 @@
 package com.example.bookbuddies.data
 
 import android.content.Context
+import com.example.bookbuddies.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -9,6 +10,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import timber.log.Timber
+import java.util.Locale
 
 /**
  * Given an ISBN, searches Google Books API for book metadata.
@@ -19,13 +21,15 @@ import timber.log.Timber
  * @param callback returns Book object if found
  */
 fun searchByISBN(context: Context, isbn: String, isError: (Boolean) -> Unit, callback: (Book) -> Unit) {
+    val apiKey = BuildConfig.GOOGLE_BOOKS_API_KEY
+
     CoroutineScope(Dispatchers.IO).launch {
         try {
             val client = OkHttpClient()
 
             // GOOGLE BOOKS API
             // search book results with ISBN (ordered by relevance)
-            val googleUrl = "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn"
+            val googleUrl = "https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn&key=$apiKey"
             val googleRequest = Request.Builder()
                 .url(googleUrl)
                 .header("User-Agent", "BookBuddiesApp/1.0")
@@ -52,7 +56,7 @@ fun searchByISBN(context: Context, isbn: String, isError: (Boolean) -> Unit, cal
                 }
 
                 // second API call with volumeID (usually has better book metadata)
-                val volumeUrl = "https://www.googleapis.com/books/v1/volumes/$volumeId"
+                val volumeUrl = "https://www.googleapis.com/books/v1/volumes/$volumeId?key=$apiKey"
                 val volumeRequest = Request.Builder()
                     .url(volumeUrl)
                     .header("User-Agent", "BookBuddiesApp/1.0")
@@ -85,8 +89,9 @@ fun searchByISBN(context: Context, isbn: String, isError: (Boolean) -> Unit, cal
                             Timber.tag("SearchISBN").d("Could not parse published date $publishedDateInfo for ISBN: $isbn")
                         } ?: 0L
 
-                    val language = volumeInfo.optString("language", "")
-                    val format = volumeInfo.optString("printType", "")
+                    val languageCode = volumeInfo.optString("language", "")
+                    val language = Locale.forLanguageTag(languageCode).displayLanguage
+                    val format = volumeInfo.optString("printType", "").lowercase().replaceFirstChar { it.uppercase() }
 
                     val book = Book(
                         uid = java.util.UUID.randomUUID().toString(),

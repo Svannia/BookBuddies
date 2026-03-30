@@ -3,6 +3,7 @@ package com.example.bookbuddies.data
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import com.example.bookbuddies.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -118,6 +119,7 @@ suspend fun findBookCovers(
  */
 suspend fun fetchCoverForBook(context: Context, book: Book, allowOverwrite: Boolean = false): Book =
     withContext(Dispatchers.IO) {
+        val apiKey = BuildConfig.GOOGLE_BOOKS_API_KEY
         val fileName = "${book.uid}.jpg"
         val file = File(context.filesDir, fileName)
 
@@ -129,7 +131,7 @@ suspend fun fetchCoverForBook(context: Context, book: Book, allowOverwrite: Bool
         var savedPath: String? = null
 
         // 1. Try Google Books API
-        val googleURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}"
+        val googleURL = "https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn}&key=$apiKey"
         var attempt = 0
         val maxRetries = 4
 
