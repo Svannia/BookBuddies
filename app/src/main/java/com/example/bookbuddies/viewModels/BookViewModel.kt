@@ -33,6 +33,10 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     private val _onlyUnread = MutableStateFlow(false)
     val onlyUnread: StateFlow<Boolean> = _onlyUnread
 
+    // to save fast-scroll position across screen recompositions
+    var savedScrollIndex: Int = 0
+    var savedScrollOffset: Int = 0
+
     private val allBooks = repository.allBooks
 
     // ---------- FOR AUTO-COMPLETE ----------
@@ -405,6 +409,8 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param newSorting new sorting method
      */
     fun setSorting(newSorting: BookSorting) {
+        savedScrollIndex = 0
+        savedScrollOffset = 0
         _bookSorting.value = newSorting
     }
 

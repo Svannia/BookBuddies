@@ -41,7 +41,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -395,6 +395,7 @@ fun BottomNavBar(
  * @param maxThumbWidth width of the thumb when being dragged
  * @param thumbHeight height of the thumb (constant)
  * @param bubbleWidth fixed width of the sticky header bubble. Its height wraps around the length of the text.
+ * @param listState state of the List that is being scrolled through.
  * @param headerResolver lambda that receives the index of the closest LazyColumn item and uses it to return its sticky header parent
  * @param listContent content of the LazyColumn
  * @return
@@ -406,15 +407,14 @@ fun FastScroll(
     maxThumbWidth: Int,
     thumbHeight: Int,
     bubbleWidth: Int,
+    listState: LazyListState,
     headerResolver: (Int) -> String?,
     listContent: LazyListScope.() -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val containerHeight = remember { mutableFloatStateOf(0f) }
 
-    val listState = rememberLazyListState()
-
-    val thumbAlpha = remember { Animatable(0f) }
+    val thumbAlpha = remember { Animatable(1f) }
     val isDragging = remember { mutableStateOf(false) }
     val thumbOffset = remember { mutableFloatStateOf(0f) }
     val thumbWidth = remember { mutableIntStateOf(minThumbWidth) }
@@ -425,7 +425,7 @@ fun FastScroll(
             .collect { active ->
                 // User started scrolling
                 if (active) {
-                    thumbAlpha.animateTo(1f, tween(500))
+                    thumbAlpha.snapTo(1f)
                 }
                 // User stopped scrolling and dragging
                 else {
