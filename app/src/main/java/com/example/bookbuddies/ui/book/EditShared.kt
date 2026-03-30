@@ -74,6 +74,7 @@ import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.displayAuthor
 import com.example.bookbuddies.data.displayDate
+import com.example.bookbuddies.data.storeAuthor
 import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
@@ -265,7 +266,7 @@ fun EditShared(
                         val updatedBook = book?.copy(
                             isbn = isbn.value,
                             title = title.value,
-                            authors = authors.filter { it.isNotBlank() },
+                            authors = authors.filter { it.isNotBlank() }.map { storeAuthor(it) },
                             cover = if (deleteCover.value) null
                                     else cover.value,
                             seriesName = seriesName.value,
@@ -287,7 +288,7 @@ fun EditShared(
                             uid = uid,
                             isbn = isbn.value,
                             title = title.value,
-                            authors = authors.filter { it.isNotBlank() },
+                            authors = authors.filter { it.isNotBlank() }.map { storeAuthor(it) },
                             cover = if (deleteCover.value) null
                                     else cover.value,
                             seriesName = seriesName.value,

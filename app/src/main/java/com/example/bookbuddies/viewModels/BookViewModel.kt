@@ -58,7 +58,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     init {
         viewModelScope.launch {
             allBooks.collect { books ->
-                _allAuthors.value = books.flatMap { it.authors }.distinct()
+                _allAuthors.value = books.flatMap { it.authors.map { author -> displayAuthor(author) } }.distinct()
                 _allSeries.value = books.map { it.seriesName }.distinct()
                 _allGenres.value = books.map { it.genre }.distinct()
                 _allPublishers.value = books.map { it.publisher }.distinct()
