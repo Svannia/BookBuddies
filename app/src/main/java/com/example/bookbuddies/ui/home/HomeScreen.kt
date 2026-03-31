@@ -80,13 +80,11 @@ import com.example.bookbuddies.ui.settings.copyToClipboard
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import kotlin.collections.mutableListOf
 import kotlin.collections.set
 
 @Composable
 fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
-    Timber.tag("Debug").e("Restoring index=${bookVM.savedScrollIndex} offset=${bookVM.savedScrollOffset}")
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -106,7 +104,6 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
             .collect { (index, offset) ->
-                Timber.tag("Debug").e("Saving index=$index offset=$offset")
                 bookVM.savedScrollIndex = index
                 bookVM.savedScrollOffset = offset
             }

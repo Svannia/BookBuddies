@@ -34,7 +34,7 @@ fun BookCreate(isbn: String?, bookVM: BookViewModel, dataVM: DataViewModel, navi
                 if (it) {
                     newBook = null
                     isLoading = false
-                    handleError(context, "Could not find book with this ISBN.")
+                    handleError(context, context.getString(R.string.toast_noBookWithISBN))
                 }
             }) {
                 newBook = it

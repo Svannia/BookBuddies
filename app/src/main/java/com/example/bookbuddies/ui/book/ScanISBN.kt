@@ -29,7 +29,6 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.common.InputImage
-import timber.log.Timber
 
 
 @OptIn(ExperimentalGetImage::class)
@@ -148,7 +147,6 @@ fun ScanISBN( navigationActions: NavigationActions) {
             )
         }
         CameraPermissionStatus.DENIED -> {
-            Timber.tag("Debug").d("camera permission not granted - going back")
             navigationActions.goBack()
         }
     }

@@ -117,6 +117,7 @@
     <string name="toast_manualCoverFail">Failed to save selected picture as cover.</string>
     <string name="toast_missingStartDate">Please select a start date or remove the finish date.</string>
     <string name="toast_multiDeleteFail">Failed to delete some books.</string>
+    <string name="toast_noBookWithISBN">Could not find book with this ISBN.</string>
     <string name="toast_noISBN">Cannot find book cover without an ISBN.</string>
     <string name="toast_removeCovers">All covers have been deleted.</string>
     <string name="toast_removeSomeCovers">The selected covers have been deleted.</string>
