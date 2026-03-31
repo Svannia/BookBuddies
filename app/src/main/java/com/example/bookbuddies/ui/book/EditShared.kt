@@ -637,7 +637,7 @@ fun EditShared(
                                             scope.launch { lazyListState.animateScrollToItem(11, topPaddingPx) }
                                         }
                                     },
-                                    onValueChange = { format.value = it; dataEdited.value = true }
+                                    onValueChange = { source.value = it; dataEdited.value = true }
                                 )
                             }
                         }

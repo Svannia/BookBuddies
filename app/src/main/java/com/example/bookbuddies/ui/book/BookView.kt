@@ -367,27 +367,35 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 }
 
                 // ----- PUBLISHING AND EDITION -----
-                if (book.isbn.isNotBlank() && book.publisher.isNotBlank() && book.publishedDate > 0L && book.language.isNotBlank() && book.format.isNotBlank()) {
+                if (book.isbn.isNotBlank() || book.publisher.isNotBlank() || book.publishedDate > 0L || book.language.isNotBlank() || book.format.isNotBlank()) {
                     item {
                         InfoSection(stringResource(R.string.title_pubEdition), {}
                         ) {
                             // ISBN
-                            InfoDetail(stringResource(R.string.title_isbn), book.isbn)
+                            if (book.isbn.isNotBlank()) {
+                                InfoDetail(stringResource(R.string.title_isbn), book.isbn)
+                            }
 
                             // publisher and publishing date
-                            var publishing = book.publisher
-                            val publishedDate = displayDate(book.publishedDate, DateFormat.FULL_DATE)
-                            if (publishing.isNotBlank() && publishedDate.isNotBlank()) publishing = "$publishing, on the "
-                            publishing = "$publishing$publishedDate"
-                            InfoDetail(
-                                stringResource(R.string.title_publishing), publishing)
+                            if (book.publisher.isNotBlank() || book.publishedDate > 0L) {
+                                var publishing = book.publisher
+                                val publishedDate = displayDate(book.publishedDate, DateFormat.FULL_DATE)
+                                if (publishing.isNotBlank() && publishedDate.isNotBlank()) publishing = "$publishing, on the $publishedDate"
+                                else if (publishing.isBlank()) publishing = publishedDate
+                                InfoDetail(
+                                    stringResource(R.string.title_publishing), publishing)
+                            }
 
                             // language
-                            InfoDetail(
-                                stringResource(R.string.title_language), book.language)
+                            if (book.language.isNotBlank()) {
+                                InfoDetail(
+                                    stringResource(R.string.title_language), book.language)
+                            }
                             // format
-                            InfoDetail(
-                                stringResource(R.string.title_format), book.format)
+                            if (book.format.isNotBlank()) {
+                                InfoDetail(
+                                    stringResource(R.string.title_format), book.format)
+                            }
                         }
                     }
                 }
