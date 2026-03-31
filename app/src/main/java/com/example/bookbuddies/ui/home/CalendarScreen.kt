@@ -29,10 +29,11 @@ import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.PrimaryScreen
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.viewModels.BookViewModel
+import com.example.bookbuddies.viewModels.CalendarViewModel
 import java.util.Calendar
 
 @Composable
-fun CalendarScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
+fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigationActions: NavigationActions) {
 
     // when using the phone's built-in back function -> back to Home screen
     BackHandler {

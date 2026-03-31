@@ -163,4 +163,8 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
+    <string name="tag_bookRelease">Book release</string>
+    <string name="tag_specialSale">Special sale</string>
+    <string name="tag_authorEvent">Author event</string>
+    <string name="tag_arcDeadline">ARC deadline</string>
 </resources>

@@ -24,6 +24,7 @@ import com.example.bookbuddies.ui.settings.Settings
 import com.example.bookbuddies.ui.home.HomeScreen
 import com.example.bookbuddies.ui.theme.BookBuddiesTheme
 import com.example.bookbuddies.datastore.BookRepository
+import com.example.bookbuddies.datastore.CalendarRepository
 import com.example.bookbuddies.ui.book.BookCreate
 import com.example.bookbuddies.ui.book.BookEdit
 import com.example.bookbuddies.ui.book.BookView
@@ -32,6 +33,8 @@ import com.example.bookbuddies.ui.book.ScanISBN
 import com.example.bookbuddies.ui.home.CalendarScreen
 import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.BookViewModelFactory
+import com.example.bookbuddies.viewModels.CalendarViewModel
+import com.example.bookbuddies.viewModels.CalendarViewModelFactory
 import com.example.bookbuddies.viewModels.DataViewModel
 import timber.log.Timber
 import java.io.File
@@ -55,6 +58,11 @@ class MainActivity : ComponentActivity() {
                 factory = BookViewModelFactory(bookRepository)
             )
 
+            val calendarRepository = CalendarRepository(LocalContext.current)
+            val calendarVM: CalendarViewModel = viewModel(
+                factory = CalendarViewModelFactory(calendarRepository, application)
+            )
+
             BookBuddiesTheme(themeChoice = currentTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -70,7 +78,7 @@ class MainActivity : ComponentActivity() {
                             Timber.tag("Compose").d("Successfully composed screen Home")
                         }
                         composable(Route.CALENDAR) {
-                            CalendarScreen(bookVM, navigationActions)
+                            CalendarScreen(bookVM, calendarVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen Calendar")
                         }
                         composable(Route.SETTINGS) {
