@@ -1,22 +1,26 @@
 package com.example.bookbuddies.ui.home
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,10 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,16 +61,18 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
     }
 
     // to jump back the calendar to today's date
-    val today = remember {
-        Calendar.getInstance().get(Calendar.DAY_OF_MONTH).toString()
-    }
-    // other calendar dates
     val currentCalendar = remember { Calendar.getInstance() }
-    var displayedYear by remember { mutableIntStateOf(currentCalendar.get(Calendar.YEAR)) }
-    var displayedMonth by remember { mutableIntStateOf(currentCalendar.get(Calendar.MONTH) + 1) }
-
+    val todayYear = remember { currentCalendar.get(Calendar.YEAR) }
+    val todayMonth = remember { currentCalendar.get(Calendar.MONTH) + 1 }
+    val today = remember { currentCalendar.get(Calendar.DAY_OF_MONTH).toString() }
+    var displayedYear by remember { mutableIntStateOf(todayYear) }
+    var displayedMonth by remember { mutableIntStateOf(todayMonth) }
     // to toggle the visibility of read books
     val showReadBooks by calendarVM.showReadBooks.collectAsState()
+
+    // for sliding animations
+    // 1 for next month, -1 for previous month
+    val slideDirection = remember { mutableIntStateOf(1) }
 
     PrimaryScreen(
         navigationActions = navigationActions,
@@ -88,7 +94,11 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                             color = MaterialTheme.colorScheme.inversePrimary,
                             shape = RoundedCornerShape(6.dp)
                         )
-                        .clickable { /* todo: jump to today */ }
+                        .clickable {
+                            slideDirection.intValue = if (displayedYear * 12 + displayedMonth < todayYear * 12 + todayMonth) 1 else -1
+                            displayedYear = todayYear
+                            displayedMonth = todayMonth
+                        }
                 ) {
                     Text(
                         text = today,
@@ -111,18 +121,42 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            MonthlyCalendarView(
-                year = displayedYear,
-                month = displayedMonth,
-                onSwipePrevious = {
-                    if (displayedMonth == 1) {
-                        displayedMonth = 12
-                        displayedYear--
+            AnimatedContent(
+                targetState = displayedYear * 12 + displayedMonth,
+                transitionSpec = {
+                    if (slideDirection.intValue == 1) {
+                        (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut())
                     } else {
-                        displayedMonth--
+                        (slideInVertically { -it } + fadeIn()) togetherWith (slideOutVertically { it } + fadeOut())
                     }
-                }
-            )
+                },
+                label = "monthSlide"
+            ) { targetYearMonth ->
+                val targetMonth = ((targetYearMonth - 1) % 12) + 1
+                val targetYear = (targetYearMonth - 1) / 12
+                MonthlyCalendarView(
+                    year = targetYear,
+                    month = targetMonth,
+                    onSwipePrevious = {
+                        slideDirection.intValue = -1
+                        if (displayedMonth == 1) {
+                            displayedMonth = 12
+                            displayedYear--
+                        } else {
+                            displayedMonth--
+                        }
+                    },
+                    onSwipeNext = {
+                        slideDirection.intValue = 1
+                        if (displayedMonth == 12) {
+                            displayedMonth = 1
+                            displayedYear++
+                        } else {
+                            displayedMonth++
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -131,12 +165,13 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
 fun MonthlyCalendarView(
     year: Int,
     month: Int,
-    onSwipePrevious: () -> Unit
+    onSwipePrevious: () -> Unit,
+    onSwipeNext: () -> Unit
 ) {
-    val today = remember { Calendar.getInstance() }
-    val todayYear = today.get(Calendar.YEAR)
-    val todayMonth = today.get(Calendar.MONTH) + 1
-    val todayDay = today.get(Calendar.DAY_OF_MONTH)
+    val todayCalendar = remember { Calendar.getInstance() }
+    val todayYear = todayCalendar.get(Calendar.YEAR)
+    val todayMonth = todayCalendar.get(Calendar.MONTH) + 1
+    val todayDay = todayCalendar.get(Calendar.DAY_OF_MONTH)
 
     // figure out the days in the month and the starting day of the week
     val calendar = Calendar.getInstance().apply {
@@ -150,20 +185,34 @@ fun MonthlyCalendarView(
     Column(
         modifier = Modifier.fillMaxSize()
             .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = {},
-                    onDragEnd = {},
-                    onDragCancel = {},
-                    onHorizontalDrag = { _, dragAmount ->
-                        if (dragAmount > 50) onSwipePrevious()
-                        else if (dragAmount < -50) {
+                var consumed = false
+                detectVerticalDragGestures(
+                    onDragStart = { consumed = false },
+                    onDragEnd = { consumed = false },
+                    onDragCancel = { consumed = false },
+                    onVerticalDrag = { change, dragAmount ->
+                        change.consume()
+                        if (!consumed) {
+                            if (dragAmount > 50) {
+                                consumed = true
+                                onSwipePrevious()
+                            } else if (dragAmount < -50) {
+                                consumed = true
+                                onSwipeNext()
+                            }
                         }
+
                     }
                 )
             }
     ) {
+        // month (and year) header
+        val text = buildString {
+            append(Month.of(month).getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault()).uppercase())
+            if (year != todayYear) append(" $year")
+        }
         Text(
-            text = Month.of(month).getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault()).uppercase(),
+            text = text,
             style = MyTypography.titleSmall.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 .clickable {
@@ -197,6 +246,11 @@ fun MonthlyCalendarView(
         // grid
         val totalCells = firstDayOfWeek + daysInMonth
         val totalRows = ceil(totalCells / 7f).toInt()
+        val prevMonthCalendar = Calendar.getInstance().apply {
+            set(year, month - 1, 1)
+            add(Calendar.MONTH, -1)
+        }
+        val daysInPrevMonth = prevMonthCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
         repeat(totalRows) { row ->
             // row for one week
@@ -208,6 +262,11 @@ fun MonthlyCalendarView(
                     val cellIndex = row * 7 + col
                     val day = cellIndex - firstDayOfWeek + 1
                     val isCurrentMonth = day in 1..daysInMonth
+                    val overflowDay = when {
+                        day < 1 -> daysInPrevMonth + day // previous month
+                        day > daysInMonth -> day - daysInMonth // next month
+                        else -> null
+                    }
                     val isToday = isCurrentMonth && year == todayYear && month == todayMonth && day == todayDay
                     val isSunday = col == 6
 
@@ -223,40 +282,55 @@ fun MonthlyCalendarView(
                                     shape = RoundedCornerShape(6.dp)
                                 ) else Modifier
                             )
+                            .alpha(if (isCurrentMonth) 1f else 0.3f)
                             .clickable {
                                 // todo: popup with details of day's events
                             },
                         contentAlignment = Alignment.TopCenter
-                    ) {
-                        if (isCurrentMonth) {
-                            // cell title with day number
-                            Box(
-                                modifier = Modifier
-                                    .padding(2.dp)
-                                    .size(28.dp)
-                                    .then(
-                                        if (isToday) Modifier.background(
-                                                color = MaterialTheme.colorScheme.inversePrimary,
-                                                shape = RoundedCornerShape(6.dp)
-                                            ) else Modifier
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = day.toString(),
-                                    style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center),
-                                    color = when {
-                                        isToday -> MaterialTheme.colorScheme.background
-                                        isSunday -> Color.Red
-                                        else -> MaterialTheme.colorScheme.inversePrimary
-                                    }
-                                )
-                            }
-                            // todo: cell contents
+                    )
+                    {
+                        val displayDay = if (isCurrentMonth) day else overflowDay
+                        if (displayDay != null) {
+                            DayCell(
+                                day = displayDay,
+                                isToday = isToday,
+                                isSunday = isSunday
+                            )
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DayCell(
+    day: Int,
+    isToday: Boolean,
+    isSunday: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .padding(2.dp)
+            .size(28.dp)
+            .then(
+                if (isToday) Modifier.background(
+                    color = MaterialTheme.colorScheme.inversePrimary,
+                    shape = RoundedCornerShape(6.dp)
+                ) else Modifier
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = day.toString(),
+            style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center),
+            color = when {
+                isToday -> MaterialTheme.colorScheme.background
+                isSunday -> Color.Red
+                else -> MaterialTheme.colorScheme.inversePrimary
+            }
+        )
     }
+    // todo: cell contents
+}
