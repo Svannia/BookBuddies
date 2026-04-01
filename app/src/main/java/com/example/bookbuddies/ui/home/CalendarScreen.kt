@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -109,7 +111,18 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            MonthlyCalendarView(year = displayedYear, month = displayedMonth)
+            MonthlyCalendarView(
+                year = displayedYear,
+                month = displayedMonth,
+                onSwipePrevious = {
+                    if (displayedMonth == 1) {
+                        displayedMonth = 12
+                        displayedYear--
+                    } else {
+                        displayedMonth--
+                    }
+                }
+            )
         }
     }
 }
@@ -117,7 +130,8 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
 @Composable
 fun MonthlyCalendarView(
     year: Int,
-    month: Int
+    month: Int,
+    onSwipePrevious: () -> Unit
 ) {
     val today = remember { Calendar.getInstance() }
     val todayYear = today.get(Calendar.YEAR)
@@ -135,6 +149,18 @@ fun MonthlyCalendarView(
 
     Column(
         modifier = Modifier.fillMaxSize()
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = {},
+                    onDragEnd = {},
+                    onDragCancel = {},
+                    onHorizontalDrag = { _, dragAmount ->
+                        if (dragAmount > 50) onSwipePrevious()
+                        else if (dragAmount < -50) {
+                        }
+                    }
+                )
+            }
     ) {
         Text(
             text = Month.of(month).getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault()).uppercase(),
