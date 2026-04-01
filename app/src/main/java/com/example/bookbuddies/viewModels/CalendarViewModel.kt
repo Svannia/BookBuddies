@@ -1,6 +1,8 @@
 package com.example.bookbuddies.viewModels
 
 import android.app.Application
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.toColorLong
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -8,6 +10,11 @@ import com.example.bookbuddies.R
 import com.example.bookbuddies.data.CalendarEvent
 import com.example.bookbuddies.data.EventTag
 import com.example.bookbuddies.datastore.CalendarRepository
+import com.example.bookbuddies.ui.theme.DifferentPurple
+import com.example.bookbuddies.ui.theme.LightGreen
+import com.example.bookbuddies.ui.theme.LightRed
+import com.example.bookbuddies.ui.theme.MediumBlue
+import com.example.bookbuddies.ui.theme.MediumGrey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -31,18 +38,18 @@ class CalendarViewModel(private val repository: CalendarRepository, private val 
 
     // default tags (inserted if there are no tags)
     private val defaultTagNames = listOf(
-        app.getString(R.string.tag_bookRelease),
-        app.getString(R.string.tag_specialSale),
-        app.getString(R.string.tag_authorEvent),
-        app.getString(R.string.tag_arcDeadline)
+        app.getString(R.string.tag_bookRelease) to DifferentPurple,
+        app.getString(R.string.tag_specialSale) to MediumBlue,
+        app.getString(R.string.tag_authorEvent) to LightGreen,
+        app.getString(R.string.tag_arcDeadline) to LightRed
     )
     init {
         viewModelScope.launch {
             val tags = allEventTags.first()
             if (tags.isEmpty()) {
                 Timber.tag("CalendarVM").d("No tags found, inserting defaults.")
-                defaultTagNames.forEach { name ->
-                    repository.insertEventTag(EventTag(name = name))
+                defaultTagNames.forEach { (name, colour) ->
+                    repository.insertEventTag(EventTag(name = name, colour = colour.toColorLong()))
                 }
             }
         }

@@ -1,5 +1,7 @@
 package com.example.bookbuddies.data
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.toColorLong
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -10,8 +12,8 @@ data class CalendarEvent(
     val allDay: Boolean,
     val dateStart: Long,
     val dateEnd: Long,
-    val hourStart: Int, // minutes since midnight
-    val hourEnd: Int,
+    val minuteStart: Int, // minutes since midnight
+    val minuteEnd: Int,
     val location: String,
     val notes: String,
     val tags: List<String> = emptyList(),
@@ -24,4 +26,5 @@ data class CalendarEvent(
 data class EventTag(
     @PrimaryKey val uid: String = java.util.UUID.randomUUID().toString(),
     val name: String,
+    val colour: Long
 )

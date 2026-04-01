@@ -72,6 +72,11 @@
     <string name="sorting_source">Source</string>
     <string name="sorting_title">Title</string>
 
+    <string name="tag_arcDeadline">ARC deadline</string>
+    <string name="tag_authorEvent">Author event</string>
+    <string name="tag_bookRelease">Book release</string>
+    <string name="tag_specialSale">Special sale</string>
+
     <string name="title_about">About</string>
     <string name="title_authors">Authors</string>
     <string name="title_bookCreate">Add New Book</string>
@@ -163,8 +168,6 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
-    <string name="tag_bookRelease">Book release</string>
-    <string name="tag_specialSale">Special sale</string>
-    <string name="tag_authorEvent">Author event</string>
-    <string name="tag_arcDeadline">ARC deadline</string>
+    <string name="button_hideRead">Hide read books</string>
+    <string name="button_showRead">Show read books</string>
 </resources>

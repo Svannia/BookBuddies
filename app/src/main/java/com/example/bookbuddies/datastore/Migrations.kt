@@ -43,6 +43,7 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
             CREATE TABLE IF NOT EXISTS event_tags (
                 uid TEXT PRIMARY KEY NOT NULL,
                 name TEXT NOT NULL
+                colour INTEGER NOT NULL DEFAULT ${0xFF808080}
             )
             """.trimIndent()
         )
