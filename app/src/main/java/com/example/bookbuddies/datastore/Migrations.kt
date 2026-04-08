@@ -18,6 +18,7 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+// added two new tables for CalendarEvent and EventTag
 val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(

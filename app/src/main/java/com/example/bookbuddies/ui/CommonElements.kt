@@ -128,7 +128,6 @@ import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.navigation.BOTTOM_DESTINATIONS
 import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
 import com.example.bookbuddies.navigation.NavigationActions
-import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.ui.theme.MyTypography
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -145,6 +144,7 @@ import kotlin.math.roundToInt
  * @param navigationActions to handle screen navigation
  * @param title display in the top bar
  * @param navigationIndex indicates which primary screen is currently selected (for bottom navigation bar)
+ * @param addPopUp mutable boolean that triggers the display of the add (book or event) popup
  * @param topBarIcons composable for icons on the right-side of the top bar
  * @param content screen body
  */
@@ -154,12 +154,12 @@ fun PrimaryScreen(
     navigationActions: NavigationActions,
     title: String,
     navigationIndex: Int,
+    addPopUp: MutableState<Boolean>,
     topBarIcons: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val showAddBookPopup = remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         modifier = Modifier.fillMaxSize(),
@@ -208,33 +208,12 @@ fun PrimaryScreen(
             },
             bottomBar = {
                 BottomNavBar(navigationActions, navigationIndex) {
-                    showAddBookPopup.value = true
+                    addPopUp.value = true
                 }
             },
             content = { padding ->
                 Box(modifier = Modifier.fillMaxSize()) {
                     content(padding)
-
-                    if (showAddBookPopup.value) {
-                        CustomContentDialogWindow(
-                            visible = showAddBookPopup,
-                            content = {
-                                RowTextButton(stringResource(R.string.button_scan), 52.dp) {
-                                    showAddBookPopup.value = false
-                                    navigationActions.navigateTo(Route.SCAN_ISBN)
-                                }
-                                RowTextButton(stringResource(R.string.button_enterISBN), 52.dp) {
-                                    showAddBookPopup.value = false
-                                    navigationActions.navigateTo(Route.ENTER_ISBN)
-                                }
-                                RowTextButton(stringResource(R.string.button_manualAdd), 52.dp) {
-                                    showAddBookPopup.value = false
-                                    navigationActions.navigateTo(Route.BOOK_CREATE)
-                                }
-                            },
-                            bottomButtons = false
-                        )
-                    }
                 }
             }
         )
@@ -289,9 +268,9 @@ fun SecondaryScreen(
  * Bottom navigation bar displayed on the primary screens. The buttons in the bar itself are for navigation between primary screens.
  * There is a middle floating button for adding books.
  *
- * @param
- * @param
- * @param
+ * @param navigationActions for navigating between screens
+ * @param navigationIndex to indicate which primary screen is currently selected
+ * @param onAddClick block that runs when clicking the middle floating button (adding book or adding event)
  */
 @Composable
 fun BottomNavBar(
@@ -794,6 +773,7 @@ fun CustomTextField(
  * Warning: always call this function after all other composable elements in code, so that it appears on top of the screen.
  *
  * @param visible whether or not this window should be visible
+ * @param padding padding inside the window, default is 16.dp
  * @param content content of the dialog window
  * @param bottomButtons whether or not the window should have 2 buttons in a row at the bottom. If true, the rest of the parameters should be filled out.
  *        If only any one button's content and actions are given, it will be displayed on the left

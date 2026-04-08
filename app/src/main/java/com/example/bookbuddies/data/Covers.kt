@@ -207,6 +207,7 @@ suspend fun fetchCoverForBook(context: Context, book: Book, allowOverwrite: Bool
  * @param context to access local files
  * @param book Book object for the manga whose cover is being searched for
  * @param updateMangaSeriesId suspend lambda that updates all books within a series with a new Mangadex ID
+ * @param allowOverwrite false by default. If true, will look for a new cover even if one already exists.
  * @return new Book object with the new cover (or same object as passed in parameter if no cover was found)
  */
 suspend fun fetchCoverForManga(context: Context, book: Book, updateMangaSeriesId: suspend (String, String) -> Unit, allowOverwrite: Boolean = false): Book =

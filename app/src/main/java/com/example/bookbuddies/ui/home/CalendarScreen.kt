@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,10 +75,14 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
     // 1 for next month, -1 for previous month
     val slideDirection = remember { mutableIntStateOf(1) }
 
+    // for popup to add new event
+    val showAddEventPopup = remember { mutableStateOf(false) }
+
     PrimaryScreen(
         navigationActions = navigationActions,
         title = stringResource(R.string.title_calendar),
         navigationIndex = 1,
+        addPopUp = showAddEventPopup,
         topBarIcons = {
             Row(
                 modifier = Modifier.padding(0.dp),
@@ -215,11 +220,7 @@ fun MonthlyCalendarView(
             text = text,
             style = MyTypography.titleSmall.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                .clickable {
-                    // todo: open popup to chose a year and month
-                }
-
-            )
+        )
         // headers with days of the week
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
             dayHeaders.forEachIndexed { index, label ->

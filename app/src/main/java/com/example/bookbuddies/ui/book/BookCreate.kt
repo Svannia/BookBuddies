@@ -26,6 +26,7 @@ fun BookCreate(isbn: String?, bookVM: BookViewModel, dataVM: DataViewModel, navi
     var isLoading by remember { mutableStateOf(false) }
     var newBook by remember { mutableStateOf<Book?>(null) }
 
+    val noBookToast = stringResource(R.string.toast_noBookWithISBN)
     LaunchedEffect(isbn) {
         if (!isbn.isNullOrBlank()) {
             isLoading = true
@@ -34,7 +35,7 @@ fun BookCreate(isbn: String?, bookVM: BookViewModel, dataVM: DataViewModel, navi
                 if (it) {
                     newBook = null
                     isLoading = false
-                    handleError(context, context.getString(R.string.toast_noBookWithISBN))
+                    handleError(context, noBookToast)
                 }
             }) {
                 newBook = it

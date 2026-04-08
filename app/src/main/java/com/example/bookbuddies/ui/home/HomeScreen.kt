@@ -109,6 +109,9 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
             }
     }
 
+    // for popup to add new book
+    val showAddBookPopup = remember { mutableStateOf(false) }
+
     // variables specifically for the "remove some covers" functionality
     val progressing = remember { mutableStateOf(false) }
     val processed = remember { mutableIntStateOf(0) }
@@ -196,6 +199,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
             navigationActions = navigationActions,
             title = stringResource(R.string.title_homeScreen),
             navigationIndex = 0,
+            addPopUp = showAddBookPopup,
             topBarIcons = {
                 Row(
                     modifier = Modifier.padding(0.dp),
@@ -240,6 +244,10 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         if (selectionModeActive.value) {
+                            val successToast = stringResource(R.string.toast_successfulCovers)
+                            val errorSearchToast = stringResource(R.string.toast_coverSearchFail)
+                            val errorClearToast = stringResource(R.string.toast_coverRemoveFail)
+                            val successDeleteToast = stringResource(R.string.toast_removeSomeCovers)
                             SelectionModeTopRow(
                                 selectionModeActive, selectedEntries, nbSelected,
 
@@ -261,6 +269,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                 // option to add some covers
                                 stringResource(R.string.button_addCover) to {
                                     progressing.value = true
+
                                     scope.launch {
                                         findBookCovers(
                                             context = context,
@@ -271,7 +280,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                                 progressing.value = false
                                                 Toast.makeText(
                                                     context,
-                                                    context.getString(R.string.toast_successfulCovers),
+                                                    successToast,
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                                 if (failedBooks.isEmpty()) {
@@ -290,7 +299,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                             isError = { isError ->
                                                 if (isError) {
                                                     progressing.value = false
-                                                    handleError(context, context.getString(R.string.toast_coverSearchFail))
+                                                    handleError(context, errorSearchToast)
                                                 }
                                             },
                                             onProgress = { processedNb, totalNb ->
@@ -308,13 +317,13 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                         {
                                             if (it) {
                                                 loading.value = false
-                                                handleError(context, context.getString(R.string.toast_coverRemoveFail))
+                                                handleError(context, errorClearToast)
                                             }
                                         }) {
                                         loading.value = false
                                         Toast.makeText(
                                             context,
-                                            context.getString(R.string.toast_removeSomeCovers),
+                                            successDeleteToast,
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         selectionModeActive.value = false
@@ -511,12 +520,13 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
 
                     // List of failed covers
                     if (coversVisible.value) {
+                        val notFoundCovers = stringResource(R.string.title_failedCovers)
                         CustomContentDialogWindow(
                             visible = coversVisible,
                             content = {
                                 // title
                                 Text(
-                                    text = context.getString(R.string.title_failedCovers),
+                                    text = notFoundCovers,
                                     style = MyTypography.titleSmall,
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
@@ -571,6 +581,8 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     // delete confirmation
                     if (deleteVisible.value) {
                         val booksToDelete = books.filter { selectedEntries[it.uid] == true }
+                        val successDeleteToast = stringResource(R.string.toast_successMultiDelete)
+                        val deleteFailToast = stringResource(R.string.toast_multiDeleteFail)
 
                         CustomContentDialogWindow(
                             visible = deleteVisible,
@@ -622,7 +634,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                         isError = {
                                             if (it) {
                                                 loading.value = false
-                                                handleError(context, context.getString(R.string.toast_multiDeleteFail))
+                                                handleError(context, deleteFailToast)
                                             }
                                         }
                                     ) {
@@ -630,7 +642,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                         loading.value = false
                                         Toast.makeText(
                                             context,
-                                            context.getString(R.string.toast_successMultiDelete),
+                                            successDeleteToast,
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         selectionModeActive.value = false

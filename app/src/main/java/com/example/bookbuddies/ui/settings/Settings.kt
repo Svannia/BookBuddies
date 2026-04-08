@@ -97,6 +97,14 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     val failedCovers = remember { mutableListOf<String>() }
     val clipboard = LocalClipboard.current
 
+    // string variables for toasts
+    val errorImport = stringResource(R.string.toast_importError)
+    val successImport = stringResource(R.string.toast_successfulImport)
+    val errorFileOpen = stringResource(R.string.toast_fileOpenFailure)
+    val errorInvalidFormat = stringResource(R.string.toast_invalidCSV)
+    val successExport = stringResource(R.string.toast_successfulExport)
+    val errorExport = stringResource(R.string.toast_failExport)
+
     // launcher to access files for importing
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -129,12 +137,13 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                 loading.value = false
                             }
                         ) { isError ->
-                            if (isError) handleError(context,
-                                context.getString(R.string.toast_importError))
+                            if (isError) {
+                                handleError(context, errorImport)
+                            }
                             else {
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.toast_successfulImport),
+                                    successImport,
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 navigationActions.navigateTo(Route.HOME, true)
@@ -143,12 +152,12 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                     } else {
                         loading.value = false
                         Timber.tag("BookImport").e("Could not open file, input stream is null.")
-                        handleError(context, context.getString(R.string.toast_fileOpenFailure))
+                        handleError(context, errorFileOpen)
                     }
                 }
             } else {
                 Toast.makeText(context,
-                    context.getString(R.string.toast_invalidCSV), Toast.LENGTH_SHORT).show()
+                    errorInvalidFormat, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -166,11 +175,11 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                     }
                     Toast.makeText(
                         context,
-                        context.getString(R.string.toast_successfulExport), Toast.LENGTH_SHORT
+                        successExport, Toast.LENGTH_SHORT
                     ).show()
                 } catch (e: Exception) {
                     Timber.tag("BookExport").e("Failed to export with error $e")
-                    handleError(context, context.getString(R.string.toast_failExport))
+                    handleError(context, errorExport)
                 }
             }
         }
@@ -246,6 +255,8 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             contentAlignment = Alignment.CenterStart
                         ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_export), style = MyTypography.bodyLarge) }
                         // Find covers
+                        val successCover = stringResource(R.string.toast_successfulCovers)
+                        val errorCover = stringResource(R.string.toast_coverSearchFail)
                         ToolTipRow(
                             onSettingClick = {
                                 progressing.value = true
@@ -259,7 +270,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                             progressing.value = false
                                             Toast.makeText(
                                                 context,
-                                                context.getString(R.string.toast_successfulCovers),
+                                                successCover,
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                             if (failedBooks.isEmpty()) navigationActions.navigateTo(
@@ -276,7 +287,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                         isError = { isError ->
                                             if (isError) {
                                                 progressing.value = false
-                                                handleError(context, context.getString(R.string.toast_coverSearchFail))
+                                                handleError(context, errorCover)
                                             }
                                         },
                                         onProgress = { processedNb, totalNb ->
@@ -290,6 +301,8 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             toolTipText = stringResource(R.string.txt_coversTooltip)
                         )
                         // Remove all covers
+                        val successCoverRemove = stringResource(R.string.toast_removeCovers)
+                        val errorCoverRemove = stringResource(R.string.toast_coverRemoveFail)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -300,13 +313,13 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                                         bookVM.clearAllCovers({
                                             if (it) {
                                                 loading.value = false
-                                                handleError(context, context.getString(R.string.toast_coverRemoveFail))
+                                                handleError(context, errorCoverRemove)
                                             }
                                         }) {
                                             loading.value = false
                                             Toast.makeText(
                                                 context,
-                                                context.getString(R.string.toast_removeCovers),
+                                                successCoverRemove,
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                             navigationActions.navigateTo(Route.HOME, true)
@@ -359,7 +372,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                     visible = coversVisible,
                     content = {
                         Text(
-                            text = context.getString(R.string.title_failedCovers),
+                            text = stringResource(R.string.title_failedCovers),
                             style = MyTypography.titleSmall,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
@@ -408,11 +421,14 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
 
             // Report a bug dialog window
             if (reportVisible.value) {
+                val errorReportEmpty = stringResource(R.string.toast_emptyBugReport)
+                val successReport = stringResource(R.string.toast_bugReport)
+                val errorReport = stringResource(R.string.toast_bugReportFail)
                 CustomContentDialogWindow(
                     visible = reportVisible,
                     content = {
                         // title for Report a bug, input text field and log.txt explanation
-                        Text(text = context.getString(R.string.button_sendBug), style = MyTypography.titleSmall)
+                        Text(text = stringResource(R.string.button_sendBug), style = MyTypography.titleSmall)
                         CustomTextField(
                             value = bugReport.value,
                             onValueChange = { bugReport.value = it },
@@ -448,7 +464,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                     rightButtonOnClick = {
                         bugReport.value = bugReport.value.trimEnd()
                         if (bugReport.value.isBlank()) {
-                            Toast.makeText(context, context.getString(R.string.toast_emptyBugReport), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, errorReportEmpty, Toast.LENGTH_SHORT).show()
                         } else {
                             reportVisible.value = false
                             coroutineScope.launch {
@@ -456,11 +472,10 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
 
                                 withContext(Dispatchers.Main) {
                                     if (success) {
-                                        Toast.makeText(context, context.getString(R.string.toast_bugReport), Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, successReport, Toast.LENGTH_SHORT).show()
                                         bugReport.value = ""
                                     } else {
-                                        handleError(context,
-                                            context.getString(R.string.toast_bugReportFail))
+                                        handleError(context, errorReport)
                                     }
                                 }
                             }

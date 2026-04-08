@@ -84,6 +84,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
     val showRating = remember { mutableStateOf(false) }
 
     // getting image and image permissions
+    val failedCoverToast = stringResource(R.string.toast_manualCoverFail)
     val imageInput = "image/*"
     val getImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { imageUri ->
@@ -96,7 +97,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                     if (it) {
                         coverOptions.value = false
                         loading.value = false
-                        handleError(context, context.getString(R.string.toast_manualCoverFail))
+                        handleError(context, failedCoverToast)
                     }
                 }
             ) {
@@ -258,7 +259,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                             Icon(
                                 modifier = Modifier.size(32.dp),
                                 painter = painterResource(R.drawable.tick),
-                                contentDescription = context.getString(R.string.desc_read)
+                                contentDescription = stringResource(R.string.desc_read)
                             )
                         }
                     }) {
@@ -322,6 +323,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                     style = MyTypography.bodyLarge
                                 )
                                 if (book.dateFinished <= 0L) {
+                                    val errorDateToast = stringResource(R.string.toast_wrongDateFinished)
                                     TextButton(
                                         modifier = Modifier
                                             .padding(0.dp)
@@ -342,7 +344,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                                 if (it) {
                                                     Toast.makeText(
                                                         context,
-                                                        context.getString(R.string.toast_wrongDateFinished),
+                                                        errorDateToast,
                                                         Toast.LENGTH_SHORT
                                                     ).show()
                                                 }
@@ -430,6 +432,8 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
 
         // delete confirmation
         if (deleteVisible.value) {
+            val errorDeleting = stringResource(R.string.toast_deleteFail)
+            val successDeleting = stringResource(R.string.toast_successDelete)
             CustomContentDialogWindow(
                 visible = deleteVisible,
                 content = {
@@ -462,19 +466,14 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                         isError = {
                             if (it) {
                                 loading.value = false
-                                handleError(context,
-                                    context.getString(R.string.toast_deleteFail))
+                                handleError(context, errorDeleting)
                             }
                         }
                     ) {
                         deleteVisible.value = false
                         loading.value = false
                         navigationActions.navigateTo(Route.HOME, true)
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.toast_successDelete),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(context, successDeleting, Toast.LENGTH_SHORT).show()
                     }
                 }
             )
@@ -504,7 +503,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 bottomButtons = true,
                 leftButtonContent = {
                     Text(
-                        text = context.getString(R.string.button_cancel),
+                        text = stringResource(R.string.button_cancel),
                         style = MyTypography.bodyLarge,
                         color = MaterialTheme.colorScheme.inversePrimary
                     )
@@ -512,7 +511,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                 leftButtonOnClick = { showRating.value = false },
                 rightButtonContent = {
                     Text(
-                        text = context.getString(R.string.button_confirm),
+                        text = stringResource(R.string.button_confirm),
                         style = MyTypography.bodyLarge,
                         color = ValidGreen
                     )
@@ -552,6 +551,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                             loading.value = false
                         }
                     }
+                    val errorCoverDelete = stringResource(R.string.toast_coverDeleteFail)
                     RowTextButton(stringResource(R.string.button_singleCoverDelete), 52.dp) {
                         loading.value = true
                         bookVM.clearCovers(
@@ -559,8 +559,7 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                             isError = {
                                 if (it) {
                                     loading.value = false
-                                    handleError(context,
-                                        context.getString(R.string.toast_coverDeleteFail))
+                                    handleError(context, errorCoverDelete)
                                 }
                             }
                         ) {

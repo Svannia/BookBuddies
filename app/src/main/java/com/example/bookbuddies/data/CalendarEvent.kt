@@ -1,7 +1,5 @@
 package com.example.bookbuddies.data
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.graphics.toColorLong
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 

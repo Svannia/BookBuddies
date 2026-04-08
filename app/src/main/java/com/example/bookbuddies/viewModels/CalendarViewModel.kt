@@ -1,7 +1,6 @@
 package com.example.bookbuddies.viewModels
 
 import android.app.Application
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.toColorLong
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -14,14 +13,13 @@ import com.example.bookbuddies.ui.theme.DifferentPurple
 import com.example.bookbuddies.ui.theme.LightGreen
 import com.example.bookbuddies.ui.theme.LightRed
 import com.example.bookbuddies.ui.theme.MediumBlue
-import com.example.bookbuddies.ui.theme.MediumGrey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-class CalendarViewModel(private val repository: CalendarRepository, private val app: Application) : ViewModel() {
+class CalendarViewModel(private val repository: CalendarRepository, app: Application) : ViewModel() {
     val allEvents = repository.allEvents
     val allEventTags = repository.allEventTags
 

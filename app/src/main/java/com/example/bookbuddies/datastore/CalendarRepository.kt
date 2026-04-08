@@ -1,7 +1,6 @@
 package com.example.bookbuddies.datastore
 
 import android.content.Context
-import android.provider.ContactsContract
 import com.example.bookbuddies.data.CalendarEvent
 import com.example.bookbuddies.data.EventTag
 import kotlinx.coroutines.flow.Flow

@@ -18,10 +18,11 @@ fun BookEdit(bookID: String, bookVM: BookViewModel, dataVM: DataViewModel, navig
     val book by bookVM.getBookFlowById(bookID).collectAsState(initial = Book.empty())
     val themeChoice by dataVM.currentTheme.collectAsState()
 
+    val editBookTitle = stringResource(R.string.title_editBook)
     EditShared(
         context = context,
         navigationActions = navigationActions,
-        screenTitle = context.getString(R.string.title_editBook),
+        screenTitle = editBookTitle,
         warningText = stringResource(R.string.txt_editLeave),
         onGoBack = { navigationActions.goBack() },
         themeChoice = themeChoice,
