@@ -24,5 +24,6 @@ data class CalendarEvent(
 data class EventTag(
     @PrimaryKey val uid: String = java.util.UUID.randomUUID().toString(),
     val name: String,
-    val colour: Long
+    val colour: Long,
+    val isDefault: Boolean = false
 )

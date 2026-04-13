@@ -74,6 +74,7 @@ import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.FastScroll
 import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.ProgressBar
+import com.example.bookbuddies.ui.RowTextButton
 import com.example.bookbuddies.ui.SingleOptionList
 import com.example.bookbuddies.ui.ToggleBox
 import com.example.bookbuddies.ui.settings.copyToClipboard
@@ -656,6 +657,28 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     }
                 }
             }
+        }
+
+        // adding a new book
+        if (showAddBookPopup.value) {
+            CustomContentDialogWindow(
+                visible = showAddBookPopup,
+                content = {
+                    RowTextButton(stringResource(R.string.button_scan), 52.dp) {
+                        showAddBookPopup.value = false
+                        navigationActions.navigateTo(Route.SCAN_ISBN)
+                    }
+                    RowTextButton(stringResource(R.string.button_enterISBN), 52.dp) {
+                        showAddBookPopup.value = false
+                        navigationActions.navigateTo(Route.ENTER_ISBN)
+                    }
+                    RowTextButton(stringResource(R.string.button_manualAdd), 52.dp) {
+                        showAddBookPopup.value = false
+                        navigationActions.navigateTo(Route.BOOK_CREATE)
+                    }
+                },
+                bottomButtons = false
+            )
         }
     }
 }

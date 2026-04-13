@@ -1,6 +1,7 @@
 package com.example.bookbuddies.viewModels
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.ui.graphics.toColorLong
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -13,11 +14,13 @@ import com.example.bookbuddies.ui.theme.DifferentPurple
 import com.example.bookbuddies.ui.theme.LightGreen
 import com.example.bookbuddies.ui.theme.LightRed
 import com.example.bookbuddies.ui.theme.MediumBlue
+import com.example.bookbuddies.ui.theme.MediumGrey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.core.content.edit
 
 class CalendarViewModel(private val repository: CalendarRepository, app: Application) : ViewModel() {
     val allEvents = repository.allEvents
@@ -34,21 +37,30 @@ class CalendarViewModel(private val repository: CalendarRepository, app: Applica
         Timber.tag("CalendarVM").d("Toggled showReadBooks to ${_showReadBooks.value}")
     }
 
-    // default tags (inserted if there are no tags)
+    // check for first launch to add example tags
+    private val prefs = app.getSharedPreferences("calendar_prefs", Context.MODE_PRIVATE)
     private val defaultTagNames = listOf(
         app.getString(R.string.tag_bookRelease) to DifferentPurple,
         app.getString(R.string.tag_specialSale) to MediumBlue,
         app.getString(R.string.tag_authorEvent) to LightGreen,
         app.getString(R.string.tag_arcDeadline) to LightRed
     )
+
     init {
-        viewModelScope.launch {
-            val tags = allEventTags.first()
-            if (tags.isEmpty()) {
-                Timber.tag("CalendarVM").d("No tags found, inserting defaults.")
+        viewModelScope.launch { 
+            if (!prefs.getBoolean("example_tags_inserted", false)) {
+                Timber.tag("CalendarVM").d("First launch, inserting example tags.")
+                // add basic default tag
+                repository.insertEventTag(EventTag(
+                    name = app.getString(R.string.tag_default),
+                    colour = MediumGrey.toColorLong(),
+                    isDefault = true
+                ))
+                // add example tags
                 defaultTagNames.forEach { (name, colour) ->
                     repository.insertEventTag(EventTag(name = name, colour = colour.toColorLong()))
                 }
+                prefs.edit { putBoolean("default_tags_inserted", true) }
             }
         }
     }
@@ -93,6 +105,10 @@ class CalendarViewModel(private val repository: CalendarRepository, app: Applica
      * @param tag EventTag object to delete
      */
     fun deleteTag(tag: EventTag) = viewModelScope.launch {
+        if (tag.isDefault) {
+            Timber.tag("CalendarVM").d("Attempted to delete default tag, operation aborted.")
+            return@launch
+        }
         repository.deleteEventTag(tag)
         Timber.tag("CalendarVM").d("Deleted tag ${tag.name}")
     }

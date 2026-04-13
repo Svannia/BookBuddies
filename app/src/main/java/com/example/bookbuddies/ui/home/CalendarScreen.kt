@@ -11,21 +11,33 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,12 +56,15 @@ import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
+import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.PrimaryScreen
 import com.example.bookbuddies.ui.theme.MyTypography
+import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.CalendarViewModel
 import java.time.Month
+import java.time.format.TextStyle
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.ceil
@@ -75,14 +91,17 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
     // 1 for next month, -1 for previous month
     val slideDirection = remember { mutableIntStateOf(1) }
 
+    // for picking a specific month
+    val showMonthPicker = remember { mutableStateOf(false) }
+
     // for popup to add new event
-    val showAddEventPopup = remember { mutableStateOf(false) }
+    val createNewEvent = remember { mutableStateOf(false) }
 
     PrimaryScreen(
         navigationActions = navigationActions,
         title = stringResource(R.string.title_calendar),
         navigationIndex = 1,
-        addPopUp = showAddEventPopup,
+        addPopUp = createNewEvent,
         topBarIcons = {
             Row(
                 modifier = Modifier.padding(0.dp),
@@ -100,7 +119,8 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                             shape = RoundedCornerShape(6.dp)
                         )
                         .clickable {
-                            slideDirection.intValue = if (displayedYear * 12 + displayedMonth < todayYear * 12 + todayMonth) 1 else -1
+                            slideDirection.intValue =
+                                if (displayedYear * 12 + displayedMonth < todayYear * 12 + todayMonth) 1 else -1
                             displayedYear = todayYear
                             displayedMonth = todayMonth
                         }
@@ -159,10 +179,80 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                         } else {
                             displayedMonth++
                         }
+                    },
+                    onChooseMonth = {
+                        showMonthPicker.value = true
                     }
                 )
             }
         }
+
+        if (showMonthPicker.value) {
+            var pickedYear by remember { mutableIntStateOf(displayedYear)}
+            var pickedMonth by remember { mutableIntStateOf(displayedMonth) }
+
+            CustomContentDialogWindow(
+                visible = showMonthPicker,
+                content = {
+                    val months = (1..12).map {
+                        Month.of(it).getDisplayName(TextStyle.FULL, Locale.getDefault())
+                            .replaceFirstChar { c ->  c.uppercase() }
+                    }
+                    val years = (todayYear - 10..todayYear + 20).map { it.toString() }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // picker for month
+                        WheelPicker(
+                            modifier = Modifier.width(140.dp),
+                            items = months,
+                            selectedIndex = pickedMonth - 1,
+                            onIndexSelected = { pickedMonth = it + 1 }
+                        )
+
+                        // picker for year
+                        WheelPicker(
+                            modifier = Modifier.width(100.dp),
+                            items = years,
+                            selectedIndex = years.indexOf(pickedYear.toString()),
+                            onIndexSelected = { pickedYear = years[it].toInt() }
+                        )
+                    }
+                },
+                bottomButtons = true,
+                leftButtonContent = {
+                    Text(
+                        text = stringResource(R.string.button_cancel),
+                        style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center),
+                        color = MaterialTheme.colorScheme.inversePrimary
+                    )
+                },
+                leftButtonOnClick = { showMonthPicker.value = false },
+                rightButtonContent = {
+                    Text(
+                        text = stringResource(R.string.button_confirm),
+                        style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center),
+                        color = ValidGreen
+                    )
+                },
+                rightButtonOnClick = {
+                    slideDirection.intValue =
+                        if (pickedYear * 12 + pickedMonth > displayedYear * 12 + displayedMonth) 1
+                        else -1
+                    displayedYear = pickedYear
+                    displayedMonth = pickedMonth
+                    showMonthPicker.value = false
+                }
+            )
+        }
+    }
+
+    // adding new event
+    if (createNewEvent.value) {
+        navigationActions.navigateTo(Route.EVENT_CREATE)
     }
 }
 
@@ -171,7 +261,8 @@ fun MonthlyCalendarView(
     year: Int,
     month: Int,
     onSwipePrevious: () -> Unit,
-    onSwipeNext: () -> Unit
+    onSwipeNext: () -> Unit,
+    onChooseMonth: () -> Unit
 ) {
     val todayCalendar = remember { Calendar.getInstance() }
     val todayYear = todayCalendar.get(Calendar.YEAR)
@@ -188,7 +279,8 @@ fun MonthlyCalendarView(
     val dayHeaders = listOf("M", "T", "W", "T", "F", "S", "S")
 
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
             .pointerInput(Unit) {
                 var consumed = false
                 detectVerticalDragGestures(
@@ -213,16 +305,30 @@ fun MonthlyCalendarView(
     ) {
         // month (and year) header
         val text = buildString {
-            append(Month.of(month).getDisplayName(java.time.format.TextStyle.FULL, Locale.getDefault()).uppercase())
+            append(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault()).uppercase())
             if (year != todayYear) append(" $year")
         }
-        Text(
-            text = text,
-            style = MyTypography.titleSmall.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-        )
+        Button(
+            onClick = { onChooseMonth() },
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            colors = ButtonDefaults.buttonColors().copy(containerColor = Color.Transparent),
+        ) {
+            Text(
+                text = text,
+                style = MyTypography.titleSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                ),
+                color = MaterialTheme.colorScheme.inversePrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+        }
         // headers with days of the week
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)) {
             dayHeaders.forEachIndexed { index, label ->
                 Box(
                     modifier = Modifier.weight(1f),
@@ -256,7 +362,9 @@ fun MonthlyCalendarView(
         repeat(totalRows) { row ->
             // row for one week
             Row(
-                modifier = Modifier.fillMaxWidth().weight(1f)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
                 // one day of the week
                 repeat(7) { col ->
@@ -334,4 +442,55 @@ private fun DayCell(
         )
     }
     // todo: cell contents
+}
+
+@Composable
+fun WheelPicker(
+    modifier: Modifier,
+    items: List<String>,
+    selectedIndex: Int,
+    onIndexSelected: (Int) -> Unit
+) {
+    val itemHeight = 40.dp
+    val visibleItems = 5
+
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = selectedIndex.coerceAtLeast(0)
+    )
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+    val centerIndex by remember {
+        derivedStateOf { listState.firstVisibleItemIndex}
+    }
+
+    LaunchedEffect(centerIndex) {
+        onIndexSelected(centerIndex.coerceIn(0, items.size - 1))
+    }
+
+    Box(
+        modifier = modifier.height(itemHeight * visibleItems)
+    ) {
+        LazyColumn(
+            state = listState,
+            flingBehavior = flingBehavior,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = itemHeight * (visibleItems / 2))
+        ) {
+            itemsIndexed(items) { index, item ->
+                val isSelected = index == centerIndex.coerceIn(0, items.size - 1)
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(itemHeight),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = item,
+                        style = MyTypography.bodyLarge.copy(
+                            textAlign = TextAlign.Center,
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal
+                        ),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+        }
+    }
 }
