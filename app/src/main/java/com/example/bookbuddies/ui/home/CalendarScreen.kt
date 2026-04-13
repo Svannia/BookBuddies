@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,7 +30,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -48,12 +48,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
+import com.example.bookbuddies.data.Book
+import com.example.bookbuddies.data.BookBanner
+import com.example.bookbuddies.data.getBannersForWeek
+import com.example.bookbuddies.data.packBanners
+import com.example.bookbuddies.data.weekEndEpoch
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.ui.CustomContentDialogWindow
@@ -86,6 +91,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
     var displayedMonth by remember { mutableIntStateOf(todayMonth) }
     // to toggle the visibility of read books
     val showReadBooks by calendarVM.showReadBooks.collectAsState()
+    val books by bookVM.sortedBooks.collectAsState(emptyList())
 
     // for sliding animations
     // 1 for next month, -1 for previous month
@@ -160,6 +166,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                 val targetMonth = ((targetYearMonth - 1) % 12) + 1
                 val targetYear = (targetYearMonth - 1) / 12
                 MonthlyCalendarView(
+                    books = books,
                     year = targetYear,
                     month = targetMonth,
                     onSwipePrevious = {
@@ -258,6 +265,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
 
 @Composable
 fun MonthlyCalendarView(
+    books: List<Book>,
     year: Int,
     month: Int,
     onSwipePrevious: () -> Unit,
@@ -359,54 +367,82 @@ fun MonthlyCalendarView(
         }
         val daysInPrevMonth = prevMonthCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-        repeat(totalRows) { row ->
-            // row for one week
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                // one day of the week
-                repeat(7) { col ->
-                    val cellIndex = row * 7 + col
-                    val day = cellIndex - firstDayOfWeek + 1
-                    val isCurrentMonth = day in 1..daysInMonth
-                    val overflowDay = when {
-                        day < 1 -> daysInPrevMonth + day // previous month
-                        day > daysInMonth -> day - daysInMonth // next month
-                        else -> null
-                    }
-                    val isToday = isCurrentMonth && year == todayYear && month == todayMonth && day == todayDay
-                    val isSunday = col == 6
+        // for displaying the book banners
+        val allBanners = remember(books, year, month) {
+            (0 until totalRows).map { row ->
+                val mondayOffset = row * 7 - firstDayOfWeek
+                val weekStartCal = Calendar.getInstance().apply {
+                    set(year, month - 1, 1)
+                    add(Calendar.DAY_OF_MONTH, mondayOffset)
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val weekStart = weekStartCal.timeInMillis
+                getBannersForWeek(books, weekStart, weekEndEpoch(weekStart))
+            }
+        }
 
-                    // day cell
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .then(
-                                if (isToday) Modifier.border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    shape = RoundedCornerShape(6.dp)
-                                ) else Modifier
-                            )
-                            .alpha(if (isCurrentMonth) 1f else 0.3f)
-                            .clickable {
-                                // todo: popup with details of day's events
-                            },
-                        contentAlignment = Alignment.TopCenter
-                    )
-                    {
-                        val displayDay = if (isCurrentMonth) day else overflowDay
-                        if (displayDay != null) {
-                            DayCell(
-                                day = displayDay,
-                                isToday = isToday,
-                                isSunday = isSunday
-                            )
+        repeat(totalRows) { row ->
+            val banners = allBanners[row]
+
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            ) {
+                // row for one week
+                Row(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // one day of the week
+                    repeat(7) { col ->
+                        val cellIndex = row * 7 + col
+                        val day = cellIndex - firstDayOfWeek + 1
+                        val isCurrentMonth = day in 1..daysInMonth
+                        val overflowDay = when {
+                            day < 1 -> daysInPrevMonth + day // previous month
+                            day > daysInMonth -> day - daysInMonth // next month
+                            else -> null
+                        }
+                        val isToday = isCurrentMonth && year == todayYear && month == todayMonth && day == todayDay
+                        val isSunday = col == 6
+
+                        // day cell
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .then(
+                                    if (isToday) Modifier.border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) else Modifier
+                                )
+                                .alpha(if (isCurrentMonth) 1f else 0.3f)
+                                .clickable {
+                                    // todo: popup with details of day's events
+                                },
+                            contentAlignment = Alignment.TopCenter
+                        )
+                        {
+                            val displayDay = if (isCurrentMonth) day else overflowDay
+                            if (displayDay != null) {
+                                DayCell(
+                                    day = displayDay,
+                                    isToday = isToday,
+                                    isSunday = isSunday
+                                )
+                            }
                         }
                     }
+                }
+
+                // book banners
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(top = 32.dp)
+                ) {
+                    WeekBookBanners(banners)
                 }
             }
         }
@@ -489,6 +525,58 @@ fun WheelPicker(
                         ),
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WeekBookBanners(banners: List<BookBanner>) {
+    val packedRows = remember(banners) { packBanners(banners) }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        packedRows.forEach { rowBanners ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                var currentCol = 0
+                rowBanners.sortedBy { it.startCol }.forEach { banner ->
+                    // gap before this banner
+                    if (banner.startCol > currentCol) {
+                        Spacer(modifier = Modifier.weight((banner.startCol - currentCol).toFloat()))
+                    }
+                    val spanWeight = (banner.endCol - banner.startCol + 1).toFloat()
+                    Box(
+                        modifier = Modifier
+                            .weight(spanWeight)
+                            .height(18.dp)
+                            .padding(
+                                start = if (banner.startCol == 0 && banner.continuesBefore) 0.dp else 2.dp,
+                                end = if (banner.endCol == 6 && banner.continuesAfter) 0.dp else 2.dp
+                            )
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(
+                                    topStart = if (banner.continuesBefore) 0.dp else 6.dp,
+                                    bottomStart = if (banner.continuesBefore) 0.dp else 6.dp,
+                                    topEnd = if (banner.continuesAfter) 0.dp else 6.dp,
+                                    bottomEnd = if (banner.continuesAfter) 0.dp else 6.dp
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = banner.book.title,
+                            style = MyTypography.bodySmall,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
+                    currentCol = banner.endCol + 1
+                }
+                // fill remaining space after last banner
+                if (currentCol <= 6) {
+                    Spacer(modifier = Modifier.weight((7 - currentCol).toFloat()))
                 }
             }
         }
