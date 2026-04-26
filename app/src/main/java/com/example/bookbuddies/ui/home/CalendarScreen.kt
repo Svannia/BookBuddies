@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookBanner
+import com.example.bookbuddies.data.coverColour
 import com.example.bookbuddies.data.getBannersForWeek
 import com.example.bookbuddies.data.packBanners
 import com.example.bookbuddies.data.weekEndEpoch
@@ -539,6 +540,10 @@ fun WeekBookBanners(banners: List<BookBanner>) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 var currentCol = 0
                 rowBanners.sortedBy { it.startCol }.forEach { banner ->
+                    // compute dominant colour
+                    val bannerColour = remember(banner.book.cover) {
+                        coverColour(banner.book)
+                    }
                     // gap before this banner
                     if (banner.startCol > currentCol) {
                         Spacer(modifier = Modifier.weight((banner.startCol - currentCol).toFloat()))
@@ -553,7 +558,7 @@ fun WeekBookBanners(banners: List<BookBanner>) {
                                 end = if (banner.endCol == 6 && banner.continuesAfter) 0.dp else 2.dp
                             )
                             .background(
-                                color = MaterialTheme.colorScheme.primary,
+                                color = bannerColour,
                                 shape = RoundedCornerShape(
                                     topStart = if (banner.continuesBefore) 0.dp else 6.dp,
                                     bottomStart = if (banner.continuesBefore) 0.dp else 6.dp,

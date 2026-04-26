@@ -1,6 +1,12 @@
 package com.example.bookbuddies.data
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import com.example.bookbuddies.ui.theme.MediumGrey
 import java.util.Calendar
+import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.get
+import timber.log.Timber
 
 data class BookBanner(
     val book: Book,
@@ -91,4 +97,99 @@ fun weekEndEpoch(weekStart: Long): Long {
 private fun dayOfWeekCol(epoch: Long): Int {
     val calendar = Calendar.getInstance().apply { timeInMillis = epoch }
     return (calendar.get(Calendar.DAY_OF_WEEK) - 2 + 7) % 7
+}
+
+/**
+ * Extracts the dominant colour on a book's cover.
+ *
+ * @param coverPath file path to stored cover image
+ * @return most dominant non-grey-scale colour
+ */
+fun coverColour(book: Book): Color {
+    if (book.cover == null) return MediumGrey
+
+    val coverPath = book.cover
+    return try {
+        // scale image resolution down for performance (just enough to see colours)
+        val options = BitmapFactory.Options().apply { inSampleSize = 4 }
+        val bitmap = BitmapFactory.decodeFile(coverPath, options) ?: return MediumGrey
+
+        // mapping of colours and number of appearances
+        val colourCounts = mutableMapOf<Int, Int>()
+
+        val stepX = (bitmap.width / 20).coerceAtLeast(1)
+        val stepY = (bitmap.height / 20).coerceAtLeast(1)
+
+        for (x in 0 until bitmap.width step stepX) {
+            for (y in 0 until bitmap.height step stepY) {
+                val pixel = bitmap[x, y]
+                val r = (pixel shr 16) and 0xFF
+                val g = (pixel shr 8) and 0xFF
+                val b = pixel and 0xFF
+
+                // skip neutral colours
+                if (isNeutral(r, g, b)) continue
+                // group similar colours
+                val quantized = quantizeColor(r, g, b)
+                val qr = (quantized shr 16) and 0xFF
+                val qg = (quantized shr 8) and 0xFF
+                val qb = quantized and 0xFF
+                if (isNeutral(qr, qg, qb)) continue
+                colourCounts[quantized] = (colourCounts[quantized] ?: 0) + 1
+            }
+        }
+
+        colourCounts.entries
+            .sortedByDescending { it.value }
+            .take(10) // top 10 most frequent
+            .forEach { (color, count) ->
+                val r = (color shr 16) and 0xFF
+                val g = (color shr 8) and 0xFF
+                val b = color and 0xFF
+                Timber.tag("ColorExtract").d("${book.title} RGB($r, $g, $b) — count: $count")
+            }
+
+        if (colourCounts.isEmpty()) return MediumGrey
+
+        // pick most frequent and vibrant colour
+        val dominantColour = colourCounts.maxByOrNull { it.value }!!.key
+        val r = (dominantColour shr 16) and 0xFF
+        val g = (dominantColour shr 8) and 0xFF
+        val b = dominantColour and 0xFF
+
+        Color(r, g, b)
+
+    } catch (e: Exception) {
+        Timber.tag("ColourExtract").d("Failed to extract colour with error $e")
+        MediumGrey
+    }
+}
+
+/**
+ * Returns true if the color is neutral (white, black, or grey).
+ */
+private fun isNeutral(r: Int, g: Int, b: Int): Boolean {
+    // check if it's too dark or too light
+    val brightness = (r * 0.299 + g * 0.587 + b * 0.114)
+    if (brightness < 30) return true  // too dark/black
+    if (brightness > 220) return true // too light/white
+
+    // check if it's grey (low saturation)
+    val max = maxOf(r, g, b).toFloat()
+    val min = minOf(r, g, b).toFloat()
+    val saturation = if (max == 0f) 0f else (max - min) / max
+    if (saturation < 0.25f) return true // too grey
+
+    return false
+}
+
+/**
+ * Quantizes a color to reduce noise — groups similar colors into buckets.
+ */
+private fun quantizeColor(r: Int, g: Int, b: Int): Int {
+    val step = 32 // bucket size
+    val qr = (r / step) * step
+    val qg = (g / step) * step
+    val qb = (b / step) * step
+    return (qr shl 16) or (qg shl 8) or qb
 }
