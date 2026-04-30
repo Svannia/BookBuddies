@@ -27,6 +27,12 @@ class Converters {
     @TypeConverter
     fun toStringList(string: String): List<String> =
         Json.decodeFromString(string)
+
+    @TypeConverter
+    fun fromLongList(list: List<Long>): String = Json.encodeToString(list)
+
+    @TypeConverter
+    fun toLongList(string: String): List<Long> = Json.decodeFromString(string)
 }
 
 // Data Access Object (DAO) for the Book entity
@@ -80,7 +86,7 @@ interface EventTagDao {
 }
 
 // Room database that holds all DAO entities
-@Database(entities = [Book::class, CalendarEvent::class, EventTag::class], version = 4)
+@Database(entities = [Book::class, CalendarEvent::class, EventTag::class], version = 5)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
@@ -98,7 +104,7 @@ object DatabaseProvider {
             AppDatabase::class.java,
             "bookbuddies.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build().also { db = it }
     }
 }

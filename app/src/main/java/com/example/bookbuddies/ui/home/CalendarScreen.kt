@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -56,8 +57,8 @@ import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookBanner
-import com.example.bookbuddies.data.coverColour
 import com.example.bookbuddies.data.getBannersForWeek
+import com.example.bookbuddies.data.getCoverColour
 import com.example.bookbuddies.data.packBanners
 import com.example.bookbuddies.data.weekEndEpoch
 import com.example.bookbuddies.navigation.NavigationActions
@@ -541,9 +542,7 @@ fun WeekBookBanners(banners: List<BookBanner>) {
                 var currentCol = 0
                 rowBanners.sortedBy { it.startCol }.forEach { banner ->
                     // compute dominant colour
-                    val bannerColour = remember(banner.book.cover) {
-                        coverColour(banner.book)
-                    }
+                    val bannerColour = getCoverColour(banner.book)
                     // gap before this banner
                     if (banner.startCol > currentCol) {
                         Spacer(modifier = Modifier.weight((banner.startCol - currentCol).toFloat()))
@@ -571,7 +570,7 @@ fun WeekBookBanners(banners: List<BookBanner>) {
                         Text(
                             text = banner.book.title,
                             style = MyTypography.bodySmall,
-                            color = Color.White,
+                            color = if (bannerColour.luminance() > 0.4f) Color.Black else Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(horizontal = 4.dp)

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
 import com.example.bookbuddies.data.displayAuthor
+import com.example.bookbuddies.data.extractColours
 import com.example.bookbuddies.datastore.BookRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -62,7 +63,8 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     init {
         viewModelScope.launch {
             allBooks.collect { books ->
-                _allAuthors.value = books.flatMap { it.authors.map { author -> displayAuthor(author) } }.distinct()
+                _allAuthors.value =
+                    books.flatMap { it.authors.map { author -> displayAuthor(author) } }.distinct()
                 _allSeries.value = books.map { it.seriesName }.distinct()
                 _allGenres.value = books.map { it.genre }.distinct()
                 _allPublishers.value = books.map { it.publisher }.distinct()
@@ -72,6 +74,9 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
                 _allBought.value = books.filter { !it.isGift }.map { it.source }.distinct()
                 _allGivers.value = books.filter { it.isGift }.map { it.source }.distinct()
             }
+        }
+        viewModelScope.launch {
+            backfillCoverColours()
         }
     }
 
@@ -154,24 +159,34 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     /**
      * Inserts new books in the repository. If the book already exists, its data is overwritten with the new one.
+     * Also compute cover colours.
      *
      * @param books list of Book objects to be added
      */
     fun insertBooks(books: List<Book>) {
-        viewModelScope.launch {
-            repository.insertBooks(books)
+        viewModelScope.launch(Dispatchers.IO) {
+            val booksWithColours = books.map { book ->
+                if (book.cover != null && book.coverColours.isEmpty()) {
+                    book.copy(coverColours = extractColours(book))
+                } else book
+            }
+            repository.insertBooks(booksWithColours)
             Timber.tag("BookVM").d("Inserting ${books.size} into repository")
         }
     }
 
     /**
      * Inserts a new book in the repository. If the book already exists, its data is overwritten with the new one.
+     * Also compute cover colours.
      *
      * @param book Book object to be added
      */
     fun insertBook(book: Book) {
-        viewModelScope.launch {
-            repository.insertBook(book)
+        viewModelScope.launch(Dispatchers.IO) {
+            val bookWithColour = if (book.cover != null && book.coverColours.isEmpty()) {
+                book.copy(coverColours = extractColours(book))
+            } else book
+            repository.insertBook(bookWithColour)
             Timber.tag("BookVM").d("Inserting book \"${book.title}\" into repository")
         }
     }
@@ -211,8 +226,8 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
                     .e("Failed to save cover from gallery Uri $image: returned a null file.")
                 isError(true)
             } else {
-                val updatedBook = book.copy(cover = newCover)
-                repository.insertBook(updatedBook)
+                val updatedBook = book.copy(cover = newCover, coverColours = emptyList(), chosenCoverColour = 0)
+                insertBook(updatedBook)
                 Timber.tag("BookVM").d("Update book \"${book.title}\" with new cover.")
                 callBack()
             }
@@ -323,7 +338,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
                     errorOccurred = true
                 }
             }
-            book.copy(cover = null)
+            book.copy(cover = null, coverColours = emptyList(), chosenCoverColour = 0)
         }
         viewModelScope.launch {
             repository.insertBooks(clearedBooks)
@@ -349,6 +364,26 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
                 if (errorOccurred) isError(true)
                 else callBack()
             }
+        }
+    }
+
+    /**
+     * Called when initializing the VM to re-compute the cover colours (in case of leftover legacy books)
+     *
+     */
+    fun backfillCoverColours() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val books = allBooks.first()
+            /*val booksNeedingColours = books.filter { it.cover != null && it.coverColours.isEmpty() }
+            if (booksNeedingColours.isEmpty()) return@launch
+            Timber.tag("BookVM").d("Backfilling cover colours ${booksNeedingColours.size} books")*/
+
+            val updated = books.map { book ->
+                val coverColours = extractColours(book)
+                Timber.tag("Debug").d("Book ${book.title} has ${coverColours.size} colours")
+                book.copy(coverColours = extractColours(book))
+            }
+            repository.insertBooks(updated)
         }
     }
 

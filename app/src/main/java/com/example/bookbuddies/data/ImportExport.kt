@@ -145,6 +145,8 @@ suspend fun importBooksFromCsv(
             title = getCol(cols, TITLE),
             authors = authors,
             cover = existingBook?.cover,
+            coverColours = existingBook?.coverColours ?: emptyList(),
+            chosenCoverColour = existingBook?.chosenCoverColour ?: 0,
             seriesName = seriesName,
             seriesNumber = seriesNumber,
             description = description,
