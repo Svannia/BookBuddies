@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.example.bookbuddies.data.CalendarEvent
@@ -31,7 +30,7 @@ fun EventShared(
     val minuteEnd = remember { mutableIntStateOf(event?.minuteEnd ?: 0) }
     val location = remember { mutableStateOf(event?.location ?: "") }
     val notes = remember { mutableStateOf(event?.notes ?: "") }
-    val tags = remember { mutableStateListOf<String>().apply { addAll(event?.tags ?: emptyList()) } }
+    val tag = remember { mutableStateOf(event?.tag ?: "")}
     val reminder = remember { mutableStateOf(event?.reminder ?: false) }
     val reminderTime = remember { mutableLongStateOf(event?.reminderTime ?: 0L) }
 
@@ -45,8 +44,7 @@ fun EventShared(
             minuteEnd.intValue = event.minuteEnd
             location.value = event.location
             notes.value = event.notes
-            tags.clear()
-            tags.addAll(event.tags)
+            tag.value = event.tag
             reminder.value = event.reminder
             reminderTime.longValue = event.reminderTime
         }

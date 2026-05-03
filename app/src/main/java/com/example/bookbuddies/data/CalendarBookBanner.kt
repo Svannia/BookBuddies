@@ -1,12 +1,6 @@
 package com.example.bookbuddies.data
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import com.example.bookbuddies.ui.theme.MediumGrey
 import java.util.Calendar
-import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.get
-import timber.log.Timber
 
 data class BookBanner(
     val book: Book,

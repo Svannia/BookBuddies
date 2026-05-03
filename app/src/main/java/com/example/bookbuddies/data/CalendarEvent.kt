@@ -14,7 +14,7 @@ data class CalendarEvent(
     val minuteEnd: Int,
     val location: String,
     val notes: String,
-    val tags: List<String> = emptyList(),
+    val tag: String,
     val reminder: Boolean,
     val reminderTime: Long
 )

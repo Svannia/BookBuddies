@@ -48,12 +48,12 @@ import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
-import com.example.bookbuddies.data.displayAuthors
-import com.example.bookbuddies.data.displayDate
-import com.example.bookbuddies.data.displaySeries
-import com.example.bookbuddies.data.fetchCoverForBook
-import com.example.bookbuddies.data.fetchCoverForManga
+import com.example.bookbuddies.helpers.fetchCoverForBook
+import com.example.bookbuddies.helpers.fetchCoverForManga
 import com.example.bookbuddies.errors.handleError
+import com.example.bookbuddies.helpers.displayAuthors
+import com.example.bookbuddies.helpers.displayDate
+import com.example.bookbuddies.helpers.displaySeries
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.system.checkPermission

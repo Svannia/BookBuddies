@@ -7,9 +7,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
-import com.example.bookbuddies.data.displayAuthor
-import com.example.bookbuddies.data.extractColours
 import com.example.bookbuddies.datastore.BookRepository
+import com.example.bookbuddies.helpers.displayAuthor
+import com.example.bookbuddies.helpers.extractColours
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -377,6 +377,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             /*val booksNeedingColours = books.filter { it.cover != null && it.coverColours.isEmpty() }
             if (booksNeedingColours.isEmpty()) return@launch
             Timber.tag("BookVM").d("Backfilling cover colours ${booksNeedingColours.size} books")*/
+            // todo: uncomment once cover algo is good
 
             val updated = books.map { book ->
                 val coverColours = extractColours(book)
@@ -384,6 +385,18 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
                 book.copy(coverColours = extractColours(book))
             }
             repository.insertBooks(updated)
+        }
+    }
+
+    /**
+     * Updates the index of the chosen cover colour (not the list of colours).
+     *
+     * @param book which index has changed
+     * @param index new colour index
+     */
+    fun updateChosenCoverColour(book: Book, index: Int) {
+        viewModelScope.launch {
+            repository.insertBook(book.copy(chosenCoverColour = index))
         }
     }
 

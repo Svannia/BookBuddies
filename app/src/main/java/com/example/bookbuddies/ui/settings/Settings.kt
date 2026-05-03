@@ -53,9 +53,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.datastore.ThemeChoice
-import com.example.bookbuddies.data.exportBooksToCSV
-import com.example.bookbuddies.data.findBookCovers
-import com.example.bookbuddies.data.importBooksFromCsv
+import com.example.bookbuddies.datastore.convertThemeToText
+import com.example.bookbuddies.helpers.exportBooksToCSV
+import com.example.bookbuddies.helpers.findBookCovers
+import com.example.bookbuddies.helpers.importBooksFromCsv
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
@@ -601,20 +602,5 @@ private fun ToggleOptions(numberChoices: Int, currentChoice: MutableState<String
             currentChoice.value = choicesNames[i]
             onToggle(choicesNames[i])
         }
-    }
-}
-
-/**
- * Converts the ThemeChoice objects understood by the system as a name that can be displayed to the user.
- *
- * @param theme ThemeChoice to be converted
- * @return name of the ThemeChoice as a string
- */
-@Composable
-private fun convertThemeToText(theme: ThemeChoice): String {
-    return when (theme) {
-        ThemeChoice.SYSTEM_DEFAULT -> stringResource(R.string.txt_systemDefault)
-        ThemeChoice.DARK -> stringResource(R.string.txt_systemDark)
-        ThemeChoice.LIGHT -> stringResource(R.string.txt_systemLight)
     }
 }

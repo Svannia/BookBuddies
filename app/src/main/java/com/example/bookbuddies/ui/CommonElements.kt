@@ -18,6 +18,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,8 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -83,6 +86,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -115,6 +119,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -1295,5 +1300,64 @@ fun RowTextButton(text: String, height: Dp, onClick: () -> Unit) {
         Text(
             text = text, style = MyTypography.bodyLarge
         )
+    }
+}
+
+/**
+ * Vertical wheel picker UI to select items.
+ *
+ * @param modifier for the Box containing the wheel picker
+ * @param items list of the item's texts to display in the wheel
+ * @param selectedIndex currently selected item (in the middle of the wheel)
+ * @param onIndexSelected block that runs with the currently selected item when using the wheel
+ */
+@Composable
+fun WheelPicker(
+    modifier: Modifier,
+    items: List<String>,
+    selectedIndex: Int,
+    onIndexSelected: (Int) -> Unit
+) {
+    val itemHeight = 40.dp
+    val visibleItems = 5
+
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = selectedIndex.coerceAtLeast(0)
+    )
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+    val centerIndex by remember {
+        derivedStateOf { listState.firstVisibleItemIndex}
+    }
+
+    LaunchedEffect(centerIndex) {
+        onIndexSelected(centerIndex.coerceIn(0, items.size - 1))
+    }
+
+    Box(
+        modifier = modifier.height(itemHeight * visibleItems)
+    ) {
+        LazyColumn(
+            state = listState,
+            flingBehavior = flingBehavior,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = itemHeight * (visibleItems / 2))
+        ) {
+            itemsIndexed(items) { index, item ->
+                val isSelected = index == centerIndex.coerceIn(0, items.size - 1)
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(itemHeight),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = item,
+                        style = MyTypography.bodyLarge.copy(
+                            textAlign = TextAlign.Center,
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal
+                        ),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+        }
     }
 }

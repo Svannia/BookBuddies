@@ -63,12 +63,14 @@ import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
 import com.example.bookbuddies.data.DateFormat
-import com.example.bookbuddies.data.displayAuthors
-import com.example.bookbuddies.data.displayDate
 import com.example.bookbuddies.data.getBookSorting
 import com.example.bookbuddies.data.getString
-import com.example.bookbuddies.data.findBookCovers
+import com.example.bookbuddies.helpers.findBookCovers
 import com.example.bookbuddies.errors.handleError
+import com.example.bookbuddies.helpers.displayAuthors
+import com.example.bookbuddies.helpers.displayDate
+import com.example.bookbuddies.helpers.groupBooks
+import com.example.bookbuddies.helpers.groupBooksSubheaders
 import com.example.bookbuddies.ui.CoverImage
 import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.FastScroll
@@ -913,73 +915,4 @@ fun SelectionModeTopRow(selectionModeActive: MutableState<Boolean>, selectedEntr
             )
         }
     }
-}
-
-/**
- * When changing the sorting method, sorts books and groups them based on titles that make sense with the sorting method. Rewrites group headers.
- *
- * @param context to access string resources
- * @param unreadFilter whether or not to filter out books that have been read (only showing unread books)
- * @param sorting current sorting method
- * @param books current list of all Book objects
- * @return Map that maps group headers to their sorted list of books
- */
-private fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSorting, books: List<Book>): Map<String, List<Book>> {
-    val filteredBooks = if (unreadFilter) books.filter { !it.read } else books
-
-    return when (sorting) {
-        BookSorting.AUTHOR_SERIES -> {
-            // Not handled here — use dedicated groupBooksSubheaders()
-            emptyMap()
-        }
-        BookSorting.SERIES -> filteredBooks.groupBy { book ->
-            book.seriesName.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknownSeries)
-        }
-        BookSorting.TITLE -> books.groupBy { book ->
-            book.title.firstOrNull()?.uppercaseChar()?.toString() ?: "#"
-        }
-        BookSorting.RECENTLY_ADDED -> filteredBooks.groupBy { book ->
-            displayDate(book.dateAdded, DateFormat.MONTH_YEAR)
-        }
-        BookSorting.RATING -> filteredBooks.groupBy { book ->
-            val rounded = book.rating.toInt().coerceIn(0, 5)
-            "$rounded ★"
-        }
-        BookSorting.GENRE -> filteredBooks.groupBy { book ->
-            book.genre.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
-        }
-        BookSorting.LANGUAGE -> filteredBooks.groupBy { book ->
-            book.language.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
-        }
-        BookSorting.FORMAT -> filteredBooks.groupBy { book ->
-            book.format.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
-        }
-        BookSorting.SOURCE -> filteredBooks.groupBy { book ->
-            book.source.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
-        }
-    }
-}
-
-/**
- * Specifically handles sorting and re-grouping of books for the Author>Series sorting method, since it also requires subheaders.
- *
- * @param context to access string resources
- * @param unreadFilter whether or not to filter out books that have been read (only showing unread books)
- * @param sorting current sorting method
- * @param books current list of all Book objects
- * @return Map that maps group headers to a mapping of group subheaders to their sorted list of books
- */
-private fun groupBooksSubheaders(context: Context, unreadFilter: Boolean, sorting: BookSorting, books: List<Book>): Map<String, Map<String, List<Book>>> {
-    if (sorting == BookSorting.AUTHOR_SERIES) {
-        val filteredBooks = if (unreadFilter) books.filter { !it.read } else books
-
-        return filteredBooks.groupBy { book ->
-            book.authors.firstOrNull()?.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknownAuthor)
-        }.mapValues { entry ->
-            entry.value.groupBy { book ->
-                book.seriesName.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknownSeries)
-            }
-        }
-    }
-    return emptyMap()
 }

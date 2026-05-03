@@ -11,11 +11,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -25,19 +23,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +45,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,15 +54,23 @@ import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookBanner
+import com.example.bookbuddies.data.CalendarEvent
+import com.example.bookbuddies.data.EventTag
 import com.example.bookbuddies.data.getBannersForWeek
-import com.example.bookbuddies.data.getCoverColour
 import com.example.bookbuddies.data.packBanners
 import com.example.bookbuddies.data.weekEndEpoch
+import com.example.bookbuddies.helpers.displayAuthors
+import com.example.bookbuddies.helpers.formatEventTime
+import com.example.bookbuddies.helpers.getBooksForDay
+import com.example.bookbuddies.helpers.getCoverColour
+import com.example.bookbuddies.helpers.getEventsForDay
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.PrimaryScreen
+import com.example.bookbuddies.ui.WheelPicker
+import com.example.bookbuddies.ui.theme.MediumGrey
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.BookViewModel
@@ -94,6 +99,11 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
     // to toggle the visibility of read books
     val showReadBooks by calendarVM.showReadBooks.collectAsState()
     val books by bookVM.sortedBooks.collectAsState(emptyList())
+
+    // show events
+    val events by calendarVM.allEvents.collectAsState(emptyList())
+    val tags by calendarVM.allEventTags.collectAsState(emptyList())
+    var selectedDay by remember { mutableStateOf<Triple<Int, Int, Int>?>(null) } // year, month, day
 
     // for sliding animations
     // 1 for next month, -1 for previous month
@@ -154,6 +164,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // animated calendar grid
             AnimatedContent(
                 targetState = displayedYear * 12 + displayedMonth,
                 transitionSpec = {
@@ -169,8 +180,12 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                 val targetYear = (targetYearMonth - 1) / 12
                 MonthlyCalendarView(
                     books = books,
+                    events = events,
+                    tags = tags,
                     year = targetYear,
                     month = targetMonth,
+                    showReadBooks = showReadBooks,
+                    onDayClick = { y, m, d -> selectedDay = Triple(y, m, d)},
                     onSwipePrevious = {
                         slideDirection.intValue = -1
                         if (displayedMonth == 1) {
@@ -191,6 +206,30 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                     },
                     onChooseMonth = {
                         showMonthPicker.value = true
+                    }
+                )
+            }
+
+            // show day cell
+            selectedDay?.let { (y, m, d) ->
+                DayDetailsWindow(
+                    year = y,
+                    month = m,
+                    day = d,
+                    books = books,
+                    events = events,
+                    tags = tags,
+                    onChooseColour = { book, chosenColourIdx ->
+                        bookVM.updateChosenCoverColour(book, chosenColourIdx)
+                    },
+                    onDismiss = { selectedDay = null },
+                    onNavigateToBook = { bookId ->
+                        selectedDay = null
+                        navigationActions.navigateTo("${Route.BOOK}/$bookId")
+                    },
+                    onNavigateToEvent = { eventId ->
+                        selectedDay = null
+                        // todo: navigate to event screen
                     }
                 )
             }
@@ -268,8 +307,12 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
 @Composable
 fun MonthlyCalendarView(
     books: List<Book>,
+    events: List<CalendarEvent>,
+    tags: List<EventTag>,
     year: Int,
     month: Int,
+    showReadBooks: Boolean,
+    onDayClick: (Int, Int, Int) -> Unit,
     onSwipePrevious: () -> Unit,
     onSwipeNext: () -> Unit,
     onChooseMonth: () -> Unit
@@ -390,7 +433,9 @@ fun MonthlyCalendarView(
             val banners = allBanners[row]
 
             Box(
-                modifier = Modifier.fillMaxWidth().weight(1f)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
                 // row for one week
                 Row(
@@ -423,7 +468,7 @@ fun MonthlyCalendarView(
                                 )
                                 .alpha(if (isCurrentMonth) 1f else 0.3f)
                                 .clickable {
-                                    // todo: popup with details of day's events
+                                    if (isCurrentMonth) onDayClick(year, month, day)
                                 },
                             contentAlignment = Alignment.TopCenter
                         )
@@ -440,11 +485,15 @@ fun MonthlyCalendarView(
                     }
                 }
 
-                // book banners
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(top = 32.dp)
-                ) {
-                    WeekBookBanners(banners)
+                if (showReadBooks) {
+                    // book banners
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 32.dp)
+                    ) {
+                        WeekBookBanners(banners)
+                    }
                 }
             }
         }
@@ -483,57 +532,6 @@ private fun DayCell(
 }
 
 @Composable
-fun WheelPicker(
-    modifier: Modifier,
-    items: List<String>,
-    selectedIndex: Int,
-    onIndexSelected: (Int) -> Unit
-) {
-    val itemHeight = 40.dp
-    val visibleItems = 5
-
-    val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = selectedIndex.coerceAtLeast(0)
-    )
-    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
-    val centerIndex by remember {
-        derivedStateOf { listState.firstVisibleItemIndex}
-    }
-
-    LaunchedEffect(centerIndex) {
-        onIndexSelected(centerIndex.coerceIn(0, items.size - 1))
-    }
-
-    Box(
-        modifier = modifier.height(itemHeight * visibleItems)
-    ) {
-        LazyColumn(
-            state = listState,
-            flingBehavior = flingBehavior,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = itemHeight * (visibleItems / 2))
-        ) {
-            itemsIndexed(items) { index, item ->
-                val isSelected = index == centerIndex.coerceIn(0, items.size - 1)
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(itemHeight),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = item,
-                        style = MyTypography.bodyLarge.copy(
-                            textAlign = TextAlign.Center,
-                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal
-                        ),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun WeekBookBanners(banners: List<BookBanner>) {
     val packedRows = remember(banners) { packBanners(banners) }
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -543,6 +541,13 @@ fun WeekBookBanners(banners: List<BookBanner>) {
                 rowBanners.sortedBy { it.startCol }.forEach { banner ->
                     // compute dominant colour
                     val bannerColour = getCoverColour(banner.book)
+                    // compute banner shape
+                    val bannerShape = RoundedCornerShape(
+                        topStart = if (banner.continuesBefore) 0.dp else 6.dp,
+                        bottomStart = if (banner.continuesBefore) 0.dp else 6.dp,
+                        topEnd = if (banner.continuesAfter) 0.dp else 6.dp,
+                        bottomEnd = if (banner.continuesAfter) 0.dp else 6.dp
+                    )
                     // gap before this banner
                     if (banner.startCol > currentCol) {
                         Spacer(modifier = Modifier.weight((banner.startCol - currentCol).toFloat()))
@@ -556,14 +561,11 @@ fun WeekBookBanners(banners: List<BookBanner>) {
                                 start = if (banner.startCol == 0 && banner.continuesBefore) 0.dp else 2.dp,
                                 end = if (banner.endCol == 6 && banner.continuesAfter) 0.dp else 2.dp
                             )
-                            .background(
-                                color = bannerColour,
-                                shape = RoundedCornerShape(
-                                    topStart = if (banner.continuesBefore) 0.dp else 6.dp,
-                                    bottomStart = if (banner.continuesBefore) 0.dp else 6.dp,
-                                    topEnd = if (banner.continuesAfter) 0.dp else 6.dp,
-                                    bottomEnd = if (banner.continuesAfter) 0.dp else 6.dp
-                                )
+                            .background(color = bannerColour, shape = bannerShape)
+                            .border(
+                                width = 0.5.dp,
+                                color = MaterialTheme.colorScheme.outline,
+                                shape = bannerShape
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -585,4 +587,214 @@ fun WeekBookBanners(banners: List<BookBanner>) {
             }
         }
     }
+}
+
+@Composable
+fun DayDetailsWindow(
+    year: Int,
+    month: Int,
+    day: Int,
+    books: List<Book>,
+    events: List<CalendarEvent>,
+    tags: List<EventTag>,
+    onChooseColour: (Book, Int) -> Unit,
+    onDismiss: () -> Unit,
+    onNavigateToBook: (String) -> Unit,
+    onNavigateToEvent: (String) -> Unit
+) {
+    val visible = remember { mutableStateOf(true) }
+    LaunchedEffect(visible.value) {
+        if (!visible.value) onDismiss()
+    }
+
+    val isSunday = remember {
+        val cal = Calendar.getInstance().apply { set(year, month - 1, day) }
+        cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
+    }
+    val dayBooks = remember(books, year, month, day) { getBooksForDay(books, year, month, day) }
+    val dayEvents = remember(events, year, month, day) { getEventsForDay(events, year, month, day) }
+    val monthName = remember { Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault()).replaceFirstChar { it.uppercase() } }
+
+    // to display year or not in the header
+    val todayYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
+    val headerText = remember {
+        val cal = Calendar.getInstance().apply { set(year, month - 1, day) }
+        val weekday = cal.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.getDefault())
+            ?.replaceFirstChar { it.uppercase() } ?: ""
+        buildString {
+            append("$weekday $day $monthName")
+            if (year != todayYear) append(" $year")
+        }
+    }
+
+    var colourPickerBook by remember { mutableStateOf<String?>(null) }
+
+    CustomContentDialogWindow(
+        visible = visible,
+        bottomButtons = false,
+        content = {
+            // header with date
+            Text(
+                modifier = Modifier.padding(bottom = 12.dp),
+                text = headerText,
+                style = MyTypography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = if (isSunday) Color.Red else MaterialTheme.colorScheme.inversePrimary
+            )
+
+            // empty day
+            if (dayBooks.isEmpty() && dayEvents.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.txt_emptyDay),
+                    style = MyTypography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+
+            // book items
+            dayBooks.forEach { book ->
+                val bannerColor = getCoverColour(book)
+                val isColourPickerOpen = colourPickerBook == book.uid
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .background(color = bannerColor, shape = RoundedCornerShape(8.dp))
+                        .clickable { onNavigateToBook(book.uid) }
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // open book icon
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        painter = painterResource(R.drawable.open_book),
+                        contentDescription = stringResource(R.string.desc_book),
+                        tint = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // book info
+                    Column {
+                        // book title
+                        Text(
+                            text = book.title,
+                            style = MyTypography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        // author(s)
+                        val authors = displayAuthors(book.authors)
+                        if (authors.isNotBlank()) {
+                            Text(
+                                text = authors,
+                                style = MyTypography.bodySmall,
+                                color = (if (bannerColor.luminance() > 0.4f) Color.Black else Color.White).copy(alpha = 0.7f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // colour change icon
+                    IconButton( onClick = {
+                        colourPickerBook = if (isColourPickerOpen) null else book.uid
+                    }) {
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            painter = painterResource(R.drawable.palette),
+                            contentDescription = stringResource(R.string.desc_colourEditIcon),
+                            tint = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White
+                        )
+                    }
+                }
+
+                // colour bucket picker
+                if (isColourPickerOpen) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        book.coverColours.forEachIndexed { index, colour ->
+                            val isSelected = index == book.chosenCoverColour
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(color = Color(colour), shape = RoundedCornerShape(6.dp))
+                                    .then(
+                                        if (isSelected) Modifier.border(
+                                            width = 2.dp,
+                                            color = MaterialTheme.colorScheme.inversePrimary,
+                                            shape = RoundedCornerShape(6.dp)
+                                        )else Modifier.border(
+                                            width = 0.5.dp,
+                                            color = MaterialTheme.colorScheme.outline,
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                    )
+                                    .clickable {
+                                        onChooseColour(book, index)
+                                        colourPickerBook = null
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // event items
+            dayEvents.forEach { event ->
+                val tagColor = tags.find { it.uid == event.tag }?.let { Color(it.colour) }
+                    ?: MediumGrey
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.background,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .border(width = 1.dp, color = tagColor, shape = RoundedCornerShape(8.dp))
+                        .clickable { onNavigateToEvent(event.uid) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // color sticker
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(color = tagColor, shape = RoundedCornerShape(50))
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // calendar icon
+                    Icon(
+                        modifier = Modifier.size(16.dp),
+                        painter = painterResource(R.drawable.calendar),
+                        contentDescription = stringResource(R.string.desc_calendar),
+                        tint = MaterialTheme.colorScheme.inversePrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // event info
+                    Column {
+                        // event name
+                        Text(
+                            text = event.title,
+                            style = MyTypography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.inversePrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        // event time
+                        Text(
+                            text = formatEventTime(event),
+                            style = MyTypography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+            }
+        }
+    )
 }

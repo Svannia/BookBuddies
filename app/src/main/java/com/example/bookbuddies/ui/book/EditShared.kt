@@ -72,10 +72,10 @@ import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
-import com.example.bookbuddies.data.displayAuthor
-import com.example.bookbuddies.data.displayDate
-import com.example.bookbuddies.data.storeAuthor
 import com.example.bookbuddies.datastore.ThemeChoice
+import com.example.bookbuddies.helpers.displayAuthor
+import com.example.bookbuddies.helpers.displayDate
+import com.example.bookbuddies.helpers.storeAuthor
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.system.checkPermission

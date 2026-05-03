@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
-import com.example.bookbuddies.data.searchByISBN
+import com.example.bookbuddies.helpers.searchByISBN
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.ui.LoadingPage

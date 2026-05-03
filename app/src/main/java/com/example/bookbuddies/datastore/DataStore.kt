@@ -1,9 +1,12 @@
 package com.example.bookbuddies.datastore
 
 import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.bookbuddies.R
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -39,4 +42,20 @@ class DataStoreManager(private val context: Context) {
 
 enum class ThemeChoice {
     SYSTEM_DEFAULT, LIGHT, DARK
+}
+
+
+/**
+ * Converts the ThemeChoice objects understood by the system as a name that can be displayed to the user.
+ *
+ * @param theme ThemeChoice to be converted
+ * @return name of the ThemeChoice as a string
+ */
+@Composable
+fun convertThemeToText(theme: ThemeChoice): String {
+    return when (theme) {
+        ThemeChoice.SYSTEM_DEFAULT -> stringResource(R.string.txt_systemDefault)
+        ThemeChoice.DARK -> stringResource(R.string.txt_systemDark)
+        ThemeChoice.LIGHT -> stringResource(R.string.txt_systemLight)
+    }
 }

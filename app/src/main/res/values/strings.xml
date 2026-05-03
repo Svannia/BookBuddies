@@ -148,6 +148,7 @@
     <string name="txt_createLeave">Are you sure you want to leave? Your new book entry will not be saved.</string>
     <string name="txt_deleteConfirm">Are you sure you want to delete this book?</string>
     <string name="txt_editLeave">Are you sure you want to leave? You haven\'t saved your modifications.</string>
+    <string name="txt_emptyDay">Nothing on that day!</string>
     <string name="txt_failedCoversClipboard">Covers not found</string>
     <string name="txt_finishReading">"Finished reading on: "</string>
     <string name="txt_giftFrom">Gift from:</string>
@@ -171,4 +172,6 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
+    <string name="desc_book">book icon</string>
+    <string name="desc_colourEditIcon">colour edit icon</string>
 </resources>

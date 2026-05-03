@@ -1,9 +1,10 @@
-package com.example.bookbuddies.data
+package com.example.bookbuddies.helpers
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.example.bookbuddies.BuildConfig
+import com.example.bookbuddies.data.Book
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

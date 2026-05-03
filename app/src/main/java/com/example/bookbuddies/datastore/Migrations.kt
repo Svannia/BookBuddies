@@ -58,3 +58,26 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         db.execSQL("ALTER TABLE books ADD COLUMN chosenCoverColour INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+// change event data. again.
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP TABLE IF EXISTS calendar_events")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS calendar_events (
+                uid TEXT PRIMARY KEY NOT NULL,
+                title TEXT NOT NULL,
+                allDay INTEGER NOT NULL DEFAULT 0,
+                dateStart INTEGER NOT NULL,
+                dateEnd INTEGER NOT NULL,
+                minuteStart INTEGER NOT NULL DEFAULT 0,
+                minuteEnd INTEGER NOT NULL DEFAULT 0,
+                location TEXT NOT NULL DEFAULT '',
+                notes TEXT NOT NULL DEFAULT '',
+                tag TEXT NOT NULL DEFAULT '',
+                reminder INTEGER NOT NULL DEFAULT 0,
+                reminderTime INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent())
+    }
+}
