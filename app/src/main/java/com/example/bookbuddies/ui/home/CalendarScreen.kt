@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -94,8 +97,15 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
     val todayYear = remember { currentCalendar.get(Calendar.YEAR) }
     val todayMonth = remember { currentCalendar.get(Calendar.MONTH) + 1 }
     val today = remember { currentCalendar.get(Calendar.DAY_OF_MONTH).toString() }
-    var displayedYear by remember { mutableIntStateOf(todayYear) }
-    var displayedMonth by remember { mutableIntStateOf(todayMonth) }
+
+    // to save calendar state between navigation
+    var displayedYear by remember { mutableIntStateOf(calendarVM.savedYear) }
+    var displayedMonth by remember { mutableIntStateOf(calendarVM.savedMonth) }
+    LaunchedEffect(displayedYear, displayedMonth) {
+        calendarVM.savedYear = displayedYear
+        calendarVM.savedMonth = displayedMonth
+    }
+
     // to toggle the visibility of read books
     val showReadBooks by calendarVM.showReadBooks.collectAsState()
     val books by bookVM.sortedBooks.collectAsState(emptyList())
@@ -711,8 +721,11 @@ fun DayDetailsWindow(
 
                 // colour bucket picker
                 if (isColourPickerOpen) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    Row (
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp)
+                            .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         book.coverColours.forEachIndexed { index, colour ->

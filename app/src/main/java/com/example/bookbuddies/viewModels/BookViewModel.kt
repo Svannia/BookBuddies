@@ -374,15 +374,14 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     fun backfillCoverColours() {
         viewModelScope.launch(Dispatchers.IO) {
             val books = allBooks.first()
-            /*val booksNeedingColours = books.filter { it.cover != null && it.coverColours.isEmpty() }
+            val booksNeedingColours = books.filter { it.cover != null && it.coverColours.isEmpty() }
             if (booksNeedingColours.isEmpty()) return@launch
-            Timber.tag("BookVM").d("Backfilling cover colours ${booksNeedingColours.size} books")*/
-            // todo: uncomment once cover algo is good
+            Timber.tag("BookVM").d("Backfilling cover colours ${booksNeedingColours.size} books")
 
-            val updated = books.map { book ->
+            val updated = booksNeedingColours.map { book ->
                 val coverColours = extractColours(book)
                 Timber.tag("Debug").d("Book ${book.title} has ${coverColours.size} colours")
-                book.copy(coverColours = extractColours(book))
+                book.copy(coverColours = extractColours(book), chosenCoverColour = 0)
             }
             repository.insertBooks(updated)
         }

@@ -20,10 +20,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import androidx.core.content.edit
+import java.util.Calendar
 
 class CalendarViewModel(private val repository: CalendarRepository, app: Application) : ViewModel() {
     val allEvents = repository.allEvents
     val allEventTags = repository.allEventTags
+
+    // remember screen through navigation
+    var savedYear: Int = Calendar.getInstance().get(Calendar.YEAR)
+    var savedMonth: Int = Calendar.getInstance().get(Calendar.MONTH) + 1
 
     // store user preference to show read books progress in calendar or not
     private val _showReadBooks = MutableStateFlow(true)
