@@ -1281,6 +1281,35 @@ fun ToggleBox(
 }
 
 /**
+ * For a specific setting, handles a list of options where exactly one option can and must be selected.
+ *
+ * @param numberChoices number of options in the list
+ * @param currentChoice option that is currently selected
+ * @param choicesNames list of all the options' names
+ * @param onToggle block that runs when a new option is toggled on, with the name of the new option selected
+ */
+@Composable
+fun ToggleOptions(boxHeight: Int, startOffset: Int, numberChoices: Int, currentChoice: MutableState<String>, choicesNames: List<String>, onToggle: (String) -> Unit) {
+    var toggledIndex by remember { mutableIntStateOf(choicesNames.indexOf(currentChoice.value)) }
+
+    for (i in 0 until numberChoices) {
+        ToggleBox(
+            isRadio = true,
+            boxHeight = boxHeight.dp,
+            rowPadding = PaddingValues(start = startOffset.dp, end = 14.dp),
+            rowSpacing = 16.dp,
+            optionText = choicesNames[i],
+            textStyle = MyTypography.bodyLarge,
+            isToggled = toggledIndex == i
+        ) {
+            toggledIndex = i
+            currentChoice.value = choicesNames[i]
+            onToggle(choicesNames[i])
+        }
+    }
+}
+
+/**
  * A clickable row used as a button for the cover's edit options.
  *
  * @param text to be written on the row

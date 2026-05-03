@@ -1,12 +1,18 @@
 package com.example.bookbuddies.helpers
 
+import android.content.ClipData
 import android.content.Context
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.toClipEntry
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
 import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.ui.theme.MediumGrey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
 
@@ -204,4 +210,20 @@ fun groupBooksSubheaders(context: Context, unreadFilter: Boolean, sorting: BookS
         }
     }
     return emptyMap()
+}
+
+/**
+ * Copies some text as an element on the user's phone clipboard.
+ *
+ * @param context to access string resources
+ * @param text to be copied in the clipboard
+ * @param clipboard user's Clipboard
+ * @param coroutineScope to launch the suspend copy operation
+ */
+fun copyToClipboard(context: Context, text: String, clipboard: Clipboard, coroutineScope: CoroutineScope) {
+    coroutineScope.launch {
+        val clipData = ClipData.newPlainText(context.getString(R.string.txt_failedCoversClipboard), text)
+        val clipEntry: ClipEntry = clipData.toClipEntry()
+        clipboard.setClipEntry(clipEntry)
+    }
 }

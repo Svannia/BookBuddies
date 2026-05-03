@@ -1,7 +1,5 @@
 package com.example.bookbuddies.ui.settings
 
-import android.content.ClipData
-import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
 import android.provider.OpenableColumns
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,14 +32,10 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
@@ -58,6 +50,7 @@ import com.example.bookbuddies.helpers.exportBooksToCSV
 import com.example.bookbuddies.helpers.findBookCovers
 import com.example.bookbuddies.helpers.importBooksFromCsv
 import com.example.bookbuddies.errors.handleError
+import com.example.bookbuddies.helpers.copyToClipboard
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.system.TelegramBot
@@ -66,13 +59,12 @@ import com.example.bookbuddies.ui.CustomTextField
 import com.example.bookbuddies.ui.LoadingPage
 import com.example.bookbuddies.ui.ProgressBar
 import com.example.bookbuddies.ui.SecondaryScreen
-import com.example.bookbuddies.ui.ToggleBox
+import com.example.bookbuddies.ui.ToggleOptions
 import com.example.bookbuddies.ui.Tooltip
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.DataViewModel
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -220,6 +212,8 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                 item {
                     SettingCategory(stringResource(R.string.title_theme)) {
                         ToggleOptions(
+                            boxHeight = HEIGHT,
+                            startOffset = OFFSET,
                             numberChoices = themeChoices.size,
                             currentChoice = themeChoiceState,
                             choicesNames = themeChoices
@@ -489,22 +483,6 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
 }
 
 /**
- * Copies some text as an element on the user's phone clipboard.
- *
- * @param context to access string resources
- * @param text to be copied in the clipboard
- * @param clipboard user's Clipboard
- * @param coroutineScope to launch the suspend copy operation
- */
-fun copyToClipboard(context: Context, text: String, clipboard: Clipboard, coroutineScope: CoroutineScope) {
-    coroutineScope.launch {
-        val clipData = ClipData.newPlainText(context.getString(R.string.txt_failedCoversClipboard), text)
-        val clipEntry: ClipEntry = clipData.toClipEntry()
-        clipboard.setClipEntry(clipEntry)
-    }
-}
-
-/**
  * Composes a Settings row with a Tooltip icon at the end, that when pressed displays a popup with informative text design to look like a chat bubble.
  *
  * @param onSettingClick block that runs when clicking anywhere on the row
@@ -573,34 +551,5 @@ private fun SettingCategory(name: String, content: @Composable ColumnScope.() ->
         ) { content() }
         HorizontalDivider(thickness = 3.dp, color = MaterialTheme.colorScheme.outline)
         Spacer(modifier = Modifier.size(16.dp))
-    }
-}
-
-/**
- * For a specific setting, handles a list of options where exactly one option can and must be selected.
- *
- * @param numberChoices number of options in the list
- * @param currentChoice option that is currently selected
- * @param choicesNames list of all the options' names
- * @param onToggle block that runs when a new option is toggled on, with the name of the new option selected
- */
-@Composable
-private fun ToggleOptions(numberChoices: Int, currentChoice: MutableState<String>, choicesNames: List<String>, onToggle: (String) -> Unit) {
-    var toggledIndex by remember { mutableIntStateOf(choicesNames.indexOf(currentChoice.value)) }
-
-    for (i in 0 until numberChoices) {
-        ToggleBox(
-            isRadio = true,
-            boxHeight = HEIGHT.dp,
-            rowPadding = PaddingValues(start = OFFSET.dp, end = 14.dp),
-            rowSpacing = 16.dp,
-            optionText = choicesNames[i],
-            textStyle = MyTypography.bodyLarge,
-            isToggled = toggledIndex == i
-        ) {
-            toggledIndex = i
-            currentChoice.value = choicesNames[i]
-            onToggle(choicesNames[i])
-        }
     }
 }

@@ -35,10 +35,12 @@
     <string name="button_unread">Only unread</string>
 
     <string name="desc_addButton">add button</string>
+    <string name="desc_book">book icon</string>
     <string name="desc_burgerMenu">burger menu</string>
     <string name="desc_calendar">open calendar button</string>
     <string name="desc_cancel">cancel operation</string>
     <string name="desc_clearDate">clear date button</string>
+    <string name="desc_colourEditIcon">colour edit icon</string>
     <string name="desc_copy">copy button</string>
     <string name="desc_coverImage">book cover image</string>
     <string name="desc_deleteButton">delete button</string>
@@ -51,6 +53,7 @@
     <string name="desc_options">options menu</string>
     <string name="desc_rating">book rating (0-5 stars)</string>
     <string name="desc_read">is read</string>
+    <string name="desc_reminderIcon">reminder icon</string>
     <string name="desc_textFieldIcon">text field icon</string>
     <string name="desc_tooltip">tooltip info</string>
 
@@ -63,6 +66,17 @@
     <string name="field_date">Select a date...</string>
     <string name="field_isbnPlaceholder">Enter ISBN...</string>
     <string name="field_maxChar">max. %1$s characters</string>
+
+    <string name="reminder_10before">10 mins before</string>
+    <string name="reminder_1dbefore">1 day before</string>
+    <string name="reminder_1hbefore">1 hour before</string>
+    <string name="reminder_custom">Custom</string>
+    <string name="reminder_customHours">Custom: %1$d hours before</string>
+    <string name="reminder_customMinutes">Custom: %1$d minutes before</string>
+    <string name="reminder_hours">hours</string>
+    <string name="reminder_minutes">minutes</string>
+    <string name="reminder_none">No reminder</string>
+    <string name="reminder_onTime">At time of event</string>
 
     <string name="sorting_added">Recently added</string>
     <string name="sorting_author"><![CDATA[Author > Series]]></string>
@@ -92,6 +106,7 @@
     <string name="title_description">Description</string>
     <string name="title_editBook">Edit book</string>
     <string name="title_enterISBN">Enter ISBN</string>
+    <string name="title_eventCreate">Add new event</string>
     <string name="title_failedCovers">The following covers have not been found:</string>
     <string name="title_format">Format</string>
     <string name="title_genre">Genre</string>
@@ -137,7 +152,7 @@
     <string name="toast_successfulExport">The books have been successfully exported</string>
     <string name="toast_successfulImport">The books have been successfully imported!</string>
     <string name="toast_unknownError">There was an error.</string>
-    <string name="toast_wrongDateFinished">The date finished must be later than the date started.</string>
+    <string name="toast_wrongDateFinished">The end date finished must be later than the start date.</string>
 
     <string name="txt_bookRead">I have finished this book</string>
     <string name="txt_boughtAt">Bought at:</string>
@@ -145,7 +160,8 @@
     <string name="txt_coversTooltip">Concerning Manga covers:\n
         \nIn order to get more results, please use the word \"manga\" within the corresponding books\' \"format\" field.\n
         \nThis will trigger a different search mechanism for those volumes.</string>
-    <string name="txt_createLeave">Are you sure you want to leave? Your new book entry will not be saved.</string>
+    <string name="txt_createBookLeave">Are you sure you want to leave? Your new book entry will not be saved.</string>
+    <string name="txt_createEventLeave">Are you sure you want to leave? Your new event entry will not be saved.</string>
     <string name="txt_deleteConfirm">Are you sure you want to delete this book?</string>
     <string name="txt_editLeave">Are you sure you want to leave? You haven\'t saved your modifications.</string>
     <string name="txt_emptyDay">Nothing on that day!</string>
@@ -172,6 +188,4 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
-    <string name="desc_book">book icon</string>
-    <string name="desc_colourEditIcon">colour edit icon</string>
 </resources>

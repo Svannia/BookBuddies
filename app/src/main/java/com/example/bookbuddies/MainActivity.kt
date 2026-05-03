@@ -32,6 +32,7 @@ import com.example.bookbuddies.ui.book.EnterISBN
 import com.example.bookbuddies.ui.book.ScanISBN
 import com.example.bookbuddies.ui.event.EventCreate
 import com.example.bookbuddies.ui.event.EventEdit
+import com.example.bookbuddies.ui.event.EventView
 import com.example.bookbuddies.ui.home.CalendarScreen
 import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.BookViewModelFactory
@@ -130,8 +131,16 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // calendar events
+                        composable(
+                            route = "${Route.EVENT}/{eventID}",
+                            arguments = listOf(navArgument("eventID") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val eventID = backStackEntry.arguments?.getString("eventID") ?: return@composable
+                            EventView(eventID, calendarVM, navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen EventView")
+                        }
                         composable(Route.EVENT_CREATE) {
-                            EventCreate(calendarVM, navigationActions)
+                            EventCreate(calendarVM, dataVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen EventCreate")
                         }
                         composable(

@@ -656,7 +656,6 @@ fun DayDetailsWindow(
                 Text(
                     text = stringResource(R.string.txt_emptyDay),
                     style = MyTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline
                 )
             }
 
@@ -671,7 +670,8 @@ fun DayDetailsWindow(
                         .background(color = bannerColor, shape = RoundedCornerShape(8.dp))
                         .clickable { onNavigateToBook(book.uid) }
                         .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     // open book icon
                     Icon(
@@ -683,7 +683,9 @@ fun DayDetailsWindow(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     // book info
-                    Column {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
                         // book title
                         Text(
                             text = book.title,

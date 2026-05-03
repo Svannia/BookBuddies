@@ -1,5 +1,7 @@
 package com.example.bookbuddies.helpers
 
+import android.content.Context
+import com.example.bookbuddies.R
 import com.example.bookbuddies.data.CalendarEvent
 import com.example.bookbuddies.data.DateFormat
 import timber.log.Timber
@@ -146,5 +148,23 @@ fun formatEventTime(event: CalendarEvent): String {
 private fun formatMinutes(minutes: Int): String {
     val h = minutes / 60
     val m = minutes % 60
-    return "%02d:%02".format(h, m)
+    return "%02d:%02d".format(h, m)
+}
+
+fun formatReminderTime(context: Context, hasReminder: Boolean, reminderTime: Long): String {
+    if (!hasReminder) return context.getString(R.string.reminder_none)
+    return when (reminderTime) {
+        0L -> context.getString(R.string.reminder_onTime)
+        10 * 60 * 1000L -> context.getString(R.string.reminder_10before)
+        60 * 60 * 1000L -> context.getString(R.string.reminder_1hbefore)
+        24 * 60 * 60 * 1000L -> context.getString(R.string.reminder_1dbefore)
+        else -> {
+            val totalMinutes = reminderTime / (60 * 1000L)
+            if (totalMinutes % 60 == 0L) {
+                context.getString(R.string.reminder_customHours, totalMinutes / 60)
+            } else {
+                context.getString(R.string.reminder_customMinutes, totalMinutes)
+            }
+        }
+    }
 }

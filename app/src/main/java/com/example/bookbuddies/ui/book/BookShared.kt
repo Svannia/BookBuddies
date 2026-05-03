@@ -99,7 +99,20 @@ private const val PUB_DATE = "pub"
 private const val START_DATE = "start"
 private const val FINISH_DATE = "finish"
 
-@OptIn(ExperimentalMaterial3Api::class)
+// max characters per field
+private const val TITLE_MAX = 65
+private const val AUTHOR_MAX = 30
+private const val SERIES_MAX = 30
+private const val GENRE_MAX = 30
+private const val ISBN_MAX = 13
+private const val PUBLISHER_MAX = 40
+private const val LANGUAGE_MAX = 15
+private const val FORMAT_MAX = 15
+private const val SOURCE_MAX = 30
+private const val SHELF_MAX = 30
+private const val DESCRIPTION_MAX = 1000
+
+    @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditShared(
     context: Context,
@@ -135,49 +148,49 @@ fun EditShared(
 
     val tempCover = remember { mutableStateOf(Uri.EMPTY) }
 
-    val isbn = remember { mutableStateOf(book?.isbn ?: "") }
-    val title = remember { mutableStateOf(book?.title ?: "") }
+    val isbn = remember { mutableStateOf((book?.isbn ?: "").take(ISBN_MAX)) }
+    val title = remember { mutableStateOf((book?.title ?: "").take(TITLE_MAX)) }
     val authors = remember { mutableStateListOf<String>().apply {
-        addAll(book?.authors?.map { displayAuthor(it) } ?: emptyList()) }
+        addAll(book?.authors?.map { displayAuthor(it.take(AUTHOR_MAX)) } ?: emptyList()) }
     }
     val cover = remember { mutableStateOf(book?.cover) }
-    val seriesName = remember { mutableStateOf(book?.seriesName ?: "") }
+    val seriesName = remember { mutableStateOf((book?.seriesName ?: "").take(SERIES_MAX)) }
     val seriesNb = remember { mutableIntStateOf(book?.seriesNumber ?: -1) }
-    val description = remember { mutableStateOf(book?.description ?: "") }
-    val genre = remember { mutableStateOf(book?.genre ?: "") }
-    val publisher = remember { mutableStateOf(book?.publisher ?: "") }
+    val description = remember { mutableStateOf((book?.description ?: "").take(DESCRIPTION_MAX)) }
+    val genre = remember { mutableStateOf((book?.genre ?: "").take(GENRE_MAX)) }
+    val publisher = remember { mutableStateOf((book?.publisher ?: "").take(PUBLISHER_MAX)) }
     val pubDate = remember { mutableLongStateOf(book?.publishedDate ?: 0L) }
     val rating = remember { mutableDoubleStateOf(book?.rating ?: 0.0) }
-    val language = remember { mutableStateOf(book?.language ?: "") }
-    val format = remember { mutableStateOf(book?.format ?: "") }
+    val language = remember { mutableStateOf((book?.language ?: "").take(LANGUAGE_MAX)) }
+    val format = remember { mutableStateOf((book?.format ?: "").take(FORMAT_MAX)) }
     val read = remember { mutableStateOf(false) }
     val startDate = remember { mutableLongStateOf(book?.dateStarted ?: 0L) }
     val finishDate = remember { mutableLongStateOf(book?.dateFinished ?: 0L) }
-    val bookshelf = remember { mutableStateOf(book?.bookshelf ?: "") }
-    val source = remember { mutableStateOf(book?.source ?: "") }
+    val bookshelf = remember { mutableStateOf((book?.bookshelf ?: "").take(SHELF_MAX)) }
+    val source = remember { mutableStateOf((book?.source ?: "").take(SOURCE_MAX)) }
     val isGift = remember { mutableStateOf(book?.isGift ?: false) }
 
     LaunchedEffect(book) {
         if (book != null) {
-            isbn.value = book.isbn
-            title.value = book.title
+            isbn.value = book.isbn.take(ISBN_MAX)
+            title.value = book.title.take(TITLE_MAX)
             authors.clear()
-            authors.addAll(book.authors.map { displayAuthor(it) })
+            authors.addAll(book.authors.map { displayAuthor(it.take(AUTHOR_MAX)) })
             cover.value = book.cover
-            seriesName.value = book.seriesName
+            seriesName.value = book.seriesName.take(SERIES_MAX)
             seriesNb.intValue = book.seriesNumber
-            description.value = book.description
-            genre.value = book.genre
-            publisher.value = book.publisher
+            description.value = book.description.take(DESCRIPTION_MAX)
+            genre.value = book.genre.take(GENRE_MAX)
+            publisher.value = book.publisher.take(PUBLISHER_MAX)
             pubDate.longValue = book.publishedDate
             rating.doubleValue = book.rating
-            language.value = book.language
-            format.value = book.format
+            language.value = book.language.take(LANGUAGE_MAX)
+            format.value = book.format.take(FORMAT_MAX)
             read.value = book.read
             startDate.longValue = book.dateStarted
             finishDate.longValue = book.dateFinished
-            bookshelf.value = book.bookshelf
-            source.value = book.source
+            bookshelf.value = book.bookshelf.take(SHELF_MAX)
+            source.value = book.source.take(SOURCE_MAX)
             isGift.value = book.isGift
         }
     }
@@ -309,11 +322,29 @@ fun EditShared(
                             dateAdded = System.currentTimeMillis()
                         )
                         scope.launch {
-                            bookVM.insertBook(updatedBook)
+                            // apply temp cover if a new cover was selected
+                            if (tempCover.value != Uri.EMPTY) {
+                                bookVM.updateCoverFromGallery(
+                                    context,
+                                    tempCover.value,
+                                    updatedBook,
+                                    { if (it) loading.value = false }
+                                ) {
+                                    navigationActions.navigateTo(
+                                        "${Route.BOOK}/$uid",
+                                        clearPrevious = true
+                                    )
+                                    loading.value = false
+                                }
+                            } else {
+                                bookVM.insertBook(updatedBook)
+                                navigationActions.navigateTo(
+                                    "${Route.BOOK}/$uid",
+                                    clearPrevious = true
+                                )
+                                loading.value = false
+                            }
                         }
-                        navigationActions.navigateTo("${Route.BOOK}/$uid", clearPrevious = true)
-
-                        loading.value = false
                     },
                     enabled = dataEdited.value,
                     shape = RoundedCornerShape(50)
@@ -387,7 +418,7 @@ fun EditShared(
                             value = title.value,
                             fieldWidth = FULL_LENGTH,
                             icon = R.drawable.open_book,
-                            maxLength = 65,
+                            maxLength = TITLE_MAX,
                             showSuggestions = false,
                             suggestions = { emptyList() },
                             onFocusEvent = {},
@@ -420,7 +451,7 @@ fun EditShared(
                             value = seriesName.value,
                             fieldWidth = FULL_LENGTH - 100,
                             icon = R.drawable.sheets,
-                            maxLength = 30,
+                            maxLength = SERIES_MAX,
                             showSuggestions = true,
                             suggestions = { bookVM.filterSeries(it, allSeries) },
                             onFocusEvent = { focusState ->
@@ -473,7 +504,7 @@ fun EditShared(
                             value = genre.value,
                             fieldWidth = FULL_LENGTH,
                             icon = R.drawable.tag,
-                            maxLength = 30,
+                            maxLength = GENRE_MAX,
                             showSuggestions = true,
                             suggestions = { bookVM.filterGenres(it, allGenres) },
                             onFocusEvent = { focusState ->
@@ -492,7 +523,7 @@ fun EditShared(
                             value = isbn.value,
                             fieldWidth = FULL_LENGTH,
                             icon = R.drawable.barcode,
-                            maxLength = 13,
+                            maxLength = ISBN_MAX,
                             showSuggestions = false,
                             suggestions = { emptyList() },
                             onFocusEvent = {},
@@ -507,7 +538,7 @@ fun EditShared(
                             value = publisher.value,
                             fieldWidth = FULL_LENGTH,
                             icon = R.drawable.house,
-                            maxLength = 40,
+                            maxLength = PUBLISHER_MAX,
                             showSuggestions = true,
                             suggestions = { bookVM.filterPublishers(it, allPublishers) },
                             onFocusEvent = { focusState ->
@@ -548,7 +579,7 @@ fun EditShared(
                             value = language.value,
                             fieldWidth = FULL_LENGTH,
                             icon = R.drawable.language,
-                            maxLength = 15,
+                            maxLength = LANGUAGE_MAX,
                             showSuggestions = true,
                             suggestions = { bookVM.filterLanguages(it, allLanguages) },
                             onFocusEvent = { focusState ->
@@ -567,7 +598,7 @@ fun EditShared(
                             value = format.value,
                             fieldWidth = FULL_LENGTH,
                             icon = R.drawable.closed_book,
-                            maxLength = 15,
+                            maxLength = FORMAT_MAX,
                             showSuggestions = true,
                             suggestions = { bookVM.filterFormats(it, allFormats) },
                             onFocusEvent = { focusState ->
@@ -622,7 +653,7 @@ fun EditShared(
                                     value = source.value,
                                     icon = if (isGift.value) R.drawable.gift else R.drawable.cart,
                                     width = FULL_LENGTH,
-                                    maxLength = 30,
+                                    maxLength = SOURCE_MAX,
                                     singleLine = true,
                                     canExpand = true,
                                     suggestions = {
@@ -650,7 +681,7 @@ fun EditShared(
                             value = bookshelf.value,
                             fieldWidth = FULL_LENGTH,
                             icon = R.drawable.bookshelf,
-                            maxLength = 30,
+                            maxLength = SHELF_MAX,
                             showSuggestions = true,
                             suggestions = { bookVM.filterBookshelves(it, allBookshelves) },
                             onFocusEvent = { focusState ->
@@ -737,7 +768,7 @@ fun EditShared(
                             value = description.value,
                             fieldWidth = FULL_LENGTH,
                             icon = R.drawable.quill_ink,
-                            maxLength = 1000,
+                            maxLength = DESCRIPTION_MAX,
                             singleLine = false,
                             showSuggestions = false,
                             suggestions = { emptyList() },
@@ -891,7 +922,7 @@ private fun AuthorsListInputFields(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 InputField(
-                    value, icon, 250, 30, singleLine = true, true,
+                    value, icon, 250, AUTHOR_MAX, singleLine = true, true,
                     { suggestions(it) },
                     { onFocusEvent(it) }
                 ) { onValueChange(it, index) }

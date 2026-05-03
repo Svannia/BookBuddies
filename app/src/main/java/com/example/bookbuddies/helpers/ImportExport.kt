@@ -1,5 +1,6 @@
 package com.example.bookbuddies.helpers
 
+import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
 import com.opencsv.CSVReader
 import timber.log.Timber
@@ -40,8 +41,8 @@ const val UUID = "book_uuid"
  */
 suspend fun importBooksFromCsv(
     file: File,
-    insertBooks: suspend (List<com.example.bookbuddies.data.Book>) -> Unit,
-    getBookById: suspend (String) -> com.example.bookbuddies.data.Book?,
+    insertBooks: suspend (List<Book>) -> Unit,
+    getBookById: suspend (String) -> Book?,
     callBack: () -> Unit,
     isError: (Boolean) -> Unit
 ) {
@@ -131,8 +132,9 @@ suspend fun importBooksFromCsv(
         // since covers is the only element not present in CSV files -> avoid erasing them
         // if a book already exists, all its data except for an existing cover are overwritten with CSV file data.
         val existingBook = getBookById(uid)
+        Timber.tag("Debug").d("existing book is $existingBook")
 
-        val book = _root_ide_package_.com.example.bookbuddies.data.Book(
+        val book = Book(
             uid = uid,
             isbn = getCol(cols, ISBN),
             title = getCol(cols, TITLE),

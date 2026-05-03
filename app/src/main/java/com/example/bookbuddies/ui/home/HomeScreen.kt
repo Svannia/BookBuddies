@@ -1,6 +1,5 @@
 package com.example.bookbuddies.ui.home
 
-import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
@@ -62,13 +61,12 @@ import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.BookSorting
-import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.getBookSorting
 import com.example.bookbuddies.data.getString
 import com.example.bookbuddies.helpers.findBookCovers
 import com.example.bookbuddies.errors.handleError
+import com.example.bookbuddies.helpers.copyToClipboard
 import com.example.bookbuddies.helpers.displayAuthors
-import com.example.bookbuddies.helpers.displayDate
 import com.example.bookbuddies.helpers.groupBooks
 import com.example.bookbuddies.helpers.groupBooksSubheaders
 import com.example.bookbuddies.ui.CoverImage
@@ -79,7 +77,6 @@ import com.example.bookbuddies.ui.ProgressBar
 import com.example.bookbuddies.ui.RowTextButton
 import com.example.bookbuddies.ui.SingleOptionList
 import com.example.bookbuddies.ui.ToggleBox
-import com.example.bookbuddies.ui.settings.copyToClipboard
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import kotlinx.coroutines.launch

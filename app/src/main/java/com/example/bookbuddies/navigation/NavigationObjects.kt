@@ -11,6 +11,7 @@ object Route{
     const val SCAN_ISBN = "ScanISBN"
     const val ENTER_ISBN = "EnterISBN"
     const val CALENDAR = "Calendar"
+    const val EVENT = "Event"
     const val EVENT_EDIT = "EventEdit"
     const val EVENT_CREATE = "EventCreate"
 }

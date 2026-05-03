@@ -53,7 +53,7 @@ fun BookCreate(isbn: String?, bookVM: BookViewModel, dataVM: DataViewModel, navi
             context = context,
             navigationActions = navigationActions,
             screenTitle = stringResource(R.string.title_bookCreate),
-            warningText = stringResource(R.string.txt_createLeave),
+            warningText = stringResource(R.string.txt_createBookLeave),
             onGoBack = { navigationActions.goBack() },
             themeChoice = themeChoice,
             bookVM = bookVM,

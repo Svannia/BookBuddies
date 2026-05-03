@@ -134,13 +134,9 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      * @param uid book ID
      * @return Book object for this ID. Can be null if no book was found with this ID
      */
-    fun getBookById(uid: String): Book? {
-        var returnedBook: Book? = Book.empty()
-        viewModelScope.launch {
-            Timber.tag("BookVM").d("Recovering book with ID $uid")
-            returnedBook = repository.getBookById(uid)
-        }
-        return returnedBook
+    suspend fun getBookById(uid: String): Book? {
+        Timber.tag("BookVM").d("Recovering book with ID $uid")
+        return repository.getBookById(uid)
     }
 
     /**
