@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -105,6 +106,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -118,9 +120,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -129,7 +133,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import coil.compose.rememberAsyncImagePainter
 import com.example.bookbuddies.R
+import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.datastore.ThemeChoice
+import com.example.bookbuddies.helpers.displayDate
 import com.example.bookbuddies.navigation.BOTTOM_DESTINATIONS
 import com.example.bookbuddies.navigation.BURGER_DESTINATIONS
 import com.example.bookbuddies.navigation.NavigationActions
@@ -704,6 +710,7 @@ fun CustomTextField(
     value: String,
     onValueChange: (String) -> Unit,
     icon: Int,
+    iconColour: Color = MaterialTheme.colorScheme.inversePrimary,
     placeHolder: String,
     singleLine: Boolean,
     maxLength: Int,
@@ -716,6 +723,7 @@ fun CustomTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ) {
+    val showingMaxChara = remember { mutableStateOf(false) }
     TextField(
         modifier = if (singleLine) {
             Modifier
@@ -736,6 +744,7 @@ fun CustomTextField(
             if (it.length <= maxLength) {
                 onValueChange(it)
             }
+            showingMaxChara.value = it.length >= maxLength
         },
         textStyle = MyTypography.bodyLarge,
         prefix = {
@@ -744,6 +753,7 @@ fun CustomTextField(
                     Icon(
                         painter = painterResource(id = icon),
                         contentDescription = stringResource(R.string.desc_textFieldIcon),
+                        tint = iconColour,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.size(16.dp))
@@ -755,7 +765,7 @@ fun CustomTextField(
         },
         singleLine = singleLine,
         supportingText = {
-            if (showMaxChara) {
+            if (showMaxChara && showingMaxChara.value) {
                 Text(text = stringResource(R.string.field_maxChar, maxLength), style = MyTypography.labelSmall)
             }
         },
@@ -771,6 +781,252 @@ fun CustomTextField(
             else KeyboardCapitalization.None
         )
     )
+}
+
+/**
+ * Input field specifically designed to edit book information.
+ *
+ * @param value inside the input field
+ * @param icon to display at the beginning of the input field
+ * @param width of the input field
+ * @param maxLength max characters that can be entered in this input field
+ * @param singleLine whether the input field is single line or multi line
+ * @param canExpand whether or not suggestions should be shown when typing
+ * @param suggestions function that provides a list of suggestions based on the current input
+ * @param onFocusEvent callback for focus events on the input field
+ * @param onValueChange callback for when the input field value changes
+ */
+@Composable
+fun InputField(
+    value: String,
+    icon: Int,
+    width: Int,
+    maxLength: Int,
+    singleLine: Boolean,
+    canExpand: Boolean,
+    suggestions: ((String) -> List<String>),
+    onFocusEvent: (FocusState) -> Unit,
+    onValueChange: (String) -> Unit
+) {
+    val showMaxChar = remember { mutableStateOf(false) }
+    val expanded = remember { mutableStateOf(false) }
+    val suggestions by remember(value) { mutableStateOf(suggestions(value)) }
+
+    var textFieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length)))}
+    LaunchedEffect(value) {
+        if (value != textFieldValue.text) {
+            textFieldValue = TextFieldValue(value, TextRange(value.length))
+        }
+    }
+
+    var userTyping by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+
+    Column(modifier = Modifier.width(width.dp))
+    {
+        TextField(
+            modifier = if (singleLine) Modifier
+                .padding(0.dp)
+                .onFocusEvent { onFocusEvent(it) }
+            else Modifier
+                .padding(0.dp)
+                .height(400.dp)
+                .onFocusEvent { onFocusEvent(it) },
+            value = textFieldValue,
+            onValueChange = {
+                if (it.text.length <= maxLength) {
+                    textFieldValue = it
+                    onValueChange(it.text)
+                }
+                showMaxChar.value = it.text.length >= maxLength
+                if (userTyping) expanded.value = true
+            },
+            textStyle = MyTypography.bodyLarge,
+            prefix = {
+                Row{
+                    Icon(
+                        painter = painterResource(id = icon),
+                        contentDescription = stringResource(R.string.desc_textFieldIcon),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.size(16.dp))
+                }
+            },
+            placeholder = {
+                Text(text = stringResource(R.string.txt_inputFieldPlaceholder), style = MyTypography.bodySmall)
+            },
+            singleLine = singleLine,
+            supportingText = {
+                if (showMaxChar.value) {
+                    Text(
+                        text = stringResource(R.string.txt_maxChar, maxLength.toString()),
+                        style = MyTypography.labelSmall
+                    )
+                }
+            },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary
+            )
+        )
+
+        if (canExpand && expanded.value && suggestions.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .heightIn(max = 200.dp)
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            ) {
+                LazyColumn {
+                    items(suggestions.size) { index ->
+                        val suggestion = suggestions[index]
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    userTyping = false
+                                    // fill textField with chosen suggestion and jump cursor to end
+                                    textFieldValue = TextFieldValue(
+                                        suggestion,
+                                        TextRange(suggestion.length)
+                                    )
+                                    onValueChange(suggestion)
+                                    expanded.value = false
+
+                                    // reset userTyping flag (to avoid having the suggestion re-triggering expanded = true)
+                                    scope.launch {
+                                        delay(100)
+                                        userTyping = true
+                                    }
+                                }
+                                .padding(8.dp),
+                            text = suggestion,
+                            style = MyTypography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Section title and input field for a simple, single-line field.
+ *
+ * @param title of the section
+ * @param value inside the input field
+ * @param fieldWidth max width of the input field
+ * @param icon to display at the beginning of the input field
+ * @param maxLength max characters that can be entered in this input field
+ * @param singleLine whether the input field is single line or multi line (default: true)
+ * @param showSuggestions whether to show suggestions when typing
+ * @param suggestions function that provides a list of suggestions based on the current input
+ * @param onFocusEvent callback for focus events on the input field
+ * @param onValueChange callback for when the input field value changes
+ * @param extraActions optional content to display at the end of the input field
+ */
+@Composable
+fun SingleInputField(
+    title: String,
+    value: String,
+    fieldWidth: Int,
+    icon: Int,
+    maxLength: Int,
+    singleLine: Boolean = true,
+    showSuggestions: Boolean,
+    suggestions: ((String) -> List<String>),
+    onFocusEvent: (FocusState) -> Unit,
+    onValueChange: (String) -> Unit,
+    extraActions: (@Composable RowScope.() -> Unit)? = null
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text(text = title, style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start))
+        Row(modifier = Modifier.padding(start = 16.dp)
+        ) {
+            InputField(
+                value, icon, fieldWidth, maxLength, singleLine, showSuggestions,
+                { suggestions(it) },
+                { onFocusEvent(it) }
+            ) { onValueChange(it) }
+            if (extraActions != null) extraActions()
+        }
+    }
+}
+
+/**
+ * Input field for selecting a date. The input field itself is not editable, but clicking on it triggers a date picker dialog.
+ * There is a suffix button to remove the selected date.
+ *
+ * @param date current date inside the input field (in milliseconds since epoch)
+ * @param onClear function that runs when removing the date
+ * @param onClick function that runs when selecting the input field (should open a date picker)
+ */
+@Composable
+fun DateInput(
+    date: Long,
+    onClear: () -> Unit,
+    onClick: () -> Unit
+) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(start = 16.dp)
+    ) {
+        TextField(
+            modifier = Modifier
+                .padding(0.dp)
+                .clickable { onClick() },
+            value = if (date > 0L) displayDate(date, DateFormat.NUMBERED)
+            else "",
+            onValueChange = {},
+            enabled = false,
+            textStyle = MyTypography.bodyLarge,
+            leadingIcon = {
+                Row{
+                    IconButton(onClick = { onClick() }) {
+                        Icon(
+                            painter = painterResource(R.drawable.calendar),
+                            contentDescription = stringResource(R.string.desc_textFieldIcon),
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.size(16.dp))
+                }
+            },
+            trailingIcon = {
+                if (date > 0L) {
+                    IconButton(onClick = { onClear() }) {
+                        Icon(
+                            painter = painterResource(R.drawable.cancel),
+                            contentDescription = stringResource(R.string.desc_clearDate),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            },
+            placeholder = {
+                Text(text = stringResource(R.string.field_date), style = MyTypography.bodySmall)
+            },
+            colors = TextFieldDefaults.colors(
+                disabledContainerColor = Color.Transparent,
+                disabledIndicatorColor = MaterialTheme.colorScheme.inversePrimary,
+                disabledTextColor = MaterialTheme.colorScheme.inversePrimary,
+                disabledLeadingIconColor = MaterialTheme.colorScheme.inversePrimary,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.inversePrimary
+            )
+        )
+    }
 }
 
 /**

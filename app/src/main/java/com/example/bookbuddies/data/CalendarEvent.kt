@@ -2,6 +2,7 @@ package com.example.bookbuddies.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.bookbuddies.helpers.getLocalTimezone
 import java.util.Calendar
 import java.util.UUID
 
@@ -10,6 +11,7 @@ data class CalendarEvent(
     @PrimaryKey val uid: String = UUID.randomUUID().toString(),
     val title: String,
     val allDay: Boolean,
+    val timezone: String,
     val dateStart: Long,
     val dateEnd: Long,
     val minuteStart: Int, // minutes since midnight
@@ -35,7 +37,7 @@ data class CalendarEvent(
             }.timeInMillis
 
             return CalendarEvent(UUID.randomUUID().toString().replace("-", ""),
-                "", false, today, today, 12*60, 13*60,
+                "", false, getLocalTimezone().label, today, 0L, 12*60, 0,
                 "", "", "", false, -1L
             )
         }

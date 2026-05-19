@@ -1,6 +1,7 @@
 package com.example.bookbuddies.datastore
 
 import androidx.room.migration.Migration
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 // added a "bookshelf" field
@@ -79,5 +80,12 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
                 reminderTime INTEGER NOT NULL DEFAULT 0
             )
         """.trimIndent())
+    }
+}
+
+// add timezone field for events
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE calendar_events ADD COLUMN timezone TEXT NOT NULL DEFAULT ''")
     }
 }

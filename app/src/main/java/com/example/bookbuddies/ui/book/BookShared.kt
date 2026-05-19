@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,10 +70,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
-import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.helpers.displayAuthor
-import com.example.bookbuddies.helpers.displayDate
 import com.example.bookbuddies.helpers.storeAuthor
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
@@ -83,9 +80,12 @@ import com.example.bookbuddies.system.imagePermissionVersion
 import com.example.bookbuddies.ui.CoverImage
 import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.CustomDatePicker
+import com.example.bookbuddies.ui.DateInput
+import com.example.bookbuddies.ui.InputField
 import com.example.bookbuddies.ui.MiniLoading
 import com.example.bookbuddies.ui.RatingStars
 import com.example.bookbuddies.ui.RowTextButton
+import com.example.bookbuddies.ui.SingleInputField
 import com.example.bookbuddies.ui.ToggleBox
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
@@ -840,54 +840,6 @@ fun EditShared(
 }
 
 /**
- * Section title and input field for a simple, single-line field.
- *
- * @param title of the section
- * @param value inside the input field
- * @param fieldWidth max width of the input field
- * @param icon to display at the beginning of the input field
- * @param maxLength max characters that can be entered in this input field
- * @param singleLine whether the input field is single line or multi line (default: true)
- * @param showSuggestions whether to show suggestions when typing
- * @param suggestions function that provides a list of suggestions based on the current input
- * @param onFocusEvent callback for focus events on the input field
- * @param onValueChange callback for when the input field value changes
- * @param extraActions optional content to display at the end of the input field
- */
-@Composable
-private fun SingleInputField(
-    title: String,
-    value: String,
-    fieldWidth: Int,
-    icon: Int,
-    maxLength: Int,
-    singleLine: Boolean = true,
-    showSuggestions: Boolean,
-    suggestions: ((String) -> List<String>),
-    onFocusEvent: (FocusState) -> Unit,
-    onValueChange: (String) -> Unit,
-    extraActions: (@Composable RowScope.() -> Unit)? = null
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Text(text = title, style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start))
-        Row(modifier = Modifier.padding(start = 16.dp)
-        ) {
-            InputField(
-                value, icon, fieldWidth, maxLength, singleLine, showSuggestions,
-                { suggestions(it) },
-                { onFocusEvent(it) }
-            ) { onValueChange(it) }
-            if (extraActions != null) extraActions()
-        }
-    }
-}
-
-/**
  * Section title and list of input fields. The user can decide how many input fields to add for this section.
  *
  * @param title of the section
@@ -956,139 +908,6 @@ private fun AuthorsListInputFields(
 }
 
 /**
- * Input field specifically designed to edit book information.
- *
- * @param value inside the input field
- * @param icon to display at the beginning of the input field
- * @param width of the input field
- * @param maxLength max characters that can be entered in this input field
- * @param singleLine whether the input field is single line or multi line
- * @param canExpand whether or not suggestions should be shown when typing
- * @param suggestions function that provides a list of suggestions based on the current input
- * @param onFocusEvent callback for focus events on the input field
- * @param onValueChange callback for when the input field value changes
- */
-@Composable
-private fun InputField(
-    value: String,
-    icon: Int,
-    width: Int,
-    maxLength: Int,
-    singleLine: Boolean,
-    canExpand: Boolean,
-    suggestions: ((String) -> List<String>),
-    onFocusEvent: (FocusState) -> Unit,
-    onValueChange: (String) -> Unit
-) {
-    val showMaxChar = remember { mutableStateOf(false) }
-    val expanded = remember { mutableStateOf(false) }
-    val suggestions by remember(value) { mutableStateOf(suggestions(value)) }
-
-    var textFieldValue by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length)))}
-    LaunchedEffect(value) {
-        if (value != textFieldValue.text) {
-            textFieldValue = TextFieldValue(value, TextRange(value.length))
-        }
-    }
-
-    var userTyping by remember { mutableStateOf(true) }
-    val scope = rememberCoroutineScope()
-
-    Column(modifier = Modifier.width(width.dp))
-    {
-        TextField(
-            modifier = if (singleLine) Modifier
-                .padding(0.dp)
-                .onFocusEvent { onFocusEvent(it) }
-            else Modifier
-                .padding(0.dp)
-                .height(400.dp)
-                .onFocusEvent { onFocusEvent(it) },
-            value = textFieldValue,
-            onValueChange = {
-                if (it.text.length <= maxLength) {
-                    textFieldValue = it
-                    onValueChange(it.text)
-                }
-                showMaxChar.value = it.text.length >= maxLength
-                if (userTyping) expanded.value = true
-            },
-            textStyle = MyTypography.bodyLarge,
-            prefix = {
-                Row{
-                    Icon(
-                        painter = painterResource(id = icon),
-                        contentDescription = stringResource(R.string.desc_textFieldIcon),
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.size(16.dp))
-                }
-            },
-            placeholder = {
-                Text(text = stringResource(R.string.txt_inputFieldPlaceholder), style = MyTypography.bodySmall)
-            },
-            singleLine = singleLine,
-            supportingText = {
-                if (showMaxChar.value) {
-                    Text(
-                        text = stringResource(R.string.txt_maxChar, maxLength.toString()),
-                        style = MyTypography.labelSmall
-                    )
-                }
-            },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                cursorColor = MaterialTheme.colorScheme.primary,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary
-            )
-        )
-
-        if (canExpand && expanded.value && suggestions.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .heightIn(max = 200.dp)
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colorScheme.outline,
-                        shape = RoundedCornerShape(4.dp)
-                    )
-            ) {
-                LazyColumn {
-                    items(suggestions.size) { index ->
-                        val suggestion = suggestions[index]
-                        Text(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    userTyping = false
-                                    // fill textField with chosen suggestion and jump cursor to end
-                                    textFieldValue = TextFieldValue(
-                                        suggestion,
-                                        TextRange(suggestion.length)
-                                    )
-                                    onValueChange(suggestion)
-                                    expanded.value = false
-
-                                    // reset userTyping flag (to avoid having the suggestion re-triggering expanded = true)
-                                    scope.launch {
-                                        kotlinx.coroutines.delay(100)
-                                        userTyping = true
-                                    }
-                                }
-                                .padding(8.dp),
-                            text = suggestion,
-                            style = MyTypography.bodyLarge
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
  * Input field for numbers only. A "#" prefix is displayed before the number.
  *
  * @param number current number inside the input field
@@ -1135,69 +954,4 @@ private fun NumberField(
             imeAction = ImeAction.Done
         )
     )
-}
-
-/**
- * Input field for selecting a date. The input field itself is not editable, but clicking on it triggers a date picker dialog.
- * There is a suffix button to remove the selected date.
- *
- * @param date current date inside the input field (in milliseconds since epoch)
- * @param onClear function that runs when removing the date
- * @param onClick function that runs when selecting the input field (should open a date picker)
- */
-@Composable
-private fun DateInput(
-    date: Long,
-    onClear: () -> Unit,
-    onClick: () -> Unit
-) {
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(start = 16.dp)
-    ) {
-        TextField(
-            modifier = Modifier
-                .padding(0.dp)
-                .clickable { onClick() },
-            value = if (date > 0L) displayDate(date, DateFormat.NUMBERED)
-                    else "",
-            onValueChange = {},
-            enabled = false,
-            textStyle = MyTypography.bodyLarge,
-            leadingIcon = {
-                Row{
-                    IconButton(onClick = { onClick() }) {
-                        Icon(
-                            painter = painterResource(R.drawable.calendar),
-                            contentDescription = stringResource(R.string.desc_textFieldIcon),
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(modifier = Modifier.size(16.dp))
-                }
-            },
-            trailingIcon = {
-                if (date > 0L) {
-                    IconButton(onClick = { onClear() }) {
-                        Icon(
-                            painter = painterResource(R.drawable.cancel),
-                            contentDescription = stringResource(R.string.desc_clearDate),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            },
-            placeholder = {
-                Text(text = stringResource(R.string.field_date), style = MyTypography.bodySmall)
-            },
-            colors = TextFieldDefaults.colors(
-                disabledContainerColor = Color.Transparent,
-                disabledIndicatorColor = MaterialTheme.colorScheme.inversePrimary,
-                disabledTextColor = MaterialTheme.colorScheme.inversePrimary,
-                disabledLeadingIconColor = MaterialTheme.colorScheme.inversePrimary,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.inversePrimary
-            )
-        )
-    }
 }

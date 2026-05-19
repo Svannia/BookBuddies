@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import androidx.core.content.edit
+import kotlinx.coroutines.flow.forEach
 import java.util.Calendar
 
 class CalendarViewModel(private val repository: CalendarRepository, app: Application) : ViewModel() {
@@ -89,6 +90,14 @@ class CalendarViewModel(private val repository: CalendarRepository, app: Applica
     fun deleteEvent(event: CalendarEvent) = viewModelScope.launch {
         repository.deleteEvent(event)
         Timber.tag("CalendarVM").d("Deleted event ${event.title}")
+    }
+
+    /**
+     * Deletes all calendar events in the DB.
+     */
+    fun deleteAllEvents() = viewModelScope.launch {
+        repository.deleteAllEvents()
+        Timber.tag("CalendarVM").d("Deleted all events")
     }
 
     // EVENT TAGS

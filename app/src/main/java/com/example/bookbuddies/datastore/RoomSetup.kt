@@ -70,6 +70,9 @@ interface CalendarEventDao {
 
     @Delete
     suspend fun deleteEvent(event: CalendarEvent)
+
+    @Query("DELETE FROM calendar_events")
+    suspend fun deleteAllEvents()
 }
 
 // DAO for the EventTag entity
@@ -86,7 +89,7 @@ interface EventTagDao {
 }
 
 // Room database that holds all DAO entities
-@Database(entities = [Book::class, CalendarEvent::class, EventTag::class], version = 6)
+@Database(entities = [Book::class, CalendarEvent::class, EventTag::class], version = 7)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
@@ -104,7 +107,7 @@ object DatabaseProvider {
             AppDatabase::class.java,
             "bookbuddies.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .build().also { db = it }
     }
 }

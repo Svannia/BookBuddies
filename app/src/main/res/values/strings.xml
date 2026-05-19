@@ -9,6 +9,7 @@
     <string name="button_confirm">Confirm</string>
     <string name="button_deleteBook">Delete book</string>
     <string name="button_deleteBooks">Delete books</string>
+    <string name="button_endTime">Add end time</string>
     <string name="button_enterISBN">Enter ISBN</string>
     <string name="button_expandAll">Expand all</string>
     <string name="button_export">Export to CSV file</string>
@@ -54,7 +55,9 @@
     <string name="desc_rating">book rating (0-5 stars)</string>
     <string name="desc_read">is read</string>
     <string name="desc_reminderIcon">reminder icon</string>
+    <string name="desc_rightArrow">arrow to the right icon</string>
     <string name="desc_textFieldIcon">text field icon</string>
+    <string name="desc_time">event time icon</string>
     <string name="desc_tooltip">tooltip info</string>
 
     <string name="dst_addBook">Add new book</string>
@@ -95,6 +98,7 @@
     <string name="tag_specialSale">Special sale</string>
 
     <string name="title_about">About</string>
+    <string name="title_allDay">All day</string>
     <string name="title_authors">Authors</string>
     <string name="title_bookCreate">Add New Book</string>
     <string name="title_bookshelf">Bookshelf</string>
@@ -107,6 +111,7 @@
     <string name="title_editBook">Edit book</string>
     <string name="title_enterISBN">Enter ISBN</string>
     <string name="title_eventCreate">Add new event</string>
+    <string name="title_eventName">Event Name</string>
     <string name="title_failedCovers">The following covers have not been found:</string>
     <string name="title_format">Format</string>
     <string name="title_genre">Genre</string>
@@ -123,6 +128,7 @@
     <string name="title_sortBy">Sort by</string>
     <string name="title_source">Source</string>
     <string name="title_theme">Theme</string>
+    <string name="title_timezone">Timezone</string>
     <string name="title_title">Title</string>
 
     <string name="toast_bugReport">Thank you for reporting the bug!</string>
@@ -152,7 +158,8 @@
     <string name="toast_successfulExport">The books have been successfully exported</string>
     <string name="toast_successfulImport">The books have been successfully imported!</string>
     <string name="toast_unknownError">There was an error.</string>
-    <string name="toast_wrongDateFinished">The end date finished must be later than the start date.</string>
+    <string name="toast_wrongDateFinished">The end date must be later than the start date.</string>
+    <string name="toast_wrongMinuteFinished">The end time must be later than the start time.</string>
 
     <string name="txt_bookRead">I have finished this book</string>
     <string name="txt_boughtAt">Bought at:</string>
@@ -174,6 +181,8 @@
         \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
     <string name="txt_inputFieldPlaceholder">Input here...</string>
     <string name="txt_isGift">This book is a gift</string>
+    <string name="txt_localDateTime">Local time: %1$s %2$s</string>
+    <string name="txt_localTime">Local time: %1$s</string>
     <string name="txt_maxChar">max. %1$s characters</string>
     <string name="txt_multiDeleteConfirm">Are you sure you want to delete these books:</string>
     <string name="txt_nbSelected">%1$d selected</string>

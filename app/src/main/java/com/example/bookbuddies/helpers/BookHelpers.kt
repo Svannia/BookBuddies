@@ -102,6 +102,11 @@ fun displayDate(date: Long, format: DateFormat): String {
     val year = calendar.get(Calendar.YEAR)
 
     return when (format) {
+        DateFormat.SHORT_DAY_DATE -> {
+            val dayOfWeek = calendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, locale)
+            val result = "$dayOfWeek $day $shortMonth"
+            if (year != Calendar.getInstance().get(Calendar.YEAR)) "$result $year" else result
+        }
         DateFormat.FULL_DATE -> {
             "$day $longMonth $year"
         }

@@ -162,8 +162,8 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     fun insertBooks(books: List<Book>) {
         viewModelScope.launch(Dispatchers.IO) {
             val booksWithColours = books.map { book ->
-                if (book.cover != null && book.coverColours.isEmpty()) {
-                    book.copy(coverColours = extractColours(book))
+                if (book.cover != null) {
+                    book.copy(coverColours = extractColours(book), chosenCoverColour = 0)
                 } else book
             }
             repository.insertBooks(booksWithColours)
@@ -179,8 +179,8 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      */
     fun insertBook(book: Book) {
         viewModelScope.launch(Dispatchers.IO) {
-            val bookWithColour = if (book.cover != null && book.coverColours.isEmpty()) {
-                book.copy(coverColours = extractColours(book))
+            val bookWithColour = if (book.cover != null) {
+                book.copy(coverColours = extractColours(book), chosenCoverColour = 0)
             } else book
             repository.insertBook(bookWithColour)
             Timber.tag("BookVM").d("Inserting book \"${book.title}\" into repository")

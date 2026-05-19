@@ -3,9 +3,11 @@ package com.example.bookbuddies.ui.event
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -16,17 +18,24 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -46,16 +55,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.CalendarEvent
+import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.datastore.ThemeChoice
+import com.example.bookbuddies.helpers.TIMEZONES
+import com.example.bookbuddies.helpers.Timezone
+import com.example.bookbuddies.helpers.convertToLocal
+import com.example.bookbuddies.helpers.displayDate
+import com.example.bookbuddies.helpers.formatMinutes
 import com.example.bookbuddies.helpers.formatReminderTime
+import com.example.bookbuddies.helpers.getLocalTimezone
+import com.example.bookbuddies.helpers.getTimezoneOffset
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.CustomDatePicker
+import com.example.bookbuddies.ui.CustomTextField
 import com.example.bookbuddies.ui.MiniLoading
 import com.example.bookbuddies.ui.ToggleOptions
 import com.example.bookbuddies.ui.WheelPicker
@@ -65,6 +85,7 @@ import com.example.bookbuddies.viewModels.CalendarViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+private const val FULL_LENGTH = 300
 private const val HEIGHT = 52
 private const val OFFSET = 45
 private const val START_DATE = "start"
@@ -100,6 +121,7 @@ fun EventShared(
 
     val title = remember { mutableStateOf((event.title).take(TITLE_MAX)) }
     val allDay = remember { mutableStateOf(event.allDay) }
+    val timezone = remember { mutableStateOf(event.timezone) }
     val dateStart = remember { mutableLongStateOf(event.dateStart) }
     val dateEnd = remember { mutableLongStateOf(event.dateEnd) }
     val minuteStart = remember { mutableIntStateOf(event.minuteStart) }
@@ -113,6 +135,7 @@ fun EventShared(
     LaunchedEffect(event) {
         title.value = event.title.take(TITLE_MAX)
         allDay.value = event.allDay
+        timezone.value = event.timezone
         dateStart.longValue = event.dateStart
         dateEnd.longValue = event.dateEnd
         minuteStart.intValue = event.minuteStart
@@ -127,9 +150,11 @@ fun EventShared(
     // for picking a date
     var activeDateField by remember { mutableStateOf<String?>(null) }
     val datePickerVisible = remember { mutableStateOf(false) }
+    val localTimezone = remember { mutableStateOf(getLocalTimezone()) }
 
     // other state variables
     val showReminderPicker = remember { mutableStateOf(false) }
+    val showTimezoneDropdown = remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -137,7 +162,19 @@ fun EventShared(
             Box {
                 CenterAlignedTopAppBar(
                     title = { Text(text = screenTitle, style = MyTypography.titleMedium) },
-                    navigationIcon = {},
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                if (dataEdited.value) cancelVisible.value = true
+                                else onGoBack()
+                            }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.go_back),
+                                contentDescription = stringResource(R.string.desc_goBack)
+                            )
+                        }
+                    },
                     actions = {},
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
@@ -160,10 +197,18 @@ fun EventShared(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         // check dates validity
-                        if (!allDay.value && dateEnd.longValue < dateStart.longValue ) {
+                        if (dateEnd.longValue > 0L && dateEnd.longValue < dateStart.longValue) {
                             Toast.makeText(
                                 context,
                                 context.getString(R.string.toast_wrongDateFinished),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@Button
+                        }
+                        else if (!allDay.value && dateEnd.longValue == dateStart.longValue && minuteEnd.intValue < minuteStart.intValue) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_wrongMinuteFinished),
                                 Toast.LENGTH_SHORT
                             ).show()
                             return@Button
@@ -216,12 +261,307 @@ fun EventShared(
                 ) {
                     // title (index 0)
                     item {
-
+                        Row(modifier = Modifier.padding(start = 16.dp)) {
+                            CustomTextField(
+                                value = title.value,
+                                onValueChange = { title.value = it; dataEdited.value = true },
+                                icon = R.drawable.calendar,
+                                iconColour = MaterialTheme.colorScheme.primary,
+                                placeHolder = stringResource(R.string.title_eventName),
+                                singleLine = true,
+                                maxLength = TITLE_MAX,
+                                width = FULL_LENGTH.dp
+                            )
+                        }
                     }
 
                     // all day toggle + dates pickers (index 1)
                     item {
+                        val showStartTimePicker = remember { mutableStateOf(false) }
+                        val showEndTimePicker = remember { mutableStateOf(false) }
+                        val hasEndTime = remember { mutableStateOf(minuteEnd.intValue > 0 || dateEnd.longValue > 0L) }
 
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 32.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // all day toggle
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // all day: icon and field name
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        modifier = Modifier.size(20.dp),
+                                        painter = painterResource(R.drawable.clock),
+                                        contentDescription = stringResource(R.string.desc_time),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.title_allDay),
+                                        style = MyTypography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.inversePrimary
+                                    )
+                                }
+                                Switch(
+                                    checked = allDay.value,
+                                    onCheckedChange = {
+                                        allDay.value = it
+                                        dataEdited.value = true
+                                        showStartTimePicker.value = false
+                                        showEndTimePicker.value = false
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        uncheckedThumbColor = MaterialTheme.colorScheme.onBackground,
+                                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                                        uncheckedTrackColor = MaterialTheme.colorScheme.outline,
+                                        checkedThumbColor = MaterialTheme.colorScheme.onBackground,
+                                        checkedBorderColor = MaterialTheme.colorScheme.primary,
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                    )
+                                )
+                            }
+
+                            // dates + times
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // left column with start date and time
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    // start date
+                                    Text(
+                                        modifier = Modifier
+                                            .widthIn(max = 90.dp)
+                                            .clickable {
+                                                activeDateField = START_DATE
+                                                datePickerVisible.value = true
+                                            },
+                                        text = displayDate(
+                                            dateStart.longValue,
+                                            DateFormat.SHORT_DAY_DATE
+                                        ),
+                                        style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center)
+                                    )
+
+                                    // only show start time if all day not toggled
+                                    if (!allDay.value) {
+                                        Box(
+                                            modifier = Modifier.clickable {
+                                                showStartTimePicker.value =
+                                                    !showStartTimePicker.value
+                                                showEndTimePicker.value = false
+                                            }
+                                        ) {
+                                            Text(
+                                                text = formatMinutes(minuteStart.intValue),
+                                                style = MyTypography.bodyLarge.copy(fontWeight = if (showStartTimePicker.value) FontWeight.Bold else FontWeight.Normal),
+                                                color = if (showStartTimePicker.value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // icon between start and end times
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .padding(top = 4.dp),
+                                    painter = painterResource(R.drawable.arrow_right),
+                                    contentDescription = stringResource(R.string.desc_rightArrow),
+                                    tint = MaterialTheme.colorScheme.outline
+                                )
+
+                                // only show end date and time column if there is one
+                                if (hasEndTime.value) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // right column with end date and time
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            // end date
+                                            Text(
+                                                modifier = Modifier
+                                                    .widthIn(max = 90.dp)
+                                                    .clickable {
+                                                        activeDateField = END_DATE
+                                                        datePickerVisible.value = true
+                                                    },
+                                                text = displayDate(
+                                                    dateEnd.longValue,
+                                                    DateFormat.SHORT_DAY_DATE
+                                                ),
+                                                style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center)
+                                            )
+
+                                            // only show end time if all day not toggled
+                                            if (!allDay.value) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clickable {
+                                                            showEndTimePicker.value = !showEndTimePicker.value
+                                                            showStartTimePicker.value = false
+                                                        }
+                                                ) {
+                                                    Text(
+                                                        text = formatMinutes(minuteEnd.intValue),
+                                                        style = MyTypography.bodyLarge.copy(
+                                                            fontWeight = if (showEndTimePicker.value) FontWeight.Bold else FontWeight.Normal
+                                                        ),
+                                                        color = if (showEndTimePicker.value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // x button to remove the end time
+                                        Icon(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clickable {
+                                                    hasEndTime.value = false
+                                                    minuteEnd.intValue = 0
+                                                    showEndTimePicker.value = false
+                                                    dataEdited.value = true
+                                                },
+                                            painter = painterResource(R.drawable.cancel),
+                                            contentDescription = stringResource(R.string.desc_cancel),
+                                        )
+                                    }
+                                } else {
+                                    // if there is no end time, just show button to add one
+                                    Text(
+                                        modifier = Modifier.clickable {
+                                            hasEndTime.value = true
+                                            dateEnd.longValue = dateStart.longValue
+                                            minuteEnd.intValue = minuteStart.intValue + 60
+                                            dataEdited.value = true
+                                        },
+                                        text = stringResource(R.string.button_endTime),
+                                        style = MyTypography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                                    )
+                                }
+                            }
+
+                            // timezone
+                            if (!allDay.value) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // timezone title with button
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = stringResource(R.string.title_timezone),
+                                                style = MyTypography.bodyLarge
+                                            )
+
+                                            Box(
+                                                contentAlignment = Alignment.Center,
+                                                modifier = Modifier
+                                                    .background(
+                                                        color = MaterialTheme.colorScheme.outline,
+                                                        shape = RoundedCornerShape(8.dp)
+                                                    )
+                                                    .clickable { showTimezoneDropdown.value = true }
+                                            ) {
+                                                Text(
+                                                    modifier = Modifier.padding(8.dp),
+                                                    text = getTimezoneOffset(timezone.value),
+                                                    style = MyTypography.bodySmall.copy(textAlign = TextAlign.Center)
+                                                )
+                                            }
+                                        }
+                                        // list of most common timezones
+                                        DropdownMenu(
+                                            expanded = showTimezoneDropdown.value,
+                                            onDismissRequest = { showTimezoneDropdown.value = false }
+                                        ) {
+                                            TIMEZONES.forEach { tz ->
+                                                DropdownMenuItem(
+                                                    text = { Text(text = tz.label, style = MyTypography.bodyMedium) },
+                                                    onClick = {
+                                                        timezone.value = tz.label
+                                                        showTimezoneDropdown.value = false
+                                                        dataEdited.value = true
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // if chosen and local timezones differ -> show conversion
+                                    if (localTimezone.value.offset != getTimezoneOffset(timezone.value)) {
+                                        val selectedTz = TIMEZONES.find { it.label == timezone.value }
+                                            ?: Timezone(timezone.value, timezone.value)
+                                        val (localDate, localMinutes) = convertToLocal(dateStart.longValue, minuteStart.intValue, selectedTz)
+                                        val localTimeStr = formatMinutes(localMinutes)
+                                        val localDateStr = displayDate(localDate, DateFormat.SHORT_DAY_DATE)
+                                        val sameDay = localDate == dateStart.longValue
+
+                                        Text(
+                                            text = if (sameDay) stringResource(
+                                                R.string.txt_localTime,
+                                                localTimeStr
+                                            )
+                                            else stringResource(
+                                                R.string.txt_localDateTime,
+                                                localDateStr,
+                                                localTimeStr
+                                            ),
+                                            style = MyTypography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                                        )
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+
+                            // time wheel pickers
+                            if (!allDay.value && showStartTimePicker.value) {
+                                TimeWheelPicker(
+                                    currentMinutes = minuteStart.intValue,
+                                    onConfirm = { h, m ->
+                                        minuteStart.intValue = h * 60 + m
+                                        dataEdited.value = true
+                                    }
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            }
+                            if (!allDay.value && showEndTimePicker.value) {
+                                TimeWheelPicker(
+                                    currentMinutes = minuteEnd.intValue,
+                                    onConfirm = { h, m ->
+                                        minuteEnd.intValue = h * 60 + m
+                                        dataEdited.value = true
+                                    }
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            }
+                        }
                     }
 
                     // location (index 2)
@@ -234,14 +574,14 @@ fun EventShared(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
+                                .padding(horizontal = 32.dp)
                                 .clickable { showReminderPicker.value = true },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
-                                painter = painterResource(R.drawable.tag), // todo: get bell icon
+                                painter = painterResource(R.drawable.notification),
                                 contentDescription = stringResource(R.string.desc_reminderIcon),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -328,6 +668,47 @@ fun EventShared(
 }
 
 @Composable
+private fun TimeWheelPicker(
+    currentMinutes: Int,
+    onConfirm: (hours: Int, minutes: Int) -> Unit
+) {
+    val hours = (0..23).map { "%02d".format(it) }
+    val minutes = (0..59 step 5).map { "%02d".format(it) }
+    var pickedHour by remember { mutableIntStateOf(currentMinutes / 60) }
+    var pickedMinute by remember { mutableIntStateOf((currentMinutes % 60) / 5) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        WheelPicker(
+            modifier = Modifier.width(80.dp),
+            items = hours,
+            selectedIndex = pickedHour,
+            onIndexSelected = {
+                pickedHour = it
+                onConfirm(it, pickedMinute * 5)
+            }
+        )
+        Text(
+            text = ":",
+            style = MyTypography.titleSmall,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        )
+        WheelPicker(
+            modifier = Modifier.width(80.dp),
+            items = minutes,
+            selectedIndex = pickedMinute,
+            onIndexSelected = {
+                pickedMinute = it
+                onConfirm(pickedHour, it * 5)
+            }
+        )
+    }
+}
+
+@Composable
 private fun ReminderDialogWindow(
     context: Context,
     showReminderPicker: MutableState<Boolean>,
@@ -350,7 +731,7 @@ private fun ReminderDialogWindow(
     ) }
 
     CustomContentDialogWindow(
-        visible = remember { mutableStateOf(true) },
+        visible = showReminderPicker,
         content = {
             val presetLabels = listOf(
                 stringResource(R.string.reminder_none),

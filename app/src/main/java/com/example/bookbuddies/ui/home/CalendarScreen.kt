@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -165,6 +164,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                     (if (showReadBooks) stringResource(R.string.button_hideRead)
                     else stringResource(R.string.button_showRead))
                             to { calendarVM.toggleShowReadBooks() },
+                    "Delete all events" to {calendarVM.deleteAllEvents()}
                 )
             }
         }
@@ -401,7 +401,7 @@ fun MonthlyCalendarView(
                         text = label,
                         style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center, fontWeight = FontWeight.Bold),
                         // highlight Sunday in red
-                        color = if (index == 6) Color.Red else MaterialTheme.colorScheme.inversePrimary
+                        color = if (index == 6) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.inversePrimary
                     )
                 }
             }
@@ -533,7 +533,7 @@ private fun DayCell(
             style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center),
             color = when {
                 isToday -> MaterialTheme.colorScheme.background
-                isSunday -> Color.Red
+                isSunday -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.inversePrimary
             }
         )
@@ -648,7 +648,7 @@ fun DayDetailsWindow(
                 modifier = Modifier.padding(bottom = 12.dp),
                 text = headerText,
                 style = MyTypography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = if (isSunday) Color.Red else MaterialTheme.colorScheme.inversePrimary
+                color = if (isSunday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.inversePrimary
             )
 
             // empty day

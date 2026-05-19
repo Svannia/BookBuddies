@@ -16,6 +16,7 @@ class CalendarRepository(context: Context) {
 
     suspend fun insertEvent(event: CalendarEvent) = calendarEventDao.insertEvent(event)
     suspend fun deleteEvent(event: CalendarEvent) = calendarEventDao.deleteEvent(event)
+    suspend fun deleteAllEvents() = calendarEventDao.deleteAllEvents()
 
     // EVENT TAGS
     private val eventTagDao = db.eventTagDao()
