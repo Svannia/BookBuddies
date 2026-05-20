@@ -4,10 +4,12 @@ import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -42,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -51,7 +55,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.fromColorLong
+import androidx.compose.ui.graphics.toColorLong
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -62,6 +69,9 @@ import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.CalendarEvent
 import com.example.bookbuddies.data.DateFormat
+import com.example.bookbuddies.data.EventTag
+import com.example.bookbuddies.data.TAG_COLOURS
+import com.example.bookbuddies.data.getTagForEvent
 import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.helpers.TIMEZONES
 import com.example.bookbuddies.helpers.Timezone
@@ -69,6 +79,7 @@ import com.example.bookbuddies.helpers.convertToLocal
 import com.example.bookbuddies.helpers.displayDate
 import com.example.bookbuddies.helpers.formatMinutes
 import com.example.bookbuddies.helpers.formatReminderTime
+import com.example.bookbuddies.helpers.getAvailableTagColours
 import com.example.bookbuddies.helpers.getLocalTimezone
 import com.example.bookbuddies.helpers.getTimezoneOffset
 import com.example.bookbuddies.navigation.NavigationActions
@@ -83,6 +94,7 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.CalendarViewModel
 import kotlinx.coroutines.launch
+import java.util.UUID
 import kotlin.math.roundToInt
 
 private const val FULL_LENGTH = 300
@@ -92,8 +104,9 @@ private const val START_DATE = "start"
 private const val END_DATE = "finish"
 // max characters per field
 private const val TITLE_MAX = 70
-private const val LOCATION_MAX = 50
+private const val LOCATION_MAX = 100
 private const val NOTES_MAX = 500
+private const val TAG_MAX = 50
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,6 +127,8 @@ fun EventShared(
     val cancelVisible = remember { mutableStateOf(false) }
     val dataEdited = remember { mutableStateOf(false) }
 
+    val allTags by calendarVM.allEventTags.collectAsState(emptyList())
+
     BackHandler {
         if (dataEdited.value) cancelVisible.value = true
         else onGoBack()
@@ -128,7 +143,8 @@ fun EventShared(
     val minuteEnd = remember { mutableIntStateOf(event.minuteEnd) }
     val location = remember { mutableStateOf((event.location).take(LOCATION_MAX)) }
     val notes = remember { mutableStateOf((event.notes).take(NOTES_MAX)) }
-    val tag = remember { mutableStateOf(event.tag) }
+    val tagID = remember { mutableStateOf(event.tag) }
+    val chosenTag = remember { mutableStateOf(getTagForEvent(context, tagID.value, allTags)) }
     val reminder = remember { mutableStateOf(event.reminder) }
     val reminderTime = remember { mutableLongStateOf(event.reminderTime) }
 
@@ -142,7 +158,8 @@ fun EventShared(
         minuteEnd.intValue = event.minuteEnd
         location.value = event.location.take(LOCATION_MAX)
         notes.value = event.notes.take(NOTES_MAX)
-        tag.value = event.tag
+        tagID.value = event.tag
+        chosenTag.value = getTagForEvent(context, tagID.value, allTags)
         reminder.value = event.reminder
         reminderTime.longValue = event.reminderTime
     }
@@ -155,6 +172,12 @@ fun EventShared(
     // other state variables
     val showReminderPicker = remember { mutableStateOf(false) }
     val showTimezoneDropdown = remember { mutableStateOf(false) }
+    val showTagsDropdown = remember { mutableStateOf(false) }
+    val showEditTagWindow = remember { mutableStateOf(false) }
+    val showDeleteDialog = remember { mutableStateOf(false) }
+
+    var tagToDelete = null as EventTag?
+    var tagToEdit = null as EventTag?
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -224,7 +247,7 @@ fun EventShared(
                             minuteEnd = minuteEnd.intValue,
                             location = location.value,
                             notes = notes.value,
-                            tag = tag.value,
+                            tag = tagID.value,
                             reminder = reminder.value,
                             reminderTime = reminderTime.longValue
                         )
@@ -233,7 +256,7 @@ fun EventShared(
                             navigationActions.navigateTo("${Route.EVENT}/${updatedEvent.uid}", clearPrevious = true)
                         }
                     },
-                    enabled = dataEdited.value,
+                    enabled = dataEdited.value && title.value.isNotBlank(),
                     shape = RoundedCornerShape(50)
                 ) {
                     Text(
@@ -275,7 +298,130 @@ fun EventShared(
                         }
                     }
 
-                    // all day toggle + dates pickers (index 1)
+                    // tag (index 1)
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 32.dp)
+                                    .height(HEIGHT.dp)
+                                    .clickable { showTagsDropdown.value = true },
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    painter = painterResource(R.drawable.dot),
+                                    contentDescription = stringResource(R.string.desc_iconTag),
+                                    tint = Color.Companion.fromColorLong(chosenTag.value.colour)
+                                )
+                                Text(text = chosenTag.value.name, style = MyTypography.bodyLarge)
+                            }
+
+                            // dropdown menu for tags
+                            DropdownMenu(
+                                expanded = showTagsDropdown.value,
+                                onDismissRequest = { showTagsDropdown.value = false }
+                            ) {
+                                allTags.forEach { tag ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                // tag colour and name
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                ) {
+                                                    Icon(
+                                                        modifier = Modifier.size(20.dp),
+                                                        painter = painterResource(R.drawable.dot),
+                                                        contentDescription = stringResource(R.string.desc_iconTag),
+                                                        tint = Color.Companion.fromColorLong(tag.colour)
+                                                    )
+                                                    Text(
+                                                        text = tag.name,
+                                                        style = MyTypography.bodyLarge
+                                                    )
+                                                }
+                                                // icons to edit and delete tag if not default
+                                                if (!tag.isDefault) {
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                                                    ) {
+                                                        Spacer(modifier = Modifier.width(16.dp))
+                                                        IconButton(
+                                                            modifier = Modifier.size(20.dp),
+                                                            onClick = {
+                                                                tagToEdit = tag
+                                                                showEditTagWindow.value = true
+                                                                showTagsDropdown.value = false
+                                                            }
+                                                        ) {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.edit),
+                                                                contentDescription = stringResource(R.string.desc_edit)
+                                                            )
+                                                        }
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        IconButton(
+                                                            modifier = Modifier.size(20.dp),
+                                                            onClick = {
+                                                                tagToDelete = tag
+                                                                showDeleteDialog.value = true
+                                                            }
+                                                        ) {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.cancel),
+                                                                contentDescription = stringResource(R.string.desc_deleteButton)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            tagID.value = tag.uid
+                                            chosenTag.value = tag
+                                            showTagsDropdown.value = false
+                                            dataEdited.value = true
+                                        },
+                                    )
+                                }
+                                // last menu item to add a new tag
+                                DropdownMenuItem(
+                                    text = {
+                                        // tag colour and name
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Icon(
+                                                modifier = Modifier.size(20.dp),
+                                                painter = painterResource(R.drawable.add),
+                                                contentDescription = stringResource(R.string.desc_addButton)
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.title_newTag),
+                                                style = MyTypography.bodyLarge
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        showEditTagWindow.value = true
+                                        showTagsDropdown.value = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+
+                    // all day toggle + dates pickers (index 2)
                     item {
                         val showStartTimePicker = remember { mutableStateOf(false) }
                         val showEndTimePicker = remember { mutableStateOf(false) }
@@ -435,6 +581,7 @@ fun EventShared(
                                                 .size(16.dp)
                                                 .clickable {
                                                     hasEndTime.value = false
+                                                    dateEnd.longValue = 0L
                                                     minuteEnd.intValue = 0
                                                     showEndTimePicker.value = false
                                                     dataEdited.value = true
@@ -564,38 +711,77 @@ fun EventShared(
                         }
                     }
 
-                    // location (index 2)
-                    item {
-
-                    }
-
                     // reminder (index 3)
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp)
-                                .clickable { showReminderPicker.value = true },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                painter = painterResource(R.drawable.notification),
-                                contentDescription = stringResource(R.string.desc_reminderIcon),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = formatReminderTime(context, reminder.value, reminderTime.longValue),
-                                style = MyTypography.bodyLarge,
-                                color = MaterialTheme.colorScheme.inversePrimary
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showReminderPicker.value = true },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    painter = painterResource(R.drawable.notification),
+                                    contentDescription = stringResource(R.string.desc_reminderIcon),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = formatReminderTime(context, reminder.value, reminderTime.longValue),
+                                    style = MyTypography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.inversePrimary
+                                )
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        }
+                    }
+
+                    // location (index 4)
+                    item {
+                        Row(modifier = Modifier.padding(start = 16.dp)) {
+                            CustomTextField(
+                                value = location.value,
+                                onValueChange = { location.value = it; dataEdited.value = true },
+                                icon = R.drawable.location,
+                                iconColour = MaterialTheme.colorScheme.primary,
+                                placeHolder = stringResource(R.string.title_location),
+                                singleLine = false,
+                                maxLength = LOCATION_MAX,
+                                width = FULL_LENGTH.dp,
+                                height = 110.dp,
+                                onFocusedChanged = { focusState ->
+                                    if (focusState.isFocused) {
+                                        scope.launch { lazyListState.animateScrollToItem(4, topPaddingPx) }
+                                    }
+                                }
                             )
                         }
                     }
 
-                    // notes (index 4)
+                    // notes (index 5)
                     item {
-
+                        Row(modifier = Modifier.padding(start = 16.dp)) {
+                            CustomTextField(
+                                value = notes.value,
+                                onValueChange = { notes.value = it; dataEdited.value = true },
+                                icon = R.drawable.note,
+                                iconColour = MaterialTheme.colorScheme.primary,
+                                placeHolder = stringResource(R.string.title_notes),
+                                singleLine = false,
+                                maxLength = NOTES_MAX,
+                                width = FULL_LENGTH.dp,
+                                height = 250.dp,
+                                onFocusedChanged = { focusState ->
+                                    if (focusState.isFocused) {
+                                        scope.launch { lazyListState.animateScrollToItem(5, topPaddingPx) }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -626,6 +812,122 @@ fun EventShared(
                         reminder = reminder,
                         reminderTime = reminderTime,
                         dataEdited = dataEdited
+                    )
+                }
+
+                // window to create or edit a tag
+                if (showEditTagWindow.value) {
+                    val availableColours = remember(allTags) { getAvailableTagColours(allTags, tagToEdit) }
+                    val newTagName = remember { mutableStateOf(tagToEdit?.name ?: "") }
+                    val newTagColour = remember { mutableLongStateOf(tagToEdit?.colour ?: availableColours[0].toColorLong()) }
+
+                    CustomContentDialogWindow(
+                        visible = showEditTagWindow,
+                        content = {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.title_newTag),
+                                    style = MyTypography.titleMedium.copy(textAlign = TextAlign.Center)
+                                )
+                                CustomTextField(
+                                    value = newTagName.value,
+                                    onValueChange = { newTagName.value = it },
+                                    icon = -1,
+                                    placeHolder = stringResource(R.string.field_tagName),
+                                    singleLine = true,
+                                    maxLength = TAG_MAX,
+                                    width = FULL_LENGTH.dp
+                                )
+                                Text(
+                                    text = stringResource(R.string.txt_tagColour),
+                                    style = MyTypography.bodyMedium
+                                )
+                                TagColourPicker(
+                                    currentSelected = Color.Companion.fromColorLong(newTagColour.longValue),
+                                    availableColours = availableColours
+                                ) { chosenColour ->
+                                    newTagColour.longValue = chosenColour
+                                }
+                            }
+                        },
+                        bottomButtons = true,
+                        leftButtonContent = {
+                            Text(
+                                text = stringResource(R.string.button_cancel),
+                                style = MyTypography.bodyLarge,
+                                color = MaterialTheme.colorScheme.inversePrimary
+                            )
+                        },
+                        leftButtonOnClick = {
+                            showEditTagWindow.value = false
+                        },
+                        rightButtonContent = {
+                            Text(
+                                text = stringResource(R.string.button_confirm),
+                                style = MyTypography.bodyLarge,
+                                color = ValidGreen
+                            )
+                        },
+                        rightButtonOnClick = {
+                            newTagName.value = newTagName.value.trim()
+                            if (newTagName.value.isBlank()) {
+                                Toast.makeText(context, R.string.toast_emptyTagName, Toast.LENGTH_SHORT).show()
+                            } else {
+                                showEditTagWindow.value = false
+                                val newTag = EventTag(uid = tagToEdit?.uid ?: UUID.randomUUID().toString(), name = newTagName.value, colour = newTagColour.longValue)
+                                calendarVM.insertTag(newTag)
+                                tagID.value = newTag.uid
+                                chosenTag.value = newTag
+                                tagToEdit = null
+                                showEditTagWindow.value = false
+                                dataEdited.value = true
+                            }
+                        }
+                    )
+                }
+
+                // window to confirm deleting a tag
+                if (showDeleteDialog.value) {
+                    CustomContentDialogWindow(
+                        visible = showDeleteDialog,
+                        content = {
+                            Text(
+                                modifier = Modifier.padding(bottom = 8.dp),
+                                text = stringResource(R.string.txt_tagDelete),
+                                style = MyTypography.bodyLarge.copy(textAlign = TextAlign.Center)
+                            )
+                        },
+                        bottomButtons = true,
+                        leftButtonContent = {
+                            Text(
+                                text = stringResource(R.string.button_cancel),
+                                style = MyTypography.bodyLarge,
+                                color = MaterialTheme.colorScheme.inversePrimary
+                            )
+                        },
+                        leftButtonOnClick = {
+                            tagToDelete = null
+                            showDeleteDialog.value = false
+                        },
+                        rightButtonContent = {
+                            Text(
+                                text = stringResource(R.string.button_confirm),
+                                style = MyTypography.bodyLarge,
+                                color = ValidGreen
+                            )
+                        },
+                        rightButtonOnClick = {
+                            showDeleteDialog.value = false
+                            showTagsDropdown.value = false
+                            if (chosenTag.value.uid == tagToDelete?.uid) {
+                                tagID.value = allTags[0].uid
+                                chosenTag.value = allTags[0]
+                            }
+                            calendarVM.deleteTag(tagToDelete!!)
+                            tagToDelete = null
+                        }
                     )
                 }
 
@@ -667,6 +969,12 @@ fun EventShared(
     )
 }
 
+/**
+ * Wheel picker for selecting time in hours and minutes. Minutes are in 5 minute increments.
+ *
+ * @param currentMinutes the currently selected time in minutes since midnight
+ * @param onConfirm callback function that is called when the user selects a time, with the selected hours and minutes as parameters
+ */
 @Composable
 private fun TimeWheelPicker(
     currentMinutes: Int,
@@ -708,6 +1016,17 @@ private fun TimeWheelPicker(
     }
 }
 
+/**
+ * Dialog window for selecting a reminder time.
+ * Offers default options (none, on time, 10 minutes before, 1 hour before, 1 day before).
+ * Also offers custom option (wheel pickers to choose specific minutes or hours).
+ *
+ * @param context used for accessing resources
+ * @param showReminderPicker controls visibility of the dialog
+ * @param reminder whether a reminder is set or not
+ * @param reminderTime the time of the reminder in milliseconds before the event
+ * @param dataEdited tracks whether any changes have been made to the event data
+ */
 @Composable
 private fun ReminderDialogWindow(
     context: Context,
@@ -826,5 +1145,61 @@ private fun ReminderDialogWindow(
             dataEdited.value = true
         }
     )
+}
 
+/**
+ * Displays a grid of available tag colours for the user to choose from.
+ *
+ * @param currentSelected the currently selected colour for the tag being created/edited
+ * @param availableColours a list of colours that are not currently being used by other tags (except for the tag being edited)
+ * @param onColourSelected callback function that is called when the user selects a colour, with the selected colour as a parameter
+ */
+@Composable
+fun TagColourPicker(
+    currentSelected: Color,
+    availableColours: List<Color>,
+    onColourSelected: (Long) -> Unit
+) {
+    val selectedColour = remember { mutableStateOf(currentSelected) }
+
+    FlowRow (
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        TAG_COLOURS.forEach { colour ->
+            val isTaken = !availableColours.contains(colour)
+            val isSelected = colour == selectedColour.value
+
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(color = colour)
+                    .border(
+                        width = if (isSelected && !isTaken) 3.dp else 0.dp,
+                        color = MaterialTheme.colorScheme.inversePrimary,
+                        shape = CircleShape
+                    )
+                    .then(
+                        if (!isTaken) {
+                            Modifier.clickable {
+                                onColourSelected(colour.toColorLong())
+                                selectedColour.value = colour
+                            }
+                        } else Modifier
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isTaken) {
+                    Icon(
+                        modifier = Modifier.size(42.dp),
+                        painter = painterResource(R.drawable.unavailable),
+                        contentDescription = stringResource(R.string.desc_unavailableColour),
+                        tint = MaterialTheme.colorScheme.inversePrimary
+                    )
+                }
+            }
+        }
+    }
 }

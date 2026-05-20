@@ -50,7 +50,7 @@ data class Book(
 
 // Various date formats for parsing
 enum class DateFormat {
-    FULL_DATE, FULL_SHORT_DATE, MONTH_YEAR, NUMBERED, NUMBERED_REVERSE, NUMBERED_WITH_TIME, SHORT_DAY_DATE
+    FULL_DATE, FULL_SHORT_DATE, MONTH_YEAR, NUMBERED, NUMBERED_REVERSE, NUMBERED_WITH_TIME, SHORT_DAY_DATE, DAY_MONTH
 }
 
 // The different possible methods to sort and group books in the main page

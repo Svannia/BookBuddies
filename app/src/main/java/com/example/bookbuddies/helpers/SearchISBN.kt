@@ -1,6 +1,9 @@
 package com.example.bookbuddies.helpers
 
 import android.content.Context
+import android.os.Build
+import android.text.Html.FROM_HTML_MODE_LEGACY
+import android.text.Html.fromHtml
 import com.example.bookbuddies.BuildConfig
 import com.example.bookbuddies.data.Book
 import kotlinx.coroutines.CoroutineScope
@@ -80,7 +83,7 @@ fun searchByISBN(context: Context, isbn: String, isError: (Boolean) -> Unit, cal
                         }
                     } ?: emptyList()
 
-                    val description = volumeInfo.optString("description", "")
+                    val description = formatHtmlString(volumeInfo.optString("description", ""))
                     val genre = volumeInfo.optJSONArray("categories")?.getString(0) ?: ""
 
                     val publisher = volumeInfo.optString("publisher", "")
@@ -139,5 +142,17 @@ fun searchByISBN(context: Context, isbn: String, isError: (Boolean) -> Unit, cal
             }
         }
     }
+}
+
+private fun formatHtmlString(rawText: String) : String {
+    if (rawText.isBlank()) return ""
+
+    // decode html entities (e.g. &amp; -> &)
+    val decoded = fromHtml(rawText, FROM_HTML_MODE_LEGACY).toString()
+    // regex for remaining HTML tags (e.g. <b>...</b>)
+    val withoutTags = decoded.replace(Regex("<[^>]+>"), "")
+    // normalize whitespaces (keep newlines)
+    val normalized = withoutTags.replace(Regex("[ \\t]+"), " ")
+    return normalized.trim()
 }
 

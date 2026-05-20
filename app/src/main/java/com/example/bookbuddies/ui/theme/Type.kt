@@ -68,7 +68,7 @@ val MyTypography = Typography(
     labelSmall = TextStyle(
         fontFamily = FontFamily(Font(R.font.sf_pro_display)),
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
+        fontSize = 12.sp,
         lineHeight = 14.sp,
         letterSpacing = 0.5.sp)
 )

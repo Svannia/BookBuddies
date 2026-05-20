@@ -83,6 +83,8 @@ fun displaySeries(seriesName: String, seriesNumber: Int): String {
  *
  * @param date represents a date in milliseconds since the Unix epoch
  * @param format DateFormat entry for different types of date parsing:
+ * SHORT_DAY_DATE : Tue 24 Jul (if the year is the current year, otherwise Tue 24 Jul 2001),
+ * DAY_MONTH : 24 Jul,
  * FULL_DATE : 24 July 2001,
  * FULL_SHORT_DATE : 24 Jul 2001,
  * MONTH_YEAR : July 2001,
@@ -106,6 +108,9 @@ fun displayDate(date: Long, format: DateFormat): String {
             val dayOfWeek = calendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, locale)
             val result = "$dayOfWeek $day $shortMonth"
             if (year != Calendar.getInstance().get(Calendar.YEAR)) "$result $year" else result
+        }
+        DateFormat.DAY_MONTH -> {
+            "$day $shortMonth"
         }
         DateFormat.FULL_DATE -> {
             "$day $longMonth $year"

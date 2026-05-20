@@ -693,6 +693,7 @@ fun ProgressBar(processed: Int, total: Int) {
  * @param value text passed by the user in the text field
  * @param onValueChange block that runs with the new input value when it is edited
  * @param icon display at the beginning of the text field (use a negative int for no icon)
+ * @param iconColour colour applied to the icon, black/white by default (light/dark mode)
  * @param placeHolder text displayed in the empty text field
  * @param singleLine whether or not the value of the text field can contain line breaks
  * @param maxLength maximum amount of characters allowed in the text field

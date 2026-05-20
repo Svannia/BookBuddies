@@ -10,17 +10,16 @@ import com.example.bookbuddies.R
 import com.example.bookbuddies.data.CalendarEvent
 import com.example.bookbuddies.data.EventTag
 import com.example.bookbuddies.datastore.CalendarRepository
-import com.example.bookbuddies.ui.theme.DifferentPurple
-import com.example.bookbuddies.ui.theme.LightGreen
-import com.example.bookbuddies.ui.theme.LightRed
-import com.example.bookbuddies.ui.theme.MediumBlue
 import com.example.bookbuddies.ui.theme.MediumGrey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import androidx.core.content.edit
-import kotlinx.coroutines.flow.forEach
+import com.example.bookbuddies.ui.theme.Cerulean
+import com.example.bookbuddies.ui.theme.Coral
+import com.example.bookbuddies.ui.theme.Emerald
+import com.example.bookbuddies.ui.theme.Rose
 import java.util.Calendar
 
 class CalendarViewModel(private val repository: CalendarRepository, app: Application) : ViewModel() {
@@ -44,29 +43,39 @@ class CalendarViewModel(private val repository: CalendarRepository, app: Applica
 
     // check for first launch to add example tags
     private val prefs = app.getSharedPreferences("calendar_prefs", Context.MODE_PRIVATE)
-    private val defaultTagNames = listOf(
-        app.getString(R.string.tag_bookRelease) to DifferentPurple,
-        app.getString(R.string.tag_specialSale) to MediumBlue,
-        app.getString(R.string.tag_authorEvent) to LightGreen,
-        app.getString(R.string.tag_arcDeadline) to LightRed
+    private val defaultTag = app.getString(R.string.tag_default) to MediumGrey
+    private val exampleTagNames = listOf(
+        app.getString(R.string.tag_bookRelease) to Rose,
+        app.getString(R.string.tag_specialSale) to Cerulean,
+        app.getString(R.string.tag_authorEvent) to Emerald,
+        app.getString(R.string.tag_arcDeadline) to Coral
     )
 
-    init {
-        viewModelScope.launch { 
-            if (!prefs.getBoolean("example_tags_inserted", false)) {
-                Timber.tag("CalendarVM").d("First launch, inserting example tags.")
-                // add basic default tag
-                repository.insertEventTag(EventTag(
-                    name = app.getString(R.string.tag_default),
-                    colour = MediumGrey.toColorLong(),
-                    isDefault = true
-                ))
-                // add example tags
-                defaultTagNames.forEach { (name, colour) ->
-                    repository.insertEventTag(EventTag(name = name, colour = colour.toColorLong()))
-                }
-                prefs.edit { putBoolean("default_tags_inserted", true) }
+    /**
+     * WARNING: not consistency-safe, only use for testing/debugging.
+     */
+    fun resetTags() {
+        viewModelScope.launch {
+            Timber.tag("CalendarVM").d("First launch, inserting example tags.")
+            // clear old existing tags just in case
+            repository.deleteAllTags()
+            // add basic default tag
+            repository.insertEventTag(EventTag(
+                name = defaultTag.first,
+                colour = defaultTag.second.toColorLong(),
+                isDefault = true
+            ))
+            // add example tags
+            exampleTagNames.forEach { (name, colour) ->
+                repository.insertEventTag(EventTag(name = name, colour = colour.toColorLong()))
             }
+            prefs.edit { putBoolean("default_tags_inserted", true) }
+        }
+    }
+
+    init {
+        if (!prefs.getBoolean("default_tags_inserted", false)) {
+            resetTags()
         }
     }
 
@@ -122,6 +131,10 @@ class CalendarViewModel(private val repository: CalendarRepository, app: Applica
             Timber.tag("CalendarVM").d("Attempted to delete default tag, operation aborted.")
             return@launch
         }
+        // assign default tag to all events that had this tag
+        val defaultTag = repository.getDefaultTag()
+        repository.updateEventsTag(oldTagUid = tag.uid, newTagUid = defaultTag.uid)
+
         repository.deleteEventTag(tag)
         Timber.tag("CalendarVM").d("Deleted tag ${tag.name}")
     }

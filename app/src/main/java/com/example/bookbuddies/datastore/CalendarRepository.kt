@@ -22,7 +22,10 @@ class CalendarRepository(context: Context) {
     private val eventTagDao = db.eventTagDao()
 
     val allEventTags: Flow<List<EventTag>> = eventTagDao.getAllTags()
+    suspend fun getDefaultTag(): EventTag = eventTagDao.getDefaultTag()
 
     suspend fun insertEventTag(tag: EventTag) = eventTagDao.insertTag(tag)
+    suspend fun updateEventsTag(oldTagUid: String, newTagUid: String) = eventTagDao.updateEventsTag(oldTagUid, newTagUid)
     suspend fun deleteEventTag(tag: EventTag) = eventTagDao.deleteTag(tag)
+    suspend fun deleteAllTags() = eventTagDao.deleteAllTags()
 }

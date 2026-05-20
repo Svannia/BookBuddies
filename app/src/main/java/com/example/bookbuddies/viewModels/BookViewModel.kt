@@ -104,7 +104,6 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     fun filterGivers(input: String, givers: List<String>) = filterList(input, givers)
 
     // ---------- FETCHING DATA ----------
-    // the raw list of stored books is private. Instead we only expose the books sorted by one method ("author > series" by default)
     val sortedBooks: Flow<List<Book>> = combine(allBooks, _bookSorting) { books, sorting ->
         when (sorting) {
             BookSorting.AUTHOR_SERIES -> books.sortedWith(

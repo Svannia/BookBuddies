@@ -123,24 +123,35 @@ fun parseAddedDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
 
 fun formatEventTime(event: CalendarEvent): String {
     return if (event.allDay) {
-        if (event.dateStart == event.dateEnd) {
+        // all day event only on current day
+        if (event.dateStart == event.dateEnd || event.dateEnd <= 0L) {
             "All day"
         } else {
-            "${displayDate(event.dateStart, DateFormat.FULL_SHORT_DATE)} " +
-                    "- ${displayDate(event.dateEnd, DateFormat.FULL_SHORT_DATE)}"
+            // all day event that spans multiple days
+            "${displayDate(event.dateStart, DateFormat.DAY_MONTH)} " +
+                    "- ${displayDate(event.dateEnd, DateFormat.DAY_MONTH)}"
         }
     } else {
-        val sameDay = run {
-            val start = Calendar.getInstance().apply { timeInMillis = event.dateStart }
-            val end = Calendar.getInstance().apply { timeInMillis = event.dateEnd }
-            start.get(Calendar.DAY_OF_YEAR) == end.get(Calendar.DAY_OF_YEAR) &&
-                    start.get(Calendar.YEAR) == end.get(Calendar.YEAR)
-        }
-        if (sameDay) {
-            "${formatMinutes(event.minuteStart)} - ${formatMinutes(event.minuteEnd)}"
+        // no end date -> just display start time
+        if (event.dateEnd <= 0L) {
+            formatMinutes(event.minuteStart)
         } else {
-            "${displayDate(event.dateStart, DateFormat.FULL_SHORT_DATE)}, ${formatMinutes(event.minuteStart)} " +
-                    "- ${displayDate(event.dateEnd, DateFormat.FULL_SHORT_DATE)}, ${formatMinutes(event.minuteEnd)}"
+            val sameDay = run {
+                val start = Calendar.getInstance().apply { timeInMillis = event.dateStart }
+                val end = Calendar.getInstance().apply { timeInMillis = event.dateEnd }
+                start.get(Calendar.DAY_OF_YEAR) == end.get(Calendar.DAY_OF_YEAR) &&
+                        start.get(Calendar.YEAR) == end.get(Calendar.YEAR)
+            }
+            // same day -> just display times
+            if (sameDay) {
+                "${formatMinutes(event.minuteStart)} - ${formatMinutes(event.minuteEnd)}"
+            } else {
+                // multiple days with times
+                "${displayDate(event.dateStart, DateFormat.DAY_MONTH)}, " +
+                        "${formatMinutes(event.minuteStart)} " +
+                        "- ${displayDate(event.dateEnd, DateFormat.DAY_MONTH)}, " +
+                        formatMinutes(event.minuteEnd)
+            }
         }
     }
 }

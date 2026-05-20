@@ -1,5 +1,6 @@
 package com.example.bookbuddies.ui.home
 
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -24,6 +25,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -45,8 +48,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.fromColorLong
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -72,7 +77,6 @@ import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.PrimaryScreen
 import com.example.bookbuddies.ui.WheelPicker
-import com.example.bookbuddies.ui.theme.MediumGrey
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.BookViewModel
@@ -82,10 +86,14 @@ import java.time.format.TextStyle
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.ceil
+import androidx.compose.ui.platform.LocalLocale
+import com.example.bookbuddies.data.getTagForEvent
+import timber.log.Timber
 
 @Composable
 fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigationActions: NavigationActions) {
 
+    val context = LocalContext.current
     // when using the phone's built-in back function -> back to Home screen
     BackHandler {
         navigationActions.navigateTo(Route.HOME, true)
@@ -164,7 +172,9 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                     (if (showReadBooks) stringResource(R.string.button_hideRead)
                     else stringResource(R.string.button_showRead))
                             to { calendarVM.toggleShowReadBooks() },
-                    "Delete all events" to {calendarVM.deleteAllEvents()}
+                    // todo: remove those for release
+                    "Delete all events" to {calendarVM.deleteAllEvents()},
+                    "Reset tags" to { calendarVM.resetTags() }
                 )
             }
         }
@@ -189,6 +199,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                 val targetMonth = ((targetYearMonth - 1) % 12) + 1
                 val targetYear = (targetYearMonth - 1) / 12
                 MonthlyCalendarView(
+                    context = context,
                     books = books,
                     events = events,
                     tags = tags,
@@ -223,6 +234,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
             // show day cell
             selectedDay?.let { (y, m, d) ->
                 DayDetailsWindow(
+                    context = context,
                     year = y,
                     month = m,
                     day = d,
@@ -253,7 +265,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                 visible = showMonthPicker,
                 content = {
                     val months = (1..12).map {
-                        Month.of(it).getDisplayName(TextStyle.FULL, Locale.getDefault())
+                        Month.of(it).getDisplayName(TextStyle.FULL, LocalLocale.current.platformLocale)
                             .replaceFirstChar { c ->  c.uppercase() }
                     }
                     val years = (todayYear - 10..todayYear + 20).map { it.toString() }
@@ -316,6 +328,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
 
 @Composable
 fun MonthlyCalendarView(
+    context: Context,
     books: List<Book>,
     events: List<CalendarEvent>,
     tags: List<EventTag>,
@@ -368,7 +381,7 @@ fun MonthlyCalendarView(
     ) {
         // month (and year) header
         val text = buildString {
-            append(Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault()).uppercase())
+            append(Month.of(month).getDisplayName(TextStyle.FULL, LocalLocale.current.platformLocale).uppercase())
             if (year != todayYear) append(" $year")
         }
         Button(
@@ -465,6 +478,9 @@ fun MonthlyCalendarView(
                         val isSunday = col == 6
 
                         // day cell
+                        val dayBooks = remember(books, year, month, day) { getBooksForDay(books, year, month, day) }
+                        val dayEvents = remember(events, year, month, day) { getEventsForDay(events, year, month, day) }
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -486,9 +502,14 @@ fun MonthlyCalendarView(
                             val displayDay = if (isCurrentMonth) day else overflowDay
                             if (displayDay != null) {
                                 DayCell(
+                                    context = context,
                                     day = displayDay,
                                     isToday = isToday,
-                                    isSunday = isSunday
+                                    isSunday = isSunday,
+                                    showingReadBooks = showReadBooks,
+                                    nbBooks = dayBooks.size,
+                                    dayEvents = dayEvents,
+                                    tags = tags
                                 )
                             }
                         }
@@ -500,7 +521,7 @@ fun MonthlyCalendarView(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 32.dp)
+                            .padding(top = 28.dp)
                     ) {
                         WeekBookBanners(banners)
                     }
@@ -512,33 +533,77 @@ fun MonthlyCalendarView(
 
 @Composable
 private fun DayCell(
+    context: Context,
     day: Int,
     isToday: Boolean,
-    isSunday: Boolean
+    isSunday: Boolean,
+    showingReadBooks: Boolean,
+    nbBooks: Int,
+    dayEvents: List<CalendarEvent>,
+    tags: List<EventTag>
 ) {
-    Box(
-        modifier = Modifier
-            .padding(2.dp)
-            .size(28.dp)
-            .then(
-                if (isToday) Modifier.background(
-                    color = MaterialTheme.colorScheme.inversePrimary,
-                    shape = RoundedCornerShape(6.dp)
-                ) else Modifier
-            ),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = day.toString(),
-            style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center),
-            color = when {
-                isToday -> MaterialTheme.colorScheme.background
-                isSunday -> MaterialTheme.colorScheme.primary
-                else -> MaterialTheme.colorScheme.inversePrimary
+        // top box that contains the day number
+        Box(
+            modifier = Modifier
+                .padding(2.dp)
+                .size(24.dp)
+                .then(
+                    if (isToday) Modifier.background(
+                        color = MaterialTheme.colorScheme.inversePrimary,
+                        shape = RoundedCornerShape(6.dp)
+                    ) else Modifier
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = day.toString(),
+                style = MyTypography.bodyMedium.copy(textAlign = TextAlign.Center),
+                color = when {
+                    isToday -> MaterialTheme.colorScheme.background
+                    isSunday -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.inversePrimary
+                }
+            )
+        }
+        // spacing between day number and events depend on book banners
+        if (showingReadBooks && nbBooks > 0) {
+            Spacer(modifier = Modifier.height((nbBooks * 16 + 4).dp))
+        }
+        // event indicators
+        dayEvents.forEach { event ->
+            tags.forEach {
+                Timber.tag("Debug").d("Tag ${it.name} has uid ${it.uid}")
             }
-        )
+            Timber.tag("Debug").d("Event ${event.title} has tag ID ${event.tag}")
+            val tagColour = Color.Companion.fromColorLong(getTagForEvent(context, event.tag, tags).colour)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
+                verticalAlignment = Alignment.Top
+            ) {
+                // coloured tag pad
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(28.dp)
+                        .background(color = tagColour, shape = RoundedCornerShape(2.dp))
+                )
+                // event title
+                Text(
+                    text = event.title,
+                    style = MyTypography.labelSmall,
+                    color = MaterialTheme.colorScheme.inversePrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
     }
-    // todo: cell contents
 }
 
 @Composable
@@ -566,7 +631,7 @@ fun WeekBookBanners(banners: List<BookBanner>) {
                     Box(
                         modifier = Modifier
                             .weight(spanWeight)
-                            .height(18.dp)
+                            .height(16.dp)
                             .padding(
                                 start = if (banner.startCol == 0 && banner.continuesBefore) 0.dp else 2.dp,
                                 end = if (banner.endCol == 6 && banner.continuesAfter) 0.dp else 2.dp
@@ -581,7 +646,7 @@ fun WeekBookBanners(banners: List<BookBanner>) {
                     ) {
                         Text(
                             text = banner.book.title,
-                            style = MyTypography.bodySmall,
+                            style = MyTypography.labelSmall,
                             color = if (bannerColour.luminance() > 0.4f) Color.Black else Color.White,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -601,6 +666,7 @@ fun WeekBookBanners(banners: List<BookBanner>) {
 
 @Composable
 fun DayDetailsWindow(
+    context: Context,
     year: Int,
     month: Int,
     day: Int,
@@ -650,163 +716,161 @@ fun DayDetailsWindow(
                 style = MyTypography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 color = if (isSunday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.inversePrimary
             )
-
-            // empty day
-            if (dayBooks.isEmpty() && dayEvents.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.txt_emptyDay),
-                    style = MyTypography.bodyMedium,
-                )
-            }
-
-            // book items
-            dayBooks.forEach { book ->
-                val bannerColor = getCoverColour(book)
-                val isColourPickerOpen = colourPickerBook == book.uid
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .background(color = bannerColor, shape = RoundedCornerShape(8.dp))
-                        .clickable { onNavigateToBook(book.uid) }
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // open book icon
-                    Icon(
-                        modifier = Modifier.size(20.dp),
-                        painter = painterResource(R.drawable.open_book),
-                        contentDescription = stringResource(R.string.desc_book),
-                        tint = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // book info
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        // book title
+            LazyColumn {
+                // empty day
+                if (dayBooks.isEmpty() && dayEvents.isEmpty()) {
+                    item {
                         Text(
-                            text = book.title,
-                            style = MyTypography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            text = stringResource(R.string.txt_emptyDay),
+                            style = MyTypography.bodyMedium,
                         )
-                        // author(s)
-                        val authors = displayAuthors(book.authors)
-                        if (authors.isNotBlank()) {
+                    }
+                }
+
+                // book items
+                items(dayBooks) { book ->
+                    val bannerColor = getCoverColour(book)
+                    val isColourPickerOpen = colourPickerBook == book.uid
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .background(color = bannerColor, shape = RoundedCornerShape(8.dp))
+                            .clickable { onNavigateToBook(book.uid) }
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // open book icon
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            painter = painterResource(R.drawable.open_book),
+                            contentDescription = stringResource(R.string.desc_book),
+                            tint = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // book info
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            // book title
                             Text(
-                                text = authors,
-                                style = MyTypography.bodySmall,
-                                color = (if (bannerColor.luminance() > 0.4f) Color.Black else Color.White).copy(alpha = 0.7f),
+                                text = book.title,
+                                style = MyTypography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            // author(s)
+                            val authors = displayAuthors(book.authors)
+                            if (authors.isNotBlank()) {
+                                Text(
+                                    text = authors,
+                                    style = MyTypography.bodySmall,
+                                    color = (if (bannerColor.luminance() > 0.4f) Color.Black else Color.White).copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                    // colour change icon
-                    IconButton( onClick = {
-                        colourPickerBook = if (isColourPickerOpen) null else book.uid
-                    }) {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            painter = painterResource(R.drawable.palette),
-                            contentDescription = stringResource(R.string.desc_colourEditIcon),
-                            tint = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White
-                        )
-                    }
-                }
-
-                // colour bucket picker
-                if (isColourPickerOpen) {
-                    Row (
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp)
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        book.coverColours.forEachIndexed { index, colour ->
-                            val isSelected = index == book.chosenCoverColour
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .background(color = Color(colour), shape = RoundedCornerShape(6.dp))
-                                    .then(
-                                        if (isSelected) Modifier.border(
-                                            width = 2.dp,
-                                            color = MaterialTheme.colorScheme.inversePrimary,
-                                            shape = RoundedCornerShape(6.dp)
-                                        )else Modifier.border(
-                                            width = 0.5.dp,
-                                            color = MaterialTheme.colorScheme.outline,
-                                            shape = RoundedCornerShape(6.dp)
-                                        )
-                                    )
-                                    .clickable {
-                                        onChooseColour(book, index)
-                                        colourPickerBook = null
-                                    }
+                        // colour change icon
+                        IconButton( onClick = {
+                            colourPickerBook = if (isColourPickerOpen) null else book.uid
+                        }) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                painter = painterResource(R.drawable.palette),
+                                contentDescription = stringResource(R.string.desc_colourEditIcon),
+                                tint = if (bannerColor.luminance() > 0.4f) Color.Black else Color.White
                             )
                         }
                     }
+
+                    // colour bucket picker
+                    if (isColourPickerOpen) {
+                        Row (
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 4.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            book.coverColours.forEachIndexed { index, colour ->
+                                val isSelected = index == book.chosenCoverColour
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .background(color = Color(colour), shape = RoundedCornerShape(6.dp))
+                                        .then(
+                                            if (isSelected) Modifier.border(
+                                                width = 2.dp,
+                                                color = MaterialTheme.colorScheme.inversePrimary,
+                                                shape = RoundedCornerShape(6.dp)
+                                            )else Modifier.border(
+                                                width = 0.5.dp,
+                                                color = MaterialTheme.colorScheme.outline,
+                                                shape = RoundedCornerShape(6.dp)
+                                            )
+                                        )
+                                        .clickable {
+                                            onChooseColour(book, index)
+                                            colourPickerBook = null
+                                        }
+                                )
+                            }
+                        }
+                    }
                 }
-            }
 
-            // event items
-            dayEvents.forEach { event ->
-                val tagColor = tags.find { it.uid == event.tag }?.let { Color(it.colour) }
-                    ?: MediumGrey
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.background,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .border(width = 1.dp, color = tagColor, shape = RoundedCornerShape(8.dp))
-                        .clickable { onNavigateToEvent(event.uid) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // color sticker
-                    Box(
+                // event items
+                items(dayEvents) { event ->
+                    val tagColour = Color.Companion.fromColorLong(getTagForEvent(context, event.tag, tags).colour)
+                    Row(
                         modifier = Modifier
-                            .size(8.dp)
-                            .background(color = tagColor, shape = RoundedCornerShape(50))
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // calendar icon
-                    Icon(
-                        modifier = Modifier.size(16.dp),
-                        painter = painterResource(R.drawable.calendar),
-                        contentDescription = stringResource(R.string.desc_calendar),
-                        tint = MaterialTheme.colorScheme.inversePrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // event info
-                    Column {
-                        // event name
-                        Text(
-                            text = event.title,
-                            style = MyTypography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.inversePrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.background,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .border(width = 1.dp, color = tagColour, shape = RoundedCornerShape(8.dp))
+                            .clickable { onNavigateToEvent(event.uid) }
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            painter = painterResource(R.drawable.calendar),
+                            contentDescription = stringResource(R.string.desc_calendar),
+                            tint = MaterialTheme.colorScheme.inversePrimary
                         )
-                        // event time
-                        Text(
-                            text = formatEventTime(event),
-                            style = MyTypography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .height(36.dp)
+                                .background(color = tagColour, shape = RoundedCornerShape(2.dp))
                         )
+                        // event info
+                        Column {
+                            // event name
+                            Text(
+                                text = event.title,
+                                style = MyTypography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.inversePrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            // event time
+                            Text(
+                                text = formatEventTime(event),
+                                style = MyTypography.bodySmall,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
                     }
                 }
             }

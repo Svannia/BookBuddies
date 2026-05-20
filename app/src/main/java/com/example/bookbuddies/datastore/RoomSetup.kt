@@ -78,14 +78,23 @@ interface CalendarEventDao {
 // DAO for the EventTag entity
 @Dao
 interface EventTagDao {
-    @Query("SELECT * FROM event_tags ORDER BY name ASC")
+    @Query("SELECT * FROM event_tags")
     fun getAllTags(): Flow<List<EventTag>>
+
+    @Query("SELECT * FROM event_tags WHERE isDefault = 1 LIMIT 1")
+    suspend fun getDefaultTag(): EventTag
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTag(tag: EventTag)
 
+    @Query("UPDATE calendar_events SET tag = :newTagUid WHERE tag = :oldTagUid")
+    suspend fun updateEventsTag(oldTagUid: String, newTagUid: String)
+
     @Delete
     suspend fun deleteTag(tag: EventTag)
+
+    @Query("DELETE FROM event_tags")
+    suspend fun deleteAllTags()
 }
 
 // Room database that holds all DAO entities

@@ -1,11 +1,25 @@
 package com.example.bookbuddies.helpers
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toColorLong
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.CalendarEvent
+import com.example.bookbuddies.data.EventTag
+import com.example.bookbuddies.data.TAG_COLOURS
 import timber.log.Timber
 import java.util.Calendar
 import kotlin.math.abs
 
+/**
+ * Filters a list of events to those that occur on a specific day.
+ * The events are sorted by full-day events first, then by start time.
+ *
+ * @param events list of events to filter
+ * @param year of the day to filter for
+ * @param month of the day to filter for (1-12)
+ * @param day of the day to filter for
+ * @return list of events that occur on the specified day
+ */
 fun getEventsForDay(events: List<CalendarEvent>, year: Int, month: Int, day: Int): List<CalendarEvent> {
     val cal = Calendar.getInstance().apply {
         set(year, month - 1, day, 0, 0, 0)
@@ -16,9 +30,25 @@ fun getEventsForDay(events: List<CalendarEvent>, year: Int, month: Int, day: Int
     cal.set(Calendar.MINUTE, 59)
     cal.set(Calendar.SECOND, 59)
     val dayEnd = cal.timeInMillis
-    return events.filter { it.dateStart <= dayEnd && it.dateEnd >= dayStart }
+    return events.filter { (
+            it.dateStart <= dayEnd && it.dateEnd >= dayStart) ||
+            (it.dateEnd <= 0L && it.dateStart <= dayEnd && it.dateStart >= dayStart) }
+        .sortedWith(compareBy(
+            { !it.allDay }, // full-day events first
+            { if (it.allDay) it.title else null }, // full-day events sorted by title
+            { if (!it.allDay) it.minuteStart else null } // then by minute start
+        ))
 }
 
+/**
+ * Filters a list of books to those that were read on a specific day (i.e. the day falls between dateStarted and dateFinished).
+ *
+ * @param books list of books to filter
+ * @param year of the day to filter for
+ * @param month of the day to filter for (1-12)
+ * @param day of the day to filter for
+ * @return list of books that were read on the specified day
+ */
 fun getBooksForDay(books: List<Book>, year: Int, month: Int, day: Int): List<Book> {
     val cal = Calendar.getInstance().apply {
         set(year, month - 1, day, 0, 0, 0)
@@ -52,6 +82,11 @@ val TIMEZONES = listOf(
     Timezone("Australia Eastern Daylight (AEDT) / UTC+11", "UTC+11"),
 )
 
+/**
+ * Gets the local timezone as a Timezone object with label and offset.
+ *
+ * @return Timezone object representing the local timezone
+ */
 fun getLocalTimezone(): Timezone {
     val tz = java.util.TimeZone.getDefault()
     val offsetMs = tz.getOffset(System.currentTimeMillis())
@@ -109,7 +144,26 @@ fun convertToLocal(epochMillis: Long, minutes: Int, sourceTimezone: Timezone): P
     return adjustedEpoch to adjustedMinutes
 }
 
+/**
+ * Gets the UTC offset string for a given timezone label.
+ * If the label is not found in the predefined list, it returns the label itself (assuming it's already an offset).
+ *
+ * @param timezoneLabel the label of the timezone to get the offset for
+ * @return the UTC offset string corresponding to the given timezone label, or the label itself if not found
+ */
 fun getTimezoneOffset(timezoneLabel: String): String {
     if (timezoneLabel.startsWith("UTC")) return timezoneLabel
     return TIMEZONES.find { it.label == timezoneLabel }?.offset ?: timezoneLabel
+}
+
+/**
+ * Gets a list of available tag colours that are not already taken by existing tags.
+ *
+ * @param existingTags list of existing EventTag objects to check for taken colours
+ * @param currentTag if given, this tag's colour will not be kept in the returned list
+ * @return list of Color objects representing the available tag colours
+ */
+fun getAvailableTagColours(existingTags: List<EventTag>, currentTag: EventTag ?= null): List<Color> {
+    val takenColours = existingTags.map { it.colour }.toSet()
+    return TAG_COLOURS.filter { it.toColorLong() !in takenColours || (currentTag != null && it.toColorLong() == currentTag.colour) }
 }

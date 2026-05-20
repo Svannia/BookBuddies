@@ -33,7 +33,7 @@ fun BookCreate(isbn: String?, bookVM: BookViewModel, dataVM: DataViewModel, navi
 
             searchByISBN(context, isbn, isError =  {
                 if (it) {
-                    newBook = null
+                    newBook = Book.empty().copy(isbn = isbn)
                     isLoading = false
                     handleError(context, noBookToast)
                 }
