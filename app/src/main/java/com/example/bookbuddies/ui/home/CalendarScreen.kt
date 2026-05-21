@@ -251,7 +251,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                     },
                     onNavigateToEvent = { eventId ->
                         selectedDay = null
-                        // todo: navigate to event screen
+                        navigationActions.navigateTo("${Route.EVENT}/${eventId}")
                     }
                 )
             }

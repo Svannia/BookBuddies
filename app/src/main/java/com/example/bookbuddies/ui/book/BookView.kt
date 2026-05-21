@@ -432,14 +432,14 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
 
         // delete confirmation
         if (deleteVisible.value) {
-            val errorDeleting = stringResource(R.string.toast_deleteFail)
-            val successDeleting = stringResource(R.string.toast_successDelete)
+            val errorDeleting = stringResource(R.string.toast_deleteBookFail)
+            val successDeleting = stringResource(R.string.toast_successBookDelete)
             CustomContentDialogWindow(
                 visible = deleteVisible,
                 content = {
                     Text(
                         modifier = Modifier.padding(bottom = 8.dp),
-                        text = stringResource(R.string.txt_deleteConfirm),
+                        text = stringResource(R.string.txt_deleteBookConfirm),
                         style = MyTypography.bodyLarge
                     )
                 },

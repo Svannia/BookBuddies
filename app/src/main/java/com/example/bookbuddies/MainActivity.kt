@@ -148,7 +148,7 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("eventID") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val eventID = backStackEntry.arguments?.getString("eventID") ?: return@composable
-                            EventEdit()
+                            EventEdit(eventID, calendarVM, dataVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen EventEdit")
                         }
                     }

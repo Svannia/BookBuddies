@@ -94,6 +94,7 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.CalendarViewModel
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.UUID
 import kotlin.math.roundToInt
 
@@ -241,6 +242,7 @@ fun EventShared(
                         val updatedEvent = event.copy(
                             title = title.value,
                             allDay = allDay.value,
+                            timezone = timezone.value,
                             dateStart = dateStart.longValue,
                             dateEnd = dateEnd.longValue,
                             minuteStart = minuteStart.intValue,
@@ -253,7 +255,7 @@ fun EventShared(
                         )
                         scope.launch {
                             calendarVM.insertEvent(updatedEvent)
-                            navigationActions.navigateTo("${Route.EVENT}/${updatedEvent.uid}", clearPrevious = true)
+                            navigationActions.navigateTo(Route.CALENDAR, clearPrevious = true)
                         }
                     },
                     enabled = dataEdited.value && title.value.isNotBlank(),
@@ -425,7 +427,13 @@ fun EventShared(
                     item {
                         val showStartTimePicker = remember { mutableStateOf(false) }
                         val showEndTimePicker = remember { mutableStateOf(false) }
-                        val hasEndTime = remember { mutableStateOf(minuteEnd.intValue > 0 || dateEnd.longValue > 0L) }
+                        Timber.tag("Debug").d("minuteEnd: ${minuteEnd.intValue}, dateEnd: ${dateEnd.longValue}")
+                        var hasEndTime by remember { mutableStateOf(minuteEnd.intValue > 0 || dateEnd.longValue > 0L) }
+                        LaunchedEffect(minuteEnd.intValue, dateEnd.longValue) {
+                            if (minuteEnd.intValue > 0 || dateEnd.longValue > 0L) {
+                                hasEndTime = true
+                            }
+                        }
 
                         Column(
                             modifier = Modifier
@@ -530,7 +538,7 @@ fun EventShared(
                                 )
 
                                 // only show end date and time column if there is one
-                                if (hasEndTime.value) {
+                                if (hasEndTime) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -580,7 +588,7 @@ fun EventShared(
                                             modifier = Modifier
                                                 .size(16.dp)
                                                 .clickable {
-                                                    hasEndTime.value = false
+                                                    hasEndTime = false
                                                     dateEnd.longValue = 0L
                                                     minuteEnd.intValue = 0
                                                     showEndTimePicker.value = false
@@ -594,7 +602,7 @@ fun EventShared(
                                     // if there is no end time, just show button to add one
                                     Text(
                                         modifier = Modifier.clickable {
-                                            hasEndTime.value = true
+                                            hasEndTime = true
                                             dateEnd.longValue = dateStart.longValue
                                             minuteEnd.intValue = minuteStart.intValue + 60
                                             dataEdited.value = true
@@ -611,6 +619,7 @@ fun EventShared(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    Timber.tag("Debug").d("timezone: ${timezone.value}")
                                     // timezone title with button
                                     Box(
                                         modifier = Modifier.fillMaxWidth(),
@@ -664,21 +673,21 @@ fun EventShared(
                                     if (localTimezone.value.offset != getTimezoneOffset(timezone.value)) {
                                         val selectedTz = TIMEZONES.find { it.label == timezone.value }
                                             ?: Timezone(timezone.value, timezone.value)
-                                        val (localDate, localMinutes) = convertToLocal(dateStart.longValue, minuteStart.intValue, selectedTz)
-                                        val localTimeStr = formatMinutes(localMinutes)
-                                        val localDateStr = displayDate(localDate, DateFormat.SHORT_DAY_DATE)
-                                        val sameDay = localDate == dateStart.longValue
+                                        val (localDateStart, localMinuteStart) = convertToLocal(dateStart.longValue, minuteStart.intValue, selectedTz)
+                                        val (localDateEnd, localMinuteEnd) = convertToLocal(dateEnd.longValue, minuteEnd.intValue, selectedTz)
+                                        val sameDayStart = localDateStart == dateStart.longValue
+                                        val sameDayEnd = dateEnd.longValue <= 0L || localDateEnd == dateEnd.longValue
 
+                                        var conversionText = stringResource(R.string.txt_localTime)
+                                        if (!(sameDayStart && sameDayEnd)) conversionText += "${displayDate(localDateStart, DateFormat.SHORT_DAY_DATE)}, "
+                                        conversionText += formatMinutes(localMinuteStart)
+                                        if (hasEndTime) {
+                                            conversionText += " - "
+                                            if (!(sameDayStart && sameDayEnd)) conversionText += "${displayDate(localDateEnd, DateFormat.SHORT_DAY_DATE)}, "
+                                            conversionText += formatMinutes(localMinuteEnd)
+                                        }
                                         Text(
-                                            text = if (sameDay) stringResource(
-                                                R.string.txt_localTime,
-                                                localTimeStr
-                                            )
-                                            else stringResource(
-                                                R.string.txt_localDateTime,
-                                                localDateStr,
-                                                localTimeStr
-                                            ),
+                                            text = conversionText,
                                             style = MyTypography.bodySmall.copy(fontStyle = FontStyle.Italic),
                                         )
                                     }

@@ -30,13 +30,36 @@ fun getEventsForDay(events: List<CalendarEvent>, year: Int, month: Int, day: Int
     cal.set(Calendar.MINUTE, 59)
     cal.set(Calendar.SECOND, 59)
     val dayEnd = cal.timeInMillis
-    return events.filter { (
-            it.dateStart <= dayEnd && it.dateEnd >= dayStart) ||
-            (it.dateEnd <= 0L && it.dateStart <= dayEnd && it.dateStart >= dayStart) }
+    val localOffset = getLocalTimezone().offset
+
+    return events
+        .map { event ->
+            val eventOffset = getTimezoneOffset(event.timezone)
+            if (!event.allDay && eventOffset != localOffset) {
+                val tz = TIMEZONES.find { it.offset == eventOffset }
+                    ?: Timezone(eventOffset, eventOffset)
+                val (localStartDate, localStartMinutes) = convertToLocal(event.dateStart, event.minuteStart, tz)
+                val (localEndDate, localEndMinutes) = if (event.dateEnd > 0L || event.minuteEnd > 0) {
+                    convertToLocal(event.dateEnd.takeIf { it > 0L } ?: event.dateStart, event.minuteEnd, tz)
+                } else {
+                    event.dateEnd to event.minuteEnd
+                }
+                event.copy(
+                    dateStart = localStartDate,
+                    minuteStart = localStartMinutes,
+                    dateEnd = localEndDate,
+                    minuteEnd = localEndMinutes
+                )
+            } else event
+        }
+        .filter {
+            (it.dateStart <= dayEnd && it.dateEnd >= dayStart) ||
+                    (it.dateEnd <= 0L && it.dateStart <= dayEnd && it.dateStart >= dayStart)
+        }
         .sortedWith(compareBy(
-            { !it.allDay }, // full-day events first
-            { if (it.allDay) it.title else null }, // full-day events sorted by title
-            { if (!it.allDay) it.minuteStart else null } // then by minute start
+            { !it.allDay },
+            { if (it.allDay) it.title else null },
+            { if (!it.allDay) it.minuteStart else null }
         ))
 }
 

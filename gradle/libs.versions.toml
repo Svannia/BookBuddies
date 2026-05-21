@@ -30,6 +30,7 @@ roomKtx = "2.7.2"
 roomRuntime = "2.7.2"
 timber = "5.0.1"
 uiGraphics = "1.10.6"
+foundation = "1.11.2"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
@@ -73,6 +74,7 @@ timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 ui = { module = "androidx.compose.ui:ui" }
 ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
 androidx-compose-ui-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
+androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 #For the permission
 
 [plugins]

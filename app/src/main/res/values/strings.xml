@@ -112,6 +112,7 @@
     <string name="title_dateAdded">Added on the</string>
     <string name="title_description">Description</string>
     <string name="title_editBook">Edit book</string>
+    <string name="title_editEvent">Edit event</string>
     <string name="title_enterISBN">Enter ISBN</string>
     <string name="title_eventCreate">Add new event</string>
     <string name="title_eventName">Event Name</string>
@@ -143,7 +144,7 @@
     <string name="toast_coverDeleteFail">Failed to delete this book\'s cover.</string>
     <string name="toast_coverRemoveFail">Failed to remove some covers.</string>
     <string name="toast_coverSearchFail">An error occurred while finding covers.</string>
-    <string name="toast_deleteFail">Failed to delete this book.</string>
+    <string name="toast_deleteBookFail">Failed to delete this book.</string>
     <string name="toast_deleteMultiFail">Failed to delete some books.</string>
     <string name="toast_emptyBugReport">Please describe the bug to send a report.</string>
     <string name="toast_emptyTagName">Please enter a tag name.</string>
@@ -159,7 +160,7 @@
     <string name="toast_removeCovers">All covers have been deleted.</string>
     <string name="toast_removeSomeCovers">The selected covers have been deleted.</string>
     <string name="toast_singleCoverFail">No cover found for this book.</string>
-    <string name="toast_successDelete">Book successfully deleted!</string>
+    <string name="toast_successBookDelete">Book successfully deleted!</string>
     <string name="toast_successMultiDelete">Successfully deleted the selected books.</string>
     <string name="toast_successfulCovers">All possible covers have been added!</string>
     <string name="toast_successfulExport">The books have been successfully exported</string>
@@ -176,7 +177,8 @@
         \nThis will trigger a different search mechanism for those volumes.</string>
     <string name="txt_createBookLeave">Are you sure you want to leave? Your new book entry will not be saved.</string>
     <string name="txt_createEventLeave">Are you sure you want to leave? Your new event entry will not be saved.</string>
-    <string name="txt_deleteConfirm">Are you sure you want to delete this book?</string>
+    <string name="txt_deleteBookConfirm">Are you sure you want to delete this book?</string>
+    <string name="txt_deleteEventConfirm">Are you sure you want to delete this event?</string>
     <string name="txt_editLeave">Are you sure you want to leave? You haven\'t saved your modifications.</string>
     <string name="txt_emptyDay">Nothing on that day!</string>
     <string name="txt_failedCoversClipboard">Covers not found</string>
@@ -188,8 +190,7 @@
         \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
     <string name="txt_inputFieldPlaceholder">Input here...</string>
     <string name="txt_isGift">This book is a gift</string>
-    <string name="txt_localDateTime">Local time: %1$s %2$s</string>
-    <string name="txt_localTime">Local time: %1$s</string>
+    <string name="txt_localTime">Local time: </string>
     <string name="txt_maxChar">max. %1$s characters</string>
     <string name="txt_multiDeleteConfirm">Are you sure you want to delete these books:</string>
     <string name="txt_nbSelected">%1$d selected</string>

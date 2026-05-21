@@ -16,15 +16,30 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import androidx.core.content.edit
+import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.ui.theme.Cerulean
 import com.example.bookbuddies.ui.theme.Coral
 import com.example.bookbuddies.ui.theme.Emerald
 import com.example.bookbuddies.ui.theme.Rose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import java.util.Calendar
 
 class CalendarViewModel(private val repository: CalendarRepository, app: Application) : ViewModel() {
     val allEvents = repository.allEvents
     val allEventTags = repository.allEventTags
+
+    /**
+     * Fetches an observable FlowState of an event given its unique ID.
+     *
+     * @param uid event ID
+     * @return Flow for the event
+     */
+    fun getEventFlowById(uid: String): Flow<CalendarEvent> {
+        Timber.tag("CalendarVM").d("Recovering event flow with ID $uid")
+        return allEvents.map { list -> list.find { it.uid == uid }}.filterNotNull()
+    }
 
     // remember screen through navigation
     var savedYear: Int = Calendar.getInstance().get(Calendar.YEAR)
