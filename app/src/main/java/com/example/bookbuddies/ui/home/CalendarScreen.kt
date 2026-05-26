@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.fromColorLong
 import androidx.compose.ui.graphics.luminance
@@ -87,6 +88,7 @@ import java.util.Calendar
 import java.util.Locale
 import kotlin.math.ceil
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.text.font.FontStyle
 import com.example.bookbuddies.data.getTagForEvent
 import timber.log.Timber
 
@@ -252,6 +254,14 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                     onNavigateToEvent = { eventId ->
                         selectedDay = null
                         navigationActions.navigateTo("${Route.EVENT}/${eventId}")
+                    },
+                    onAddEvent = {
+                        selectedDay = null
+                        val dayEpoch = Calendar.getInstance().apply {
+                            set(y, m - 1, d, 0, 0, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }.timeInMillis
+                        navigationActions.navigateTo("${Route.EVENT_CREATE}/${dayEpoch}")
                     }
                 )
             }
@@ -322,7 +332,13 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
 
     // adding new event
     if (createNewEvent.value) {
-        navigationActions.navigateTo(Route.EVENT_CREATE)
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        navigationActions.navigateTo("${Route.EVENT_CREATE}/${today}")
     }
 }
 
@@ -676,7 +692,8 @@ fun DayDetailsWindow(
     onChooseColour: (Book, Int) -> Unit,
     onDismiss: () -> Unit,
     onNavigateToBook: (String) -> Unit,
-    onNavigateToEvent: (String) -> Unit
+    onNavigateToEvent: (String) -> Unit,
+    onAddEvent: () -> Unit
 ) {
     val visible = remember { mutableStateOf(true) }
     LaunchedEffect(visible.value) {
@@ -873,6 +890,28 @@ fun DayDetailsWindow(
                         }
                     }
                 }
+            }
+
+            // add button to add new event on this day
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Add event on this day",
+                    style = MyTypography.bodySmall.copy(fontStyle = FontStyle.Italic)
+                )
+                Icon(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+                        .border(width = 0.5.dp, color = MaterialTheme.colorScheme.inversePrimary, shape = RoundedCornerShape(50))
+                        .padding(8.dp)
+                        .clickable { onAddEvent() },
+                    painter = painterResource(R.drawable.plus),
+                    contentDescription = stringResource(R.string.desc_addButton),
+                )
             }
         }
     )

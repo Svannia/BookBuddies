@@ -1,6 +1,5 @@
 package com.example.bookbuddies.ui.event
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,32 +15,32 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.CalendarEvent
-import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.ui.CustomContentDialogWindow
-import com.example.bookbuddies.ui.MiniLoading
-import com.example.bookbuddies.ui.OptionsMenu
 import com.example.bookbuddies.ui.SecondaryScreen
 import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.CalendarViewModel
+import java.util.Calendar
 
 @Composable
 fun EventView(eventID: String, calendarVM: CalendarViewModel, navigationActions: NavigationActions) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    val event by calendarVM.getEventFlowById(eventID).collectAsState(initial = CalendarEvent.empty())
+    val today = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val event by calendarVM.getEventFlowById(eventID).collectAsState(initial = CalendarEvent.empty(today))
 
 
     val showDeleteDialog = remember { mutableStateOf(false) }

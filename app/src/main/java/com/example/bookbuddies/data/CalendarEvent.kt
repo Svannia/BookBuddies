@@ -29,7 +29,6 @@ import com.example.bookbuddies.ui.theme.Teal
 import com.example.bookbuddies.ui.theme.Violet
 import com.example.bookbuddies.ui.theme.Yellow
 import timber.log.Timber
-import java.util.Calendar
 import java.util.UUID
 
 @Entity(tableName = "calendar_events")
@@ -54,16 +53,11 @@ data class CalendarEvent(
          *
          * @return empty CalendarEvent data object.
          */
-        fun empty(): CalendarEvent {
-            val today = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
+        fun empty(dateStart: Long): CalendarEvent {
+
 
             return CalendarEvent(UUID.randomUUID().toString().replace("-", ""),
-                "", false, getLocalTimezone().label, today, 0L, 12*60, 0,
+                "", false, getLocalTimezone().label, dateStart, 0L, 12*60, 0,
                 "", "", "", false, -1L
             )
         }

@@ -139,8 +139,12 @@ class MainActivity : ComponentActivity() {
                             EventView(eventID, calendarVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen EventView")
                         }
-                        composable(Route.EVENT_CREATE) {
-                            EventCreate(calendarVM, dataVM, navigationActions)
+                        composable(
+                            route = "${Route.EVENT_CREATE}/{dateStart}",
+                            arguments = listOf(navArgument("dateStart") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val dateStart = backStackEntry.arguments?.getLong("dateStart") ?: return@composable
+                            EventCreate(dateStart, calendarVM, dataVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen EventCreate")
                         }
                         composable(

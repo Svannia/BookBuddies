@@ -12,11 +12,11 @@ import com.example.bookbuddies.viewModels.CalendarViewModel
 import com.example.bookbuddies.viewModels.DataViewModel
 
 @Composable
-fun EventCreate(calendarVM: CalendarViewModel, dataVM: DataViewModel, navigationActions: NavigationActions) {
+fun EventCreate(dateStart: Long, calendarVM: CalendarViewModel, dataVM: DataViewModel, navigationActions: NavigationActions) {
     val context = LocalContext.current
     val themeChoice by dataVM.currentTheme.collectAsState()
 
-    val event = CalendarEvent.empty()
+    val event = CalendarEvent.empty(dateStart)
 
     EventShared(
         context = context,
