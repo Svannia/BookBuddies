@@ -190,7 +190,7 @@
         \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
     <string name="txt_inputFieldPlaceholder">Input here...</string>
     <string name="txt_isGift">This book is a gift</string>
-    <string name="txt_localTime">Local time: </string>
+    <string name="txt_localTime">Local time</string>
     <string name="txt_maxChar">max. %1$s characters</string>
     <string name="txt_multiDeleteConfirm">Are you sure you want to delete these books:</string>
     <string name="txt_nbSelected">%1$d selected</string>
@@ -207,4 +207,6 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
+    <string name="desc_locationIcon">location icon</string>
+    <string name="desc_notesIcon">notes icon</string>
 </resources>

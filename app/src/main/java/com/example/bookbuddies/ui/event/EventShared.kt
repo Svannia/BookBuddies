@@ -77,6 +77,7 @@ import com.example.bookbuddies.helpers.TIMEZONES
 import com.example.bookbuddies.helpers.Timezone
 import com.example.bookbuddies.helpers.convertToLocal
 import com.example.bookbuddies.helpers.displayDate
+import com.example.bookbuddies.helpers.displayTimezoneConversion
 import com.example.bookbuddies.helpers.formatMinutes
 import com.example.bookbuddies.helpers.formatReminderTime
 import com.example.bookbuddies.helpers.getAvailableTagColours
@@ -95,6 +96,7 @@ import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.CalendarViewModel
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.Calendar
 import java.util.UUID
 import kotlin.math.roundToInt
 
@@ -229,7 +231,8 @@ fun EventShared(
                             ).show()
                             return@Button
                         }
-                        else if (!allDay.value && dateEnd.longValue == dateStart.longValue && minuteEnd.intValue < minuteStart.intValue) {
+                        Timber.tag("Debug").d("dateEnd=${dateEnd.longValue} dateStart=${dateStart.longValue} minuteEnd=${minuteEnd.intValue} minuteStart=${minuteStart.intValue}")
+                        if (!allDay.value && dateEnd.longValue <= dateStart.longValue && minuteEnd.intValue < minuteStart.intValue) {
                             Toast.makeText(
                                 context,
                                 context.getString(R.string.toast_wrongMinuteFinished),
@@ -670,24 +673,9 @@ fun EventShared(
                                     }
 
                                     // if chosen and local timezones differ -> show conversion
-                                    if (localTimezone.value.offset != getTimezoneOffset(timezone.value)) {
-                                        val selectedTz = TIMEZONES.find { it.label == timezone.value }
-                                            ?: Timezone(timezone.value, timezone.value)
-                                        val (localDateStart, localMinuteStart) = convertToLocal(dateStart.longValue, minuteStart.intValue, selectedTz)
-                                        val (localDateEnd, localMinuteEnd) = convertToLocal(dateEnd.longValue, minuteEnd.intValue, selectedTz)
-                                        val sameDayStart = localDateStart == dateStart.longValue
-                                        val sameDayEnd = dateEnd.longValue <= 0L || localDateEnd == dateEnd.longValue
-
-                                        var conversionText = stringResource(R.string.txt_localTime)
-                                        if (!(sameDayStart && sameDayEnd)) conversionText += "${displayDate(localDateStart, DateFormat.SHORT_DAY_DATE)}, "
-                                        conversionText += formatMinutes(localMinuteStart)
-                                        if (hasEndTime) {
-                                            conversionText += " - "
-                                            if (!(sameDayStart && sameDayEnd)) conversionText += "${displayDate(localDateEnd, DateFormat.SHORT_DAY_DATE)}, "
-                                            conversionText += formatMinutes(localMinuteEnd)
-                                        }
+                                    if (localTimezone.value.label != timezone.value) {
                                         Text(
-                                            text = conversionText,
+                                            text = displayTimezoneConversion(context, timezone.value, dateStart.longValue, minuteStart.intValue, dateEnd.longValue, minuteEnd.intValue),
                                             style = MyTypography.bodySmall.copy(fontStyle = FontStyle.Italic),
                                         )
                                     }
@@ -805,9 +793,17 @@ fun EventShared(
                         else -> 0L
                     },
                     onDateSelected = { millis ->
+                        // normalize selected date to midnight
+                        val normalized = Calendar.getInstance().apply {
+                            timeInMillis = millis
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }.timeInMillis
                         when (activeDateField) {
-                            START_DATE -> dateStart.longValue = millis
-                            END_DATE -> dateEnd.longValue = millis
+                            START_DATE -> dateStart.longValue = normalized
+                            END_DATE -> dateEnd.longValue = normalized
                         }
                         dataEdited.value = true
                     }

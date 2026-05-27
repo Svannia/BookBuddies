@@ -1,9 +1,13 @@
 package com.example.bookbuddies.helpers
 
+import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toColorLong
+import androidx.compose.ui.res.stringResource
+import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.CalendarEvent
+import com.example.bookbuddies.data.DateFormat
 import com.example.bookbuddies.data.EventTag
 import com.example.bookbuddies.data.TAG_COLOURS
 import timber.log.Timber
@@ -177,6 +181,46 @@ fun convertToLocal(epochMillis: Long, minutes: Int, sourceTimezone: Timezone): P
 fun getTimezoneOffset(timezoneLabel: String): String {
     if (timezoneLabel.startsWith("UTC")) return timezoneLabel
     return TIMEZONES.find { it.label == timezoneLabel }?.offset ?: timezoneLabel
+}
+
+/**
+ * Shows the time conversion from an event's timezone to the local timezone, including the date if it falls on a different day.
+ *
+ * @param context for fetching string resources
+ * @param timezone event's timezone label
+ * @param dateStart event's start date in epoch milliseconds
+ * @param minuteStart event's start time in minutes since midnight
+ * @param dateEnd event's end date in epoch milliseconds (0 if no end date)
+ * @param minuteEnd event's end time in minutes since midnight (0 if no end time
+ * @return a string representing the local time equivalent of the event's time
+ */
+fun displayTimezoneConversion(
+    context: Context,
+    timezone: String,
+    dateStart: Long,
+    minuteStart: Int,
+    dateEnd: Long,
+    minuteEnd: Int
+): String {
+    // get timezone object for event's timezone
+    val selectedTz = TIMEZONES.find { it.label == timezone }
+        ?: Timezone(timezone, timezone)
+
+    // convert date and time to local
+    val (localDateStart, localMinuteStart) = convertToLocal(dateStart, minuteStart, selectedTz)
+    val (localDateEnd, localMinuteEnd) = convertToLocal(dateEnd, minuteEnd, selectedTz)
+    val sameDayStart = localDateStart == dateStart
+    val sameDayEnd = dateEnd <= 0L || localDateEnd == dateEnd
+
+    var conversionText = "${context.getString(R.string.txt_localTime)}: "
+    if (!(sameDayStart && sameDayEnd)) conversionText += "${displayDate(localDateStart, DateFormat.SHORT_DAY_DATE)}, "
+    conversionText += formatMinutes(localMinuteStart)
+    if (minuteEnd > 0 || dateEnd > 0L) {
+        conversionText += " - "
+        if (!(sameDayStart && sameDayEnd)) conversionText += "${displayDate(localDateEnd, DateFormat.SHORT_DAY_DATE)}, "
+        conversionText += formatMinutes(localMinuteEnd)
+    }
+    return conversionText
 }
 
 /**
