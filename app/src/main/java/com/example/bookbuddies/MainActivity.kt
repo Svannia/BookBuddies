@@ -1,5 +1,6 @@
 package com.example.bookbuddies
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +14,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.ActivityCompat
+import android.Manifest
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -51,6 +54,11 @@ class MainActivity : ComponentActivity() {
         val logFile = File(filesDir, "log.txt")
         Timber.plant(FileLoggingTree(logFile))
         Timber.i("---------------- App started ----------------")
+
+        // ask permission for notifications
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
+        }
 
         setContent {
             val dataVM: DataViewModel = viewModel()

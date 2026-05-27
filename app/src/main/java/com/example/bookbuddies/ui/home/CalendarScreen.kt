@@ -89,7 +89,6 @@ import kotlin.math.ceil
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontStyle
 import com.example.bookbuddies.data.getTagForEvent
-import timber.log.Timber
 
 @Composable
 fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigationActions: NavigationActions) {
@@ -172,10 +171,7 @@ fun CalendarScreen(bookVM: BookViewModel, calendarVM: CalendarViewModel, navigat
                     icon = R.drawable.options,
                     (if (showReadBooks) stringResource(R.string.button_hideRead)
                     else stringResource(R.string.button_showRead))
-                            to { calendarVM.toggleShowReadBooks() },
-                    // todo: remove those for release
-                    "Delete all events" to {calendarVM.deleteAllEvents()},
-                    "Reset tags" to { calendarVM.resetTags() }
+                            to { calendarVM.toggleShowReadBooks() }
                 )
             }
         }
@@ -590,10 +586,6 @@ private fun DayCell(
         }
         // event indicators
         dayEvents.forEach { event ->
-            tags.forEach {
-                Timber.tag("Debug").d("Tag ${it.name} has uid ${it.uid}")
-            }
-            Timber.tag("Debug").d("Event ${event.title} has tag ID ${event.tag}")
             val tagColour = Color.Companion.fromColorLong(getTagForEvent(context, event.tag, tags).colour)
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),

@@ -344,7 +344,7 @@ fun EventView(eventID: String, calendarVM: CalendarViewModel, navigationActions:
                     )
                 },
                 rightButtonOnClick = {
-                    calendarVM.deleteEvent(event)
+                    calendarVM.deleteEvent(context, event)
                     showDeleteDialog.value = false
                     navigationActions.navigateTo(Route.CALENDAR, true)
                 }

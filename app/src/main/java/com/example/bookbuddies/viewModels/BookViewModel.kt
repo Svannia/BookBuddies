@@ -374,8 +374,6 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             Timber.tag("BookVM").d("Backfilling cover colours ${booksNeedingColours.size} books")
 
             val updated = booksNeedingColours.map { book ->
-                val coverColours = extractColours(book)
-                Timber.tag("Debug").d("Book ${book.title} has ${coverColours.size} colours")
                 book.copy(coverColours = extractColours(book), chosenCoverColour = 0)
             }
             repository.insertBooks(updated)

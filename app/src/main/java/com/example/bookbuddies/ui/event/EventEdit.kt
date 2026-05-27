@@ -10,7 +10,6 @@ import com.example.bookbuddies.data.CalendarEvent
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.viewModels.CalendarViewModel
 import com.example.bookbuddies.viewModels.DataViewModel
-import timber.log.Timber
 import java.util.Calendar
 
 @Composable
@@ -26,7 +25,6 @@ fun EventEdit(eventID: String, calendarVM: CalendarViewModel, dataVM: DataViewMo
     val event by calendarVM.getEventFlowById(eventID).collectAsState(initial = CalendarEvent.empty(today))
     val themeChoice by dataVM.currentTheme.collectAsState()
 
-    Timber.tag("Debug").d("Editing event with timezone ${event.timezone}")
     val editEventTitle = stringResource(R.string.title_editEvent)
     EventShared(
         context = context,

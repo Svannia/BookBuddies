@@ -75,7 +75,7 @@ suspend fun importBooksFromCsv(
         return cols.getOrNull(idx)?.trim() ?: ""
     }
 
-    val books = mutableListOf<com.example.bookbuddies.data.Book>()
+    val books = mutableListOf<Book>()
 
     // Iterate over the column cells of each row (one row = one book)
     Timber.tag("BookImport").d("Found ${allLines.size - 1} books to import")
@@ -132,7 +132,6 @@ suspend fun importBooksFromCsv(
         // since covers is the only element not present in CSV files -> avoid erasing them
         // if a book already exists, all its data except for an existing cover are overwritten with CSV file data.
         val existingBook = getBookById(uid)
-        Timber.tag("Debug").d("existing book is $existingBook")
 
         val book = Book(
             uid = uid,
@@ -174,7 +173,7 @@ suspend fun importBooksFromCsv(
  * @param books list of all books from repository
  * @return CSV file built as an array of bytes
  */
-fun exportBooksToCSV(books: List<com.example.bookbuddies.data.Book>): ByteArray {
+fun exportBooksToCSV(books: List<Book>): ByteArray {
     // start writing CSV file
     val csvBuilder = StringBuilder()
 

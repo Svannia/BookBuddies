@@ -83,6 +83,8 @@ import com.example.bookbuddies.helpers.getLocalTimezone
 import com.example.bookbuddies.helpers.getTimezoneOffset
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
+import com.example.bookbuddies.system.cancelEventNotification
+import com.example.bookbuddies.system.scheduleEventNotification
 import com.example.bookbuddies.ui.CustomContentDialogWindow
 import com.example.bookbuddies.ui.CustomDatePicker
 import com.example.bookbuddies.ui.CustomTextField
@@ -93,7 +95,6 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.CalendarViewModel
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.util.Calendar
 import java.util.UUID
 import kotlin.math.roundToInt
@@ -229,8 +230,9 @@ fun EventShared(
                             ).show()
                             return@Button
                         }
-                        Timber.tag("Debug").d("dateEnd=${dateEnd.longValue} dateStart=${dateStart.longValue} minuteEnd=${minuteEnd.intValue} minuteStart=${minuteStart.intValue}")
-                        if (!allDay.value && dateEnd.longValue <= dateStart.longValue && minuteEnd.intValue < minuteStart.intValue) {
+                        if (!allDay.value && dateEnd.longValue > 0L
+                            && dateEnd.longValue <= dateStart.longValue && minuteEnd.intValue < minuteStart.intValue
+                        ) {
                             Toast.makeText(
                                 context,
                                 context.getString(R.string.toast_wrongMinuteFinished),
@@ -255,7 +257,11 @@ fun EventShared(
                             reminderTime = reminderTime.longValue
                         )
                         scope.launch {
+                            // create/update event
                             calendarVM.insertEvent(updatedEvent)
+                            // setup reminder notification
+                            cancelEventNotification(context, updatedEvent)
+                            scheduleEventNotification(context, updatedEvent)
                             navigationActions.navigateTo(Route.CALENDAR, clearPrevious = true)
                         }
                     },
@@ -428,7 +434,6 @@ fun EventShared(
                     item {
                         val showStartTimePicker = remember { mutableStateOf(false) }
                         val showEndTimePicker = remember { mutableStateOf(false) }
-                        Timber.tag("Debug").d("minuteEnd: ${minuteEnd.intValue}, dateEnd: ${dateEnd.longValue}")
                         var hasEndTime by remember { mutableStateOf(minuteEnd.intValue > 0 || dateEnd.longValue > 0L) }
                         LaunchedEffect(minuteEnd.intValue, dateEnd.longValue) {
                             if (minuteEnd.intValue > 0 || dateEnd.longValue > 0L) {
@@ -620,7 +625,6 @@ fun EventShared(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Timber.tag("Debug").d("timezone: ${timezone.value}")
                                     // timezone title with button
                                     Box(
                                         modifier = Modifier.fillMaxWidth(),

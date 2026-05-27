@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import androidx.core.content.edit
+import com.example.bookbuddies.system.cancelEventNotification
 import com.example.bookbuddies.ui.theme.Cerulean
 import com.example.bookbuddies.ui.theme.Coral
 import com.example.bookbuddies.ui.theme.Emerald
@@ -108,19 +109,13 @@ class CalendarViewModel(private val repository: CalendarRepository, app: Applica
     /**
      * Deletes a calendar event.
      *
+     * @param context needed to cancel reminder notification
      * @param event CalendarEvent object to delete
      */
-    fun deleteEvent(event: CalendarEvent) = viewModelScope.launch {
+    fun deleteEvent(context: Context, event: CalendarEvent) = viewModelScope.launch {
         repository.deleteEvent(event)
+        cancelEventNotification(context, event)
         Timber.tag("CalendarVM").d("Deleted event ${event.title}")
-    }
-
-    /**
-     * Deletes all calendar events in the DB.
-     */
-    fun deleteAllEvents() = viewModelScope.launch {
-        repository.deleteAllEvents()
-        Timber.tag("CalendarVM").d("Deleted all events")
     }
 
     // EVENT TAGS
