@@ -74,8 +74,6 @@ import com.example.bookbuddies.data.TAG_COLOURS
 import com.example.bookbuddies.data.getTagForEvent
 import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.helpers.TIMEZONES
-import com.example.bookbuddies.helpers.Timezone
-import com.example.bookbuddies.helpers.convertToLocal
 import com.example.bookbuddies.helpers.displayDate
 import com.example.bookbuddies.helpers.displayTimezoneConversion
 import com.example.bookbuddies.helpers.formatMinutes

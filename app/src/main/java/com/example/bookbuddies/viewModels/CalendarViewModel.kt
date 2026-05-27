@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import androidx.core.content.edit
-import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.ui.theme.Cerulean
 import com.example.bookbuddies.ui.theme.Coral
 import com.example.bookbuddies.ui.theme.Emerald

@@ -121,6 +121,12 @@ fun parseAddedDate(dateStr: String, isError: (Boolean) -> Unit): Long? {
     }
 }
 
+/**
+ * Displays the full time interval of an event, as shown in a day window on the main Calendar screen.
+ *
+ * @param event CalendarEvent object
+ * @return "All day", "dateStart - dateEnd", dateStart, time - dateEnd - time"
+ */
 fun formatEventTime(event: CalendarEvent): String {
     return if (event.allDay) {
         // all day event only on current day
@@ -156,12 +162,26 @@ fun formatEventTime(event: CalendarEvent): String {
     }
 }
 
+/**
+ * Displays the hour and minute of an event.
+ *
+ * @param minutes minutes since midnight as an integer
+ * @return string as "hh:mm"
+ */
 fun formatMinutes(minutes: Int): String {
     val h = minutes / 60
     val m = minutes % 60
     return "%02d:%02d".format(h, m)
 }
 
+/**
+ * Displays the reminder time, whether set ("x hours/minutes before") or not ("No reminder").
+ *
+ * @param context for accessing string resources
+ * @param hasReminder boolean whether or not to show "No reminder"
+ * @param reminderTime time in minutes between the event and reminder (positive Long)
+ * @return string with reminder time
+ */
 fun formatReminderTime(context: Context, hasReminder: Boolean, reminderTime: Long): String {
     if (!hasReminder) return context.getString(R.string.reminder_none)
     return when (reminderTime) {

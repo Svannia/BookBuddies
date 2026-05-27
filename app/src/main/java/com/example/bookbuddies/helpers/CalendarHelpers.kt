@@ -3,7 +3,6 @@ package com.example.bookbuddies.helpers
 import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toColorLong
-import androidx.compose.ui.res.stringResource
 import com.example.bookbuddies.R
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.CalendarEvent
