@@ -45,6 +45,7 @@
     <string name="desc_copy">copy button</string>
     <string name="desc_coverImage">book cover image</string>
     <string name="desc_deleteButton">delete button</string>
+    <string name="desc_devPic">sticker picture of the dev</string>
     <string name="desc_dstIcon">destination icon</string>
     <string name="desc_edit">edit button</string>
     <string name="desc_expandCollapse">Expand/collapse</string>
@@ -65,6 +66,7 @@
     <string name="desc_unavailableColour">icon for unavailable colour</string>
 
     <string name="dst_addBook">Add new book</string>
+    <string name="dst_bts">Behind the Scenes</string>
     <string name="dst_calendar">Calendar</string>
     <string name="dst_home">Home</string>
     <string name="dst_settings">Settings</string>
@@ -117,6 +119,7 @@
     <string name="title_data">Book Data</string>
     <string name="title_dateAdded">Added on the</string>
     <string name="title_description">Description</string>
+    <string name="title_dev">Meet the Dev!</string>
     <string name="title_editBook">Edit book</string>
     <string name="title_editEvent">Edit event</string>
     <string name="title_enterISBN">Enter ISBN</string>
@@ -185,6 +188,12 @@
     <string name="txt_createEventLeave">Are you sure you want to leave? Your new event entry will not be saved.</string>
     <string name="txt_deleteBookConfirm">Are you sure you want to delete this book?</string>
     <string name="txt_deleteEventConfirm">Are you sure you want to delete this event?</string>
+    <string name="txt_dev">Hi! I\'m Alice, an IT student.\n I created this app as a personal project, and I truly hope that you like it!\n
+        \nI love my dear dog, playing video games, coding, cooking, reading, drawing, traveling…\n
+        \nIf you\'re interested in seeing more of what I\'m doing, you are welcome on my Discord server! You can even use it to propose ideas to further enhance my app if you have any.\n
+        \nThank you so much for using my lil\' app!</string>
+    <string name="txt_donation">"If you wish to support my work, you can make any small donation here: "</string>
+    <string name="txt_donationThanks">Anything is whole-heartedly appreciated, you\'re a sweetheart!</string>
     <string name="txt_editLeave">Are you sure you want to leave? You haven\'t saved your modifications.</string>
     <string name="txt_emptyDay">Nothing on that day!</string>
     <string name="txt_failedCoversClipboard">Covers not found</string>

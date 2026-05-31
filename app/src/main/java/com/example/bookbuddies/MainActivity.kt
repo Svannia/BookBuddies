@@ -42,6 +42,7 @@ import com.example.bookbuddies.ui.event.EventCreate
 import com.example.bookbuddies.ui.event.EventEdit
 import com.example.bookbuddies.ui.event.EventView
 import com.example.bookbuddies.ui.home.CalendarScreen
+import com.example.bookbuddies.ui.settings.BehindTheScenes
 import com.example.bookbuddies.viewModels.BookViewModel
 import com.example.bookbuddies.viewModels.BookViewModelFactory
 import com.example.bookbuddies.viewModels.CalendarViewModel
@@ -116,6 +117,10 @@ class MainActivity : ComponentActivity() {
                         composable(Route.SETTINGS) {
                             Settings(dataVM, bookVM, navigationActions)
                             Timber.tag("Compose").d("Successfully composed screen Settings")
+                        }
+                        composable(Route.BTS) {
+                            BehindTheScenes(navigationActions)
+                            Timber.tag("Compose").d("Successfully composed screen BehindTheScenes")
                         }
 
                         // viewing and editing books

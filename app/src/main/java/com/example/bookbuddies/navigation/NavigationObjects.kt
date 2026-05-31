@@ -5,6 +5,7 @@ import com.example.bookbuddies.R
 object Route{
     const val HOME = "Home"
     const val SETTINGS = "Settings"
+    const val BTS = "BehindTheScenes"
     const val BOOK = "Book"
     const val BOOK_EDIT = "BookEdit"
     const val BOOK_CREATE = "BookCreate"
@@ -30,6 +31,7 @@ data class Destination(val route: String, val icon: Int = 0, val text: Int)
  */
 val BURGER_DESTINATIONS = listOf(
     Destination(route = Route.SETTINGS, icon = R.drawable.settings, text = R.string.dst_settings),
+    Destination(route = Route.BTS, icon = R.drawable.reading, text = R.string.dst_bts),
 )
 
 /**
