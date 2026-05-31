@@ -52,6 +52,8 @@
     <string name="desc_goBack">go back</string>
     <string name="desc_iconTag">tag icon, coloured dot</string>
     <string name="desc_loading">loading</string>
+    <string name="desc_locationIcon">location icon</string>
+    <string name="desc_notesIcon">notes icon</string>
     <string name="desc_options">options menu</string>
     <string name="desc_rating">book rating (0–5 stars)</string>
     <string name="desc_read">is read</string>
@@ -72,6 +74,10 @@
     <string name="field_isbnPlaceholder">Enter ISBN…</string>
     <string name="field_maxChar">max. %1$s characters</string>
     <string name="field_tagName">Enter your tag name</string>
+
+    <string name="notif_atTime">Your event starts now!</string>
+    <string name="notif_hoursBefore">Your event starts in %1$d hours!</string>
+    <string name="notif_minutesBefore">Your event starts in %1$d minutes!</string>
 
     <string name="reminder_10before">10 mins before</string>
     <string name="reminder_1dbefore">1 day before</string>
@@ -207,6 +213,4 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
-    <string name="desc_locationIcon">location icon</string>
-    <string name="desc_notesIcon">notes icon</string>
 </resources>

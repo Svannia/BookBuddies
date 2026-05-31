@@ -1614,6 +1614,7 @@ fun WheelPicker(
     val centerIndex by remember {
         derivedStateOf { listState.firstVisibleItemIndex}
     }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(centerIndex) {
         onIndexSelected(centerIndex.coerceIn(0, items.size - 1))
@@ -1631,7 +1632,14 @@ fun WheelPicker(
             itemsIndexed(items) { index, item ->
                 val isSelected = index == centerIndex.coerceIn(0, items.size - 1)
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(itemHeight),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(itemHeight)
+                        .then(
+                            if (!isSelected) Modifier.clickable {
+                                scope.launch { listState.animateScrollToItem(index) }
+                            } else Modifier
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

@@ -16,6 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Intent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -46,6 +51,7 @@ import timber.log.Timber
 import java.io.File
 
 class MainActivity : ComponentActivity() {
+    private val pendingEventID = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,10 +61,16 @@ class MainActivity : ComponentActivity() {
         Timber.plant(FileLoggingTree(logFile))
         Timber.i("---------------- App started ----------------")
 
+        // create notifications channel
+        val channel = NotificationChannel("bookbuddies_events", "Event Reminders", NotificationManager.IMPORTANCE_HIGH)
+            .apply { description = "Calendar events reminders" }
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
         // ask permission for notifications
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
         }
+        intent.getStringExtra("eventID")?.let { pendingEventID.value = it }
 
         setContent {
             val dataVM: DataViewModel = viewModel()
@@ -81,6 +93,15 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val navigationActions = NavigationActions(navController)
+
+                    // navigate when notification is tapped
+                    val eventID = pendingEventID.value
+                    LaunchedEffect(eventID) {
+                        if (eventID != null) {
+                            navigationActions.navigateTo("${Route.EVENT}/$eventID")
+                            pendingEventID.value = null
+                        }
+                    }
 
                     NavHost(navController, Route.HOME) {
                         // Main screens
@@ -167,5 +188,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra("eventID")?.let { pendingEventID.value = it }
     }
 }

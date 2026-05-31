@@ -95,6 +95,7 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.CalendarViewModel
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.Calendar
 import java.util.UUID
 import kotlin.math.roundToInt
@@ -261,6 +262,7 @@ fun EventShared(
                             calendarVM.insertEvent(updatedEvent)
                             // setup reminder notification
                             cancelEventNotification(context, updatedEvent)
+                            Timber.tag("Debug").d("Saving event and scheduling notification")
                             scheduleEventNotification(context, updatedEvent)
                             navigationActions.navigateTo(Route.CALENDAR, clearPrevious = true)
                         }
@@ -1046,8 +1048,19 @@ private fun ReminderDialogWindow(
     var customSelected by remember { mutableStateOf(
         reminder.value && reminderTime.longValue !in listOf(0L, 10*60*1000L, 60 * 60 * 1000L, 24 * 60 * 60 * 1000L)
     ) }
-    var pickedAmount by remember { mutableIntStateOf(4) }
-    var pickedUnit by remember { mutableIntStateOf(0) }
+    var pickedAmount by remember { mutableIntStateOf(
+        if (customSelected) {
+            val totalMinutes = reminderTime.longValue / (60 * 1000L)
+            if (totalMinutes % 60 == 0L) (totalMinutes / 60).toInt()
+            else totalMinutes.toInt()
+        } else 5
+    )}
+    var pickedUnit by remember { mutableIntStateOf(
+        if (customSelected) {
+            val totalMinutes = reminderTime.longValue / (60 * 1000L)
+            if (totalMinutes % 60 == 0L) 1 else 0 // 1 = hours, 0 = minutes
+        } else 0
+    )}
     val customName = context.getString(R.string.reminder_custom)
 
     // selecting default options
@@ -1095,8 +1108,13 @@ private fun ReminderDialogWindow(
 
             // wheel picker showing when "Custom" option is selected
             if (customSelected) {
-                val amounts = (1..59).map { it.toString() }
-                val units = listOf(stringResource(R.string.reminder_minutes),
+                val amounts = remember(pickedUnit) {
+                    val max = if (pickedUnit == 0) 59 else 23
+                    pickedAmount = pickedAmount.coerceAtMost(max)
+                    (1..max).map { it.toString() }
+                }
+                val units = listOf(
+                    stringResource(R.string.reminder_minutes),
                     stringResource(R.string.reminder_hours)
                 )
 
