@@ -1,15 +1,20 @@
 package com.example.bookbuddies.helpers
 
+import android.content.Context
 import com.example.bookbuddies.data.Book
 import com.example.bookbuddies.data.DateFormat
 import com.opencsv.CSVReader
 import timber.log.Timber
 import java.io.File
 import java.io.FileReader
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 // CSV Headers
 const val NUMBER_ID = "_id"
 const val AUTHOR = "author_details"
+const val COVER_COLOURS = "cover_colours"
+const val CHOSEN_COLOUR = "chosen_colour"
 const val TITLE = "title"
 const val ISBN = "isbn"
 const val PUBLISHER = "publisher"
@@ -34,13 +39,16 @@ const val UUID = "book_uuid"
  * Imports books from a CSV file into the local database.
  *
  * @param file the CSV file to import
+ * @param coversDir directory where the books' covers are located
  * @param insertBooks a suspend lambda that receives the list of parsed books and inserts them in the repository
  * @param getBookById a suspend lambda that received a book's ID an fetches its Book object from the repository
  * @param callBack function to be called after the import is complete
  * @param isError lambda that returns true if an error occurred while running the function, and a string with error details
  */
 suspend fun importBooksFromCsv(
+    context: Context,
     file: File,
+    coversDir: File? = null,
     insertBooks: suspend (List<Book>) -> Unit,
     getBookById: suspend (String) -> Book?,
     callBack: () -> Unit,
@@ -132,15 +140,28 @@ suspend fun importBooksFromCsv(
         // since covers is the only element not present in CSV files -> avoid erasing them
         // if a book already exists, all its data except for an existing cover are overwritten with CSV file data.
         val existingBook = getBookById(uid)
+        // if the coversDir exists -> take cover from there
+        val coverFile = coversDir?.let { File(it, "$uid.jpg") }
+        val coverPath = when {
+            coverFile != null && coverFile.exists() -> File(context.filesDir, "$uid.jpg").absolutePath
+            else -> existingBook?.cover
+        }
+        // get back cover colours and chosen colour
+        val coverColoursStr = getCol(cols, COVER_COLOURS)
+        val coverColours = if (coverColoursStr.isBlank()) emptyList()
+        else coverColoursStr.split("|").mapNotNull { it.toLongOrNull() }
+        val chosenCoverColour = getCol(cols, CHOSEN_COLOUR).toIntOrNull() ?: 0
 
         val book = Book(
             uid = uid,
             isbn = getCol(cols, ISBN),
             title = getCol(cols, TITLE),
             authors = authors,
-            cover = existingBook?.cover,
-            coverColours = existingBook?.coverColours ?: emptyList(),
-            chosenCoverColour = existingBook?.chosenCoverColour ?: 0,
+            cover = coverPath,
+            coverColours =  if (coverFile != null && coverFile.exists()) coverColours
+                            else existingBook?.coverColours ?: coverColours,
+            chosenCoverColour = if (coverFile != null && coverFile.exists()) chosenCoverColour
+                                else existingBook?.chosenCoverColour ?: chosenCoverColour,
             seriesName = seriesName,
             seriesNumber = seriesNumber,
             description = description,
@@ -168,12 +189,41 @@ suspend fun importBooksFromCsv(
 }
 
 /**
+ * Exports books to a CSV file and compresses it into a ZIP file, together with the books' covers.
+ *
+ * @param context used to create temporary files
+ * @param books list of all books to export
+ * @return ZIP file
+ */
+fun exportBooksToZip(context: Context, books: List<Book>): File {
+    val zipFile = File(context.cacheDir, "myBooks_export.zip")
+    ZipOutputStream(zipFile.outputStream().buffered()).use { zip ->
+        // write CSV
+        zip.putNextEntry(ZipEntry("myBooks.csv"))
+        zip.write(exportBooksToCSV(books))
+        zip.closeEntry()
+
+        // write covers
+        books.forEach { book ->
+            val coverFile = book.cover?.let { File(it) }
+            if (coverFile != null && coverFile.exists()) {
+                zip.putNextEntry(ZipEntry("covers/${book.uid}.jpg"))
+                coverFile.inputStream().use { it.copyTo(zip) }
+                zip.closeEntry()
+            }
+        }
+    }
+    Timber.tag("BookExport").d("Books successfully exported to ZIP file with ${books.count { it.cover != null }} covers.")
+    return zipFile
+}
+
+/**
  * Exports all books present in the app's repository into a CSV file. All book data except covers is exported.
  *
  * @param books list of all books from repository
  * @return CSV file built as an array of bytes
  */
-fun exportBooksToCSV(books: List<Book>): ByteArray {
+private fun exportBooksToCSV(books: List<Book>): ByteArray {
     // start writing CSV file
     val csvBuilder = StringBuilder()
 
@@ -193,6 +243,8 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
                 "$START," +
                 "$END," +
                 "$BOOKSHELF," +
+                "$COVER_COLOURS," +
+                "$CHOSEN_COLOUR," +
                 "$FORMAT," +
                 "$DESCRIPTION," +
                 "$GENRE," +
@@ -237,6 +289,8 @@ fun exportBooksToCSV(books: List<Book>): ByteArray {
         csvBuilder.append("$dateEnd,")
 
         csvBuilder.append("${escapeCSVChar(book.bookshelf)},")
+        csvBuilder.append("${book.coverColours.joinToString("|")},")
+        csvBuilder.append("${book.chosenCoverColour},")
         csvBuilder.append("${escapeCSVChar(book.format)},")
         csvBuilder.append("${escapeCSVChar(book.description)},")
         csvBuilder.append("${escapeCSVChar(book.genre)},")

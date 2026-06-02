@@ -79,6 +79,7 @@ fun extractColours(book: Book): List<Long> {
         }
 
         // score and sort colours
+        Timber.tag("ColourExtract").d("Extracted cover colours for ${book.title}")
         representatives.sortedByDescending { (color, count) ->
             val r = (color shr 16) and 0xFF
             val g = (color shr 8) and 0xFF
@@ -94,7 +95,6 @@ fun extractColours(book: Book): List<Long> {
             val normalizedCount = count.toFloat() / totalPixels
             // score from saturation, brightness and count
             val score = saturation * 0.3f + brightnessScore * 0.3f + normalizedCount * 0.4f
-            Timber.tag("ColourExtract").d("${book.title} RGB($r,$g,$b) sat=${"%.2f".format(saturation)} bright=${"%.2f".format(brightness)} count=$count score=${"%.3f".format(score)}")
             score
         }.take(20).map { (color, _) ->
             val r = (color shr 16) and 0xFF

@@ -95,7 +95,6 @@ import com.example.bookbuddies.ui.theme.MyTypography
 import com.example.bookbuddies.ui.theme.ValidGreen
 import com.example.bookbuddies.viewModels.CalendarViewModel
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.util.Calendar
 import java.util.UUID
 import kotlin.math.roundToInt
@@ -262,7 +261,6 @@ fun EventShared(
                             calendarVM.insertEvent(updatedEvent)
                             // setup reminder notification
                             cancelEventNotification(context, updatedEvent)
-                            Timber.tag("Debug").d("Saving event and scheduling notification")
                             scheduleEventNotification(context, updatedEvent)
                             navigationActions.navigateTo(Route.CALENDAR, clearPrevious = true)
                         }

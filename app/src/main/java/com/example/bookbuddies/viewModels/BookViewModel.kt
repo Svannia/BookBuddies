@@ -161,7 +161,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     fun insertBooks(books: List<Book>) {
         viewModelScope.launch(Dispatchers.IO) {
             val booksWithColours = books.map { book ->
-                if (book.cover != null) {
+                if (book.cover != null && book.dateFinished > 0L && book.coverColours.isEmpty()) {
                     book.copy(coverColours = extractColours(book), chosenCoverColour = 0)
                 } else book
             }
@@ -178,7 +178,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
      */
     fun insertBook(book: Book) {
         viewModelScope.launch(Dispatchers.IO) {
-            val bookWithColour = if (book.cover != null) {
+            val bookWithColour = if (book.cover != null && book.dateFinished > 0L && book.coverColours.isEmpty()) {
                 book.copy(coverColours = extractColours(book), chosenCoverColour = 0)
             } else book
             repository.insertBook(bookWithColour)
@@ -189,6 +189,88 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     // ---------- UPDATING REPOSITORY ----------
 
+    /**
+     * Updates all the volumes of a manga with their series ID from Mangadex.
+     *
+     * @param mangaId Mangadex ID for this manga series
+     * @param seriesName all volumes with this series name will update their mangaID
+     */
+    fun updateMangaSeriesId(mangaId: String, seriesName: String) {
+        viewModelScope.launch {
+            repository.updateMangaSeriesId(mangaId, seriesName)
+            Timber.tag("BookVM")
+                .d("Update manga series \"$seriesName\" with new Mangadex ID $mangaId")
+        }
+    }
+
+    /**
+     * Updates the "rating" field of a Book object with a new value.
+     *
+     * @param newRating new value for the "rating" field
+     * @param book Book object whose value to change
+     */
+    fun updateRating(newRating: Double, book: Book) {
+        viewModelScope.launch {
+            val updatedBook = book.copy(rating = newRating)
+            repository.insertBook(updatedBook)
+            Timber.tag("BookVM").d("Updated the \"rating\" field for book \"${book.title}\"")
+        }
+    }
+
+    /**
+     * Updates the "read" field of a Book object with a new value.
+     *
+     * @param isRead new value for the "read" field
+     * @param book Book object to mark as (un)read
+     */
+    fun updateRead(isRead: Boolean, book: Book) {
+        viewModelScope.launch {
+            val updatedBook = book.copy(read = isRead)
+            insertBook(updatedBook)
+            Timber.tag("BookVM").d("Updated the \"read\" mark for book \"${book.title}\"")
+        }
+    }
+
+    /**
+     * Updates the "dateStarted" field of a Book object with a new value.
+     *
+     * @param dateStarted new value for the "dateStarted" field
+     * @param book Book object to mark as started
+     */
+    fun updateStart(dateStarted: Long, book: Book) {
+        viewModelScope.launch {
+            val updatedBook = book.copy(dateStarted = dateStarted)
+            repository.insertBook(updatedBook)
+            Timber.tag("BookVM").d("Updated the \"dateStarted\" for book \"${book.title}\"")
+        }
+    }
+
+    /**
+     * Updates the "dateFinished" field of a Book object with a new value.
+     * This function also checks that this date is >= dateStarted and marks the book as read.
+     *
+     * @param dateFinished new value for the "dateFinished" field
+     * @param book Book object to mark as finished
+     * @param isError block that returns true if the input date is incoherent with the dateStarted
+     */
+    fun updateFinish(dateFinished: Long, book: Book, isError: (Boolean) -> Unit) {
+        if (book.dateStarted <= 0L || dateFinished < book.dateStarted) {
+            Timber.tag("BookVM")
+                .e("Failed to update dateFinished for book \"${book.title}\": smaller than dateStarted")
+            isError(true)
+            return
+        }
+
+        viewModelScope.launch {
+            val updatedBook = book.copy(dateFinished = dateFinished, read = true)
+            insertBook(updatedBook)
+            Timber.tag("BookVM").d("Updated the \"dateFinished\" for book \"${book.title}\"")
+        }
+    }
+
+
+
+    // ---------- UPDATING COVERS ----------
     /**
      * Updates an existing book's cover with an image copied from the user's gallery.
      *
@@ -228,89 +310,6 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             }
         }
     }
-
-    /**
-     * Updates all the volumes of a manga with their series ID from Mangadex.
-     *
-     * @param mangaId Mangadex ID for this manga series
-     * @param seriesName all volumes with this series name will update their mangaID
-     */
-    fun updateMangaSeriesId(mangaId: String, seriesName: String) {
-        viewModelScope.launch {
-            repository.updateMangaSeriesId(mangaId, seriesName)
-            Timber.tag("BookVM")
-                .d("Update manga series \"$seriesName\" with new Mangadex ID $mangaId")
-        }
-    }
-
-    /**
-     * Updates the "rating" field of a Book object with a new value.
-     *
-     * @param newRating new value for the "rating" field
-     * @param book Book object whose value to change
-     */
-    fun updateRating(newRating: Double, book: Book) {
-        viewModelScope.launch {
-            val updatedBook = book.copy(rating = newRating)
-            repository.insertBook(updatedBook)
-            Timber.tag("BookVM").d("Updated the \"rating\" field for book \"${book.title}\"")
-        }
-    }
-
-    /**
-     * Updates the "read" field of a Book object with a new value.
-     *
-     * @param isRead new value for the "read" field
-     * @param book Book object to mark as (un)read
-     */
-    fun updateRead(isRead: Boolean, book: Book) {
-        viewModelScope.launch {
-            val updatedBook = book.copy(read = isRead)
-            repository.insertBook(updatedBook)
-            Timber.tag("BookVM").d("Updated the \"read\" mark for book \"${book.title}\"")
-        }
-    }
-
-    /**
-     * Updates the "dateStarted" field of a Book object with a new value.
-     *
-     * @param dateStarted new value for the "dateStarted" field
-     * @param book Book object to mark as started
-     */
-    fun updateStart(dateStarted: Long, book: Book) {
-        viewModelScope.launch {
-            val updatedBook = book.copy(dateStarted = dateStarted)
-            repository.insertBook(updatedBook)
-            Timber.tag("BookVM").d("Updated the \"dateStarted\" for book \"${book.title}\"")
-        }
-    }
-
-    /**
-     * Updates the "dateFinished" field of a Book object with a new value.
-     * This function also checks that this date is >= dateStarted and marks the book as read.
-     *
-     * @param dateFinished new value for the "dateFinished" field
-     * @param book Book object to mark as finished
-     * @param isError block that returns true if the input date is incoherent with the dateStarted
-     */
-    fun updateFinish(dateFinished: Long, book: Book, isError: (Boolean) -> Unit) {
-        if (book.dateStarted <= 0L || dateFinished < book.dateStarted) {
-            Timber.tag("BookVM")
-                .e("Failed to update dateFinished for book \"${book.title}\": smaller than dateStarted")
-            isError(true)
-            return
-        }
-
-        viewModelScope.launch {
-            val updatedBook = book.copy(dateFinished = dateFinished, read = true)
-            repository.insertBook(updatedBook)
-            Timber.tag("BookVM").d("Updated the \"dateFinished\" for book \"${book.title}\"")
-        }
-    }
-
-
-
-    // ---------- UPDATING COVERS ----------
 
     /**
      * Removes the covers (replacing them with default placeholder) of some selected books.

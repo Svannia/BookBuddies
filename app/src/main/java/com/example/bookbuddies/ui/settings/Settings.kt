@@ -41,16 +41,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.bookbuddies.R
 import com.example.bookbuddies.datastore.ThemeChoice
 import com.example.bookbuddies.datastore.convertThemeToText
-import com.example.bookbuddies.helpers.exportBooksToCSV
 import com.example.bookbuddies.helpers.findBookCovers
 import com.example.bookbuddies.helpers.importBooksFromCsv
 import com.example.bookbuddies.errors.handleError
 import com.example.bookbuddies.helpers.copyToClipboard
+import com.example.bookbuddies.helpers.exportBooksToZip
 import com.example.bookbuddies.navigation.NavigationActions
 import com.example.bookbuddies.navigation.Route
 import com.example.bookbuddies.system.TelegramBot
@@ -70,6 +71,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
+import java.util.zip.ZipInputStream
 
 private const val HEIGHT = 52
 private const val OFFSET = 45
@@ -89,6 +91,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     val coversVisible = remember { mutableStateOf(false) }
     val failedCovers = remember { mutableListOf<String>() }
     val clipboard = LocalClipboard.current
+    val removeCoversVisible = remember { mutableStateOf(false) }
 
     // string variables for toasts
     val errorImport = stringResource(R.string.toast_importError)
@@ -97,6 +100,7 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     val errorInvalidFormat = stringResource(R.string.toast_invalidCSV)
     val successExport = stringResource(R.string.toast_successfulExport)
     val errorExport = stringResource(R.string.toast_failExport)
+    val exportButton = stringResource(R.string.button_export)
 
     // launcher to access files for importing
     val importLauncher = rememberLauncherForActivityResult(
@@ -110,66 +114,119 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                 cursor.getString(nameIndex)
             }
 
-            // open and read file
-            if (fileName != null && fileName.endsWith(".csv", ignoreCase = true)) {
-                loading.value = true
-                scope.launch {
-                    val inputStream = context.contentResolver.openInputStream(uri)
-                    if (inputStream != null) {
-                        val tempFile = File(context.cacheDir, fileName)
-                        tempFile.outputStream().use { outputStream ->
-                            inputStream.copyTo(outputStream)
-                        }
+            when {
+                fileName?.endsWith(".zip", ignoreCase = true) == true -> {
+                    loading.value = true
+                    scope.launch {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        if (inputStream != null) {
+                            val tempZip = File(context.cacheDir, fileName)
+                            tempZip.outputStream().use { inputStream.copyTo(it) }
 
-                        // import file data into BookRepository
-                        importBooksFromCsv(
-                            tempFile,
-                            bookVM::insertBooks,
-                            bookVM::getBookById,
-                            callBack = {
+                            // extract zip
+                            val extractDir = File(context.cacheDir, "import_extract")
+                            extractDir.deleteRecursively()
+                            extractDir.mkdirs()
+                            ZipInputStream(tempZip.inputStream()).use { zip ->
+                                var entry = zip.nextEntry
+                                while (entry != null) {
+                                    if (!entry.isDirectory) {
+                                        val outFile = File(extractDir, entry.name)
+                                        outFile.parentFile?.mkdirs()
+                                        outFile.outputStream().use { zip.copyTo(it) }
+                                    }
+                                    zip.closeEntry()
+                                    entry = zip.nextEntry
+                                }
+                            }
+
+                            val csvFile = extractDir.listFiles()?.find { it.name.endsWith(".csv") }
+                            val coversDir = File(extractDir, "covers")
+
+                            if (csvFile == null) {
                                 loading.value = false
+                                Timber.tag("BookImport").e("No CSV file found in the ZIP archive.")
+                                handleError(context, errorInvalidFormat)
+                                return@launch
                             }
-                        ) { isError ->
-                            if (isError) {
-                                handleError(context, errorImport)
+
+                            // copy covers to filesDir before importing
+                            if (coversDir.exists()) {
+                                coversDir.listFiles()?.forEach { coverFile ->
+                                    val dest = File(context.filesDir, coverFile.name)
+                                    coverFile.copyTo(dest, overwrite = true)
+                                }
+                                Timber.tag("BookImport").e("Covers directory found, copied ${coversDir.listFiles()?.size ?: 0} files to app storage.")
                             }
-                            else {
-                                Toast.makeText(
-                                    context,
-                                    successImport,
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                navigationActions.navigateTo(Route.HOME, true)
+
+                            // import file data into BookRepository
+                            importBooksFromCsv(
+                                context,
+                                csvFile,
+                                if (coversDir.exists()) coversDir else null,
+                                bookVM::insertBooks,
+                                bookVM::getBookById,
+                                callBack = { loading.value = false }
+                            ) { isError ->
+                                if (isError) handleError(context, errorImport)
+                                else {
+                                    Toast.makeText(context, successImport, Toast.LENGTH_SHORT).show()
+                                    navigationActions.navigateTo(Route.HOME, true)
+                                }
                             }
+                            extractDir.deleteRecursively()
+                        } else {
+                            loading.value = false
+                            Timber.tag("BookImport").e("Could not open file, input stream is null.")
+                            handleError(context, errorFileOpen)
                         }
-                    } else {
-                        loading.value = false
-                        Timber.tag("BookImport").e("Could not open file, input stream is null.")
-                        handleError(context, errorFileOpen)
                     }
                 }
-            } else {
-                Toast.makeText(context,
-                    errorInvalidFormat, Toast.LENGTH_SHORT).show()
+                fileName?.endsWith(".csv", ignoreCase = true) == true -> {
+                    loading.value = true
+                    scope.launch {
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        if (inputStream != null) {
+                            val tempFile = File(context.cacheDir, fileName)
+                            tempFile.outputStream().use { inputStream.copyTo(it) }
+
+                            // import file data into BookRepository
+                            importBooksFromCsv(
+                                context = context,
+                                file = tempFile,
+                                insertBooks = bookVM::insertBooks,
+                                getBookById = bookVM::getBookById,
+                                callBack = { loading.value = false }
+                            ) { isError ->
+                                if (isError) handleError(context, errorImport)
+                                else {
+                                    Toast.makeText(context, successImport, Toast.LENGTH_SHORT)
+                                        .show()
+                                    navigationActions.navigateTo(Route.HOME, true)
+                                }
+                            }
+                        } else {
+                            loading.value = false
+                            Timber.tag("BookImport").e("Could not open file, input stream is null.")
+                            handleError(context, errorFileOpen)
+                        }
+                    }
+                }
             }
         }
     }
 
-    // launcher to access files for exporting
     val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/csv")
+        contract = ActivityResultContracts.CreateDocument("application/zip"),
     ) { uri: Uri? ->
         uri?.let {
             scope.launch {
                 try {
+                    val zipFile = exportBooksToZip(context, books)
                     context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                        val outputArray = exportBooksToCSV(books)
-                        outputStream.write(outputArray)
+                        zipFile.inputStream().use {it.copyTo(outputStream) }
                     }
-                    Toast.makeText(
-                        context,
-                        successExport, Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, successExport, Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     Timber.tag("BookExport").e("Failed to export with error $e")
                     handleError(context, errorExport)
@@ -242,11 +299,9 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(HEIGHT.dp)
-                                .clickable {
-                                    exportLauncher.launch("myBooks.csv")
-                                },
+                                .clickable { exportLauncher.launch("myBooks.zip") },
                             contentAlignment = Alignment.CenterStart
-                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_export), style = MyTypography.bodyLarge) }
+                        ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = exportButton, style = MyTypography.bodyLarge) }
                         // Find covers
                         val successCover = stringResource(R.string.toast_successfulCovers)
                         val errorCover = stringResource(R.string.toast_coverSearchFail)
@@ -294,31 +349,11 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             toolTipText = stringResource(R.string.txt_coversTooltip)
                         )
                         // Remove all covers
-                        val successCoverRemove = stringResource(R.string.toast_removeCovers)
-                        val errorCoverRemove = stringResource(R.string.toast_coverRemoveFail)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(HEIGHT.dp)
-                                .clickable {
-                                    loading.value = true
-                                    scope.launch {
-                                        bookVM.clearAllCovers({
-                                            if (it) {
-                                                loading.value = false
-                                                handleError(context, errorCoverRemove)
-                                            }
-                                        }) {
-                                            loading.value = false
-                                            Toast.makeText(
-                                                context,
-                                                successCoverRemove,
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            navigationActions.navigateTo(Route.HOME, true)
-                                        }
-                                    }
-                                },
+                                .clickable { removeCoversVisible.value = true},
                             contentAlignment = Alignment.CenterStart
                         ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_removeCovers), style = MyTypography.bodyLarge) }
                     }
@@ -408,6 +443,52 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                     rightButtonOnClick = {
                         coversVisible.value = false
                         navigationActions.navigateTo(Route.HOME, true)
+                    }
+                )
+            }
+
+            // confirm window for deleting all covers
+            if (removeCoversVisible.value) {
+                val successCoverRemove = stringResource(R.string.toast_removeCovers)
+                val errorCoverRemove = stringResource(R.string.toast_coverRemoveFail)
+                CustomContentDialogWindow(
+                    visible = removeCoversVisible,
+                    content = {
+                        Text(
+                            text = stringResource(R.string.txt_deleteCoversConfirm),
+                            style = MyTypography.bodyLarge.copy(textAlign = TextAlign.Center),
+                        )
+                    },
+                    bottomButtons = true,
+                    leftButtonContent = {
+                        Text(
+                            text = stringResource(R.string.button_cancel),
+                            style = MyTypography.bodyLarge,
+                            color = MaterialTheme.colorScheme.inversePrimary
+                        )
+                    },
+                    leftButtonOnClick = { removeCoversVisible.value = false },
+                    rightButtonContent = {
+                        Text(
+                            text = stringResource(R.string.button_confirm),
+                            style = MyTypography.bodyLarge,
+                            color = ValidGreen
+                        )
+                    },
+                    rightButtonOnClick = {
+                        loading.value = true
+                        scope.launch {
+                            bookVM.clearAllCovers({
+                                if (it) {
+                                    loading.value = false
+                                    handleError(context, errorCoverRemove)
+                                }
+                            }) {
+                                loading.value = false
+                                Toast.makeText(context, successCoverRemove, Toast.LENGTH_SHORT).show()
+                                navigationActions.navigateTo(Route.HOME, true)
+                            }
+                        }
                     }
                 )
             }

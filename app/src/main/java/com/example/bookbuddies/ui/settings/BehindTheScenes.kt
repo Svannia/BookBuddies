@@ -46,7 +46,7 @@ import com.example.bookbuddies.ui.SecondaryScreen
 import com.example.bookbuddies.ui.theme.MyTypography
 
 val SOCIALS = listOf(
-    Social("Discord", "DiscordBuddies", ""),
+    Social("Discord", "DiscordBuddies", "https://discord.gg/CvmW8R3Qwt"),
     Social("Instagram", "@arts_alice", "https://www.instagram.com/arts__alice"),
     Social("Tiktok", "@arts_alice", "https://www.tiktok.com/@arts_alice"),
 )
@@ -86,15 +86,15 @@ fun BehindTheScenes(navigationActions: NavigationActions) {
                         Spacer(modifier = Modifier.size(60.dp))
                         Box(
                             modifier = Modifier
-                                .size(132.dp)
+                                .size(150.dp)
                                 .clip(CircleShape)
-                                .border(3.dp, MaterialTheme.colorScheme.inversePrimary)
+                                .border(4.dp, Color.Black, CircleShape)
                                 .background(color = MaterialTheme.colorScheme.background),
                             contentAlignment = Alignment.Center
                         ) {
                             RoundImage(
-                                132.dp,
-                                painterResource(R.drawable.palette),
+                                148.dp,
+                                painterResource(R.drawable.alice_buddies),
                                 stringResource(R.string.desc_devPic)
                             )
                         }

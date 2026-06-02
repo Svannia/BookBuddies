@@ -24,9 +24,9 @@ import timber.log.Timber
 
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        Timber.tag("Debug").d("onReceive called")
         if (intent.component?.packageName != context.packageName) return
         val title = intent.getStringExtra("title") ?: return
+        Timber.tag("Notification").d("received notif $title")
         val eventID = intent.getStringExtra("eventID") ?: return
         val reminderTime = intent.getLongExtra("reminderTime", 0L)
         val expandedText = when {
@@ -66,7 +66,6 @@ class NotificationReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        Timber.tag("Debug").d("Boot completed, rescheduling notifications")
 
         // get the database and reschedule all events with reminders
         val db = DatabaseProvider.getDatabase(context)
@@ -88,9 +87,8 @@ class BootReceiver : BroadcastReceiver() {
  * @param event CalendarEvent object to schedule a notification for
  */
 fun scheduleEventNotification(context: Context, event: CalendarEvent) {
-    Timber.tag("Debug").d("scheduleEventNotification called for '${event.title}', reminder=${event.reminder}, reminderTime=${event.reminderTime}")
+    Timber.tag("Notification").d("scheduleEventNotification called for '${event.title}', reminder=${event.reminder}, reminderTime=${event.reminderTime}")
     if (!event.reminder || event.reminderTime < 0L) {
-        Timber.tag("Debug").d("Skipping - no reminder set")
         return
     }
 
@@ -107,13 +105,9 @@ fun scheduleEventNotification(context: Context, event: CalendarEvent) {
     // compute absolute trigger time (rounded down to nearest minute)
     val eventStartMillis = localDate + localMinutes * 60 * 1000L
     val triggerMillis = ((eventStartMillis - event.reminderTime) / 60_000L) * 60_000L
-    Timber.tag("Debug").d("eventStartMillis=$eventStartMillis triggerMillis=$triggerMillis now=${System.currentTimeMillis()} diff=${triggerMillis - System.currentTimeMillis()}ms")
 
     // already past
-    if (triggerMillis <= System.currentTimeMillis()) {
-        Timber.tag("Debug").d("Skipping - trigger time is in the past")
-        return
-    }
+    if (triggerMillis <= System.currentTimeMillis()) return
 
     val intent = Intent(context, NotificationReceiver::class.java).apply {
         putExtra("title", event.title)

@@ -12,11 +12,11 @@
     <string name="button_endTime">Add end time</string>
     <string name="button_enterISBN">Enter ISBN</string>
     <string name="button_expandAll">Expand all</string>
-    <string name="button_export">Export to CSV file</string>
+    <string name="button_export">Export book data</string>
     <string name="button_findCovers">Find covers</string>
     <string name="button_finishedToday">finished today</string>
     <string name="button_hideRead">Hide read books</string>
-    <string name="button_import">Import CSV file</string>
+    <string name="button_import">Import book data</string>
     <string name="button_leave">Leave</string>
     <string name="button_manualAdd">Enter manually</string>
     <string name="button_markAsRead">Mark as Read</string>
@@ -157,10 +157,10 @@
     <string name="toast_deleteMultiFail">Failed to delete some books.</string>
     <string name="toast_emptyBugReport">Please describe the bug to send a report.</string>
     <string name="toast_emptyTagName">Please enter a tag name.</string>
-    <string name="toast_failExport">Failed to export books as a CSV file.</string>
+    <string name="toast_failExport">Failed to export books.</string>
     <string name="toast_fileOpenFailure">Failed to open the selected file.</string>
     <string name="toast_importError">An error occurred while importing the selected file.</string>
-    <string name="toast_invalidCSV">Invalid file type, please select a CSV document.</string>
+    <string name="toast_invalidCSV">Invalid file type, please select a valid CSV or ZIP document.</string>
     <string name="toast_manualCoverFail">Failed to save selected picture as cover.</string>
     <string name="toast_missingStartDate">Please select a start date or remove the finish date.</string>
     <string name="toast_multiDeleteFail">Failed to delete some books.</string>
@@ -187,22 +187,25 @@
     <string name="txt_createBookLeave">Are you sure you want to leave? Your new book entry will not be saved.</string>
     <string name="txt_createEventLeave">Are you sure you want to leave? Your new event entry will not be saved.</string>
     <string name="txt_deleteBookConfirm">Are you sure you want to delete this book?</string>
+    <string name="txt_deleteCoversConfirm">Are you sure you want to delete covers for all books?</string>
     <string name="txt_deleteEventConfirm">Are you sure you want to delete this event?</string>
-    <string name="txt_dev">Hi! I\'m Alice, an IT student.\n I created this app as a personal project, and I truly hope that you like it!\n
-        \nI love my dear dog, playing video games, coding, cooking, reading, drawing, traveling…\n
+    <string name="txt_dev">Hi! I\'m Alice, an IT student and aspiring video game developer.\n I created this app as a personal project, and I truly hope that you like it!\n
+        \nI love my dear dog, my favourite colour is purple, and I love to spend my time playing video games, coding, eating, reading, drawing, crafting, traveling…\n
         \nIf you\'re interested in seeing more of what I\'m doing, you are welcome on my Discord server! You can even use it to propose ideas to further enhance my app if you have any.\n
         \nThank you so much for using my lil\' app!</string>
-    <string name="txt_donation">"If you wish to support my work, you can make any small donation here: "</string>
-    <string name="txt_donationThanks">Anything is whole-heartedly appreciated, you\'re a sweetheart!</string>
+    <string name="txt_donation">"If you wish to support my work, you can give me a small tip here: "</string>
+    <string name="txt_donationThanks">Anything is whole-heartedly appreciated, and it helps keep my apps free!</string>
     <string name="txt_editLeave">Are you sure you want to leave? You haven\'t saved your modifications.</string>
     <string name="txt_emptyDay">Nothing on that day!</string>
     <string name="txt_failedCoversClipboard">Covers not found</string>
     <string name="txt_finishReading">"Finished reading on: "</string>
     <string name="txt_giftFrom">Gift from:</string>
     <string name="txt_iconsBy">"Icons by "</string>
-    <string name="txt_importTooltip">This functionality is made to import books from the app \"Book Catalogue\".\n
-        \nUse \"Admin &gt; Export to CSV file\" to get your backup in the correct format.\n
-        \nBook covers are not exported, but you can then use \"Find covers\" to automatically look them up.</string>
+    <string name="txt_importTooltip">If you exported data from this app before, you can re-import the ZIP file here
+        (or CSV file if you don\'t have or don\'t want to import book covers).\n
+        \nIf you don\'t have book cover pictures, you can use the \"Find covers\" function to automatically look them up after importing the CSV file.\n
+        \nYou can also try to import CSV data files from other book-cataloguing apps, but it\'s not guaranteed that they will work,
+        as file formats can differ.</string>
     <string name="txt_inputFieldPlaceholder">Input here…</string>
     <string name="txt_isGift">This book is a gift</string>
     <string name="txt_localTime">Local time</string>
