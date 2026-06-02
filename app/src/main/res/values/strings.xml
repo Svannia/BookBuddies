@@ -56,7 +56,7 @@
     <string name="desc_locationIcon">location icon</string>
     <string name="desc_notesIcon">notes icon</string>
     <string name="desc_options">options menu</string>
-    <string name="desc_rating">book rating (0–5 stars)</string>
+    <string name="desc_rating">book rating (0 E stars)</string>
     <string name="desc_read">is read</string>
     <string name="desc_reminderIcon">reminder icon</string>
     <string name="desc_rightArrow">arrow to the right icon</string>

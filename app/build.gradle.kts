@@ -17,11 +17,11 @@ val secretsProps = Properties().apply {
 }
 
 android {
-    namespace = "com.example.bookbuddies"
+    namespace = "com.appbuddies.bookbuddies"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.bookbuddies"
+        applicationId = "com.appbuddies.bookbuddies"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

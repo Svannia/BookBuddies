@@ -1,4 +1,4 @@
-package com.example.bookbuddies
+package com.appbuddies.bookbuddies
 
 import org.junit.Test
 
