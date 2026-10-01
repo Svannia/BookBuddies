@@ -69,6 +69,7 @@ import com.appbuddies.bookbuddies.ui.theme.MyTypography
 import com.appbuddies.bookbuddies.ui.theme.ValidGreen
 import com.appbuddies.bookbuddies.viewModels.BookViewModel
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @Composable
 fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: NavigationActions) {
@@ -295,7 +296,13 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                                 shape = RoundedCornerShape(50)
                                             ),
                                         onClick = {
-                                            bookVM.updateStart(System.currentTimeMillis(), book)
+                                            val today = Calendar.getInstance().apply {
+                                                set(Calendar.HOUR_OF_DAY, 0)
+                                                set(Calendar.MINUTE, 0)
+                                                set(Calendar.SECOND, 0)
+                                                set(Calendar.MILLISECOND, 0)
+                                            }.timeInMillis
+                                            bookVM.updateStart(today, book)
                                         }
                                     ) {
                                         Text(
@@ -337,9 +344,14 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                                 shape = RoundedCornerShape(50)
                                             ),
                                         onClick = {
+                                            val today = Calendar.getInstance().apply {
+                                                set(Calendar.HOUR_OF_DAY, 0)
+                                                set(Calendar.MINUTE, 0)
+                                                set(Calendar.SECOND, 0)
+                                                set(Calendar.MILLISECOND, 0)
+                                            }.timeInMillis
                                             bookVM.updateFinish(
-                                                System.currentTimeMillis(),
-                                                book
+                                                today, book
                                             ) {
                                                 if (it) {
                                                     Toast.makeText(
