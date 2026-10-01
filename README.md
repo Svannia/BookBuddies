@@ -4,15 +4,16 @@ An Android app to manage a book collection. It acts as a virtual catalogue where
 ## Features
 - Viewing and sorting through the book collection, along with collapsable groups, a fast scroll bar and a selection mode for quick actions over multiple book entries.
 - General settings such as appearance, bug reporting (logs are written on a local file and can be sent to a Telegram bot) and credits.
-- Importing a CSV file of book data (following the data structure from the app [BookCatalogue](https://github.com/eleybourn/Book-Catalogue) by eleybourn.
+- Importing a CSV file of book data (following the data structure from the app [BookCatalogue](https://github.com/eleybourn/Book-Catalogue) by eleybourn).
 - Exporting the current app's book data into a CSV file that can be re-imported into the app.
 - Automatic search for book covers using search APIs from Google Books, OpenLibrary and Mangadex.
 - Viewing screen for each book's data, along with quick action buttons for some operations like marking as read, started/finished reading today, ...
-- Editing screen to update a book's data fields
-- Adding a new book: each field can be written and manually and/or auto-filled with book info queried from search APIs (using the book's ISBN).
-- Scan reader to automatically fetch a book's ISBN from its barcode.
+- Editing screen to update a book's data fields.
+- Adding a new book: each field can be written manually and/or auto-filled with book info queried from search APIs (using the book's ISBN).
+- Camera scana to automatically fetch a book's ISBN from its barcode.
 - Calendar to show reading progress on books, and mark events such as a book delivery or release.
-- Wishlist for wanted books.
+- Automatic colours detection of book covers, grouped in buckets of similar colours. Books represented by their cover colour in calendar.
+- Calendar events contain various customization such as user-made tags and event automatic repetition.
 
 ## Architecture and Tools
 The app is developped on AndroidStudio, and all its data is stored locally on the phone.
