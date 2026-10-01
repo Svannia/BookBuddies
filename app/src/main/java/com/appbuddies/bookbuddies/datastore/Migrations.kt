@@ -89,3 +89,11 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         db.execSQL("ALTER TABLE calendar_events ADD COLUMN timezone TEXT NOT NULL DEFAULT ''")
     }
 }
+
+// remove notifications
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE calendar_events DROP COLUMN reminder")
+        db.execSQL("ALTER TABLE calendar_events DROP COLUMN reminderTime")
+    }
+}

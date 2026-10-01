@@ -33,7 +33,6 @@ import com.appbuddies.bookbuddies.data.getTagForEvent
 import com.appbuddies.bookbuddies.helpers.displayDate
 import com.appbuddies.bookbuddies.helpers.displayTimezoneConversion
 import com.appbuddies.bookbuddies.helpers.formatMinutes
-import com.appbuddies.bookbuddies.helpers.formatReminderTime
 import com.appbuddies.bookbuddies.helpers.getLocalTimezone
 import com.appbuddies.bookbuddies.navigation.NavigationActions
 import com.appbuddies.bookbuddies.navigation.Route
@@ -239,33 +238,6 @@ fun EventView(eventID: String, calendarVM: CalendarViewModel, navigationActions:
                 )
             }
 
-            // reminder
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 32.dp),
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Icon(
-                        modifier = Modifier.size(20.dp),
-                        painter = painterResource(R.drawable.notification),
-                        contentDescription = stringResource(R.string.desc_reminderIcon),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = formatReminderTime(context, event.reminder, event.reminderTime),
-                        style = MyTypography.bodyLarge
-                    )
-                }
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
-
             // location
             item {
                 Row(
@@ -344,7 +316,7 @@ fun EventView(eventID: String, calendarVM: CalendarViewModel, navigationActions:
                     )
                 },
                 rightButtonOnClick = {
-                    calendarVM.deleteEvent(context, event)
+                    calendarVM.deleteEvent(event)
                     showDeleteDialog.value = false
                     navigationActions.navigateTo(Route.CALENDAR, true)
                 }

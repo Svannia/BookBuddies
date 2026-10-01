@@ -127,7 +127,6 @@ dependencies {
     // http requests
     implementation(libs.okhttp)
 
-
     // ML Kit Barcode Scanning
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.camera.mlkit.vision)

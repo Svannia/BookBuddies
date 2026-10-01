@@ -43,8 +43,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableLongState
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -77,19 +75,15 @@ import com.appbuddies.bookbuddies.helpers.TIMEZONES
 import com.appbuddies.bookbuddies.helpers.displayDate
 import com.appbuddies.bookbuddies.helpers.displayTimezoneConversion
 import com.appbuddies.bookbuddies.helpers.formatMinutes
-import com.appbuddies.bookbuddies.helpers.formatReminderTime
 import com.appbuddies.bookbuddies.helpers.getAvailableTagColours
 import com.appbuddies.bookbuddies.helpers.getLocalTimezone
 import com.appbuddies.bookbuddies.helpers.getTimezoneOffset
 import com.appbuddies.bookbuddies.navigation.NavigationActions
 import com.appbuddies.bookbuddies.navigation.Route
-import com.appbuddies.bookbuddies.system.cancelEventNotification
-import com.appbuddies.bookbuddies.system.scheduleEventNotification
 import com.appbuddies.bookbuddies.ui.CustomContentDialogWindow
 import com.appbuddies.bookbuddies.ui.CustomDatePicker
 import com.appbuddies.bookbuddies.ui.CustomTextField
 import com.appbuddies.bookbuddies.ui.MiniLoading
-import com.appbuddies.bookbuddies.ui.ToggleOptions
 import com.appbuddies.bookbuddies.ui.WheelPicker
 import com.appbuddies.bookbuddies.ui.theme.MyTypography
 import com.appbuddies.bookbuddies.ui.theme.ValidGreen
@@ -101,7 +95,6 @@ import kotlin.math.roundToInt
 
 private const val FULL_LENGTH = 300
 private const val HEIGHT = 52
-private const val OFFSET = 45
 private const val START_DATE = "start"
 private const val END_DATE = "finish"
 // max characters per field
@@ -147,8 +140,6 @@ fun EventShared(
     val notes = remember { mutableStateOf((event.notes).take(NOTES_MAX)) }
     val tagID = remember { mutableStateOf(event.tag) }
     val chosenTag = remember { mutableStateOf(getTagForEvent(context, tagID.value, allTags)) }
-    val reminder = remember { mutableStateOf(event.reminder) }
-    val reminderTime = remember { mutableLongStateOf(event.reminderTime) }
 
     LaunchedEffect(event) {
         title.value = event.title.take(TITLE_MAX)
@@ -162,8 +153,6 @@ fun EventShared(
         notes.value = event.notes.take(NOTES_MAX)
         tagID.value = event.tag
         chosenTag.value = getTagForEvent(context, tagID.value, allTags)
-        reminder.value = event.reminder
-        reminderTime.longValue = event.reminderTime
     }
 
     // for picking a date
@@ -172,7 +161,6 @@ fun EventShared(
     val localTimezone = remember { mutableStateOf(getLocalTimezone()) }
 
     // other state variables
-    val showReminderPicker = remember { mutableStateOf(false) }
     val showTimezoneDropdown = remember { mutableStateOf(false) }
     val showTagsDropdown = remember { mutableStateOf(false) }
     val showEditTagWindow = remember { mutableStateOf(false) }
@@ -252,16 +240,11 @@ fun EventShared(
                             minuteEnd = minuteEnd.intValue,
                             location = location.value,
                             notes = notes.value,
-                            tag = tagID.value,
-                            reminder = reminder.value,
-                            reminderTime = reminderTime.longValue
+                            tag = tagID.value
                         )
                         scope.launch {
                             // create/update event
                             calendarVM.insertEvent(updatedEvent)
-                            // setup reminder notification
-                            cancelEventNotification(context, updatedEvent)
-                            scheduleEventNotification(context, updatedEvent)
                             navigationActions.navigateTo(Route.CALENDAR, clearPrevious = true)
                         }
                     },
@@ -710,36 +693,7 @@ fun EventShared(
                         }
                     }
 
-                    // reminder (index 3)
-                    item {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showReminderPicker.value = true },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(20.dp),
-                                    painter = painterResource(R.drawable.notification),
-                                    contentDescription = stringResource(R.string.desc_reminderIcon),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = formatReminderTime(context, reminder.value, reminderTime.longValue),
-                                    style = MyTypography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.inversePrimary
-                                )
-                            }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                        }
-                    }
-
-                    // location (index 4)
+                    // location (index 3)
                     item {
                         Row(modifier = Modifier.padding(start = 16.dp)) {
                             CustomTextField(
@@ -754,14 +708,14 @@ fun EventShared(
                                 height = 110.dp,
                                 onFocusedChanged = { focusState ->
                                     if (focusState.isFocused) {
-                                        scope.launch { lazyListState.animateScrollToItem(4, topPaddingPx) }
+                                        scope.launch { lazyListState.animateScrollToItem(3, topPaddingPx) }
                                     }
                                 }
                             )
                         }
                     }
 
-                    // notes (index 5)
+                    // notes (index 4)
                     item {
                         Row(modifier = Modifier.padding(start = 16.dp)) {
                             CustomTextField(
@@ -776,7 +730,7 @@ fun EventShared(
                                 height = 250.dp,
                                 onFocusedChanged = { focusState ->
                                     if (focusState.isFocused) {
-                                        scope.launch { lazyListState.animateScrollToItem(5, topPaddingPx) }
+                                        scope.launch { lazyListState.animateScrollToItem(4, topPaddingPx) }
                                     }
                                 }
                             )
@@ -810,17 +764,6 @@ fun EventShared(
                         dataEdited.value = true
                     }
                 )
-
-                // reminder picker with default options and wheel pickers for custom time
-                if (showReminderPicker.value) {
-                    ReminderDialogWindow(
-                        context = context,
-                        showReminderPicker = showReminderPicker,
-                        reminder = reminder,
-                        reminderTime = reminderTime,
-                        dataEdited = dataEdited
-                    )
-                }
 
                 // window to create or edit a tag
                 if (showEditTagWindow.value) {
@@ -1021,153 +964,6 @@ private fun TimeWheelPicker(
             }
         )
     }
-}
-
-/**
- * Dialog window for selecting a reminder time.
- * Offers default options (none, on time, 10 minutes before, 1 hour before, 1 day before).
- * Also offers custom option (wheel pickers to choose specific minutes or hours).
- *
- * @param context used for accessing resources
- * @param showReminderPicker controls visibility of the dialog
- * @param reminder whether a reminder is set or not
- * @param reminderTime the time of the reminder in milliseconds before the event
- * @param dataEdited tracks whether any changes have been made to the event data
- */
-@Composable
-private fun ReminderDialogWindow(
-    context: Context,
-    showReminderPicker: MutableState<Boolean>,
-    reminder: MutableState<Boolean>,
-    reminderTime: MutableLongState,
-    dataEdited: MutableState<Boolean>
-) {
-    // custom is selected if reminder time is not part of the default ones
-    var customSelected by remember { mutableStateOf(
-        reminder.value && reminderTime.longValue !in listOf(0L, 10*60*1000L, 60 * 60 * 1000L, 24 * 60 * 60 * 1000L)
-    ) }
-    var pickedAmount by remember { mutableIntStateOf(
-        if (customSelected) {
-            val totalMinutes = reminderTime.longValue / (60 * 1000L)
-            if (totalMinutes % 60 == 0L) (totalMinutes / 60).toInt()
-            else totalMinutes.toInt()
-        } else 5
-    )}
-    var pickedUnit by remember { mutableIntStateOf(
-        if (customSelected) {
-            val totalMinutes = reminderTime.longValue / (60 * 1000L)
-            if (totalMinutes % 60 == 0L) 1 else 0 // 1 = hours, 0 = minutes
-        } else 0
-    )}
-    val customName = context.getString(R.string.reminder_custom)
-
-    // selecting default options
-    var selectedPresetValue by remember { mutableStateOf<Long?>(
-        if (!reminder.value) -1L
-        else reminderTime.longValue
-    ) }
-
-    CustomContentDialogWindow(
-        visible = showReminderPicker,
-        content = {
-            val presetLabels = listOf(
-                stringResource(R.string.reminder_none),
-                stringResource(R.string.reminder_onTime),
-                stringResource(R.string.reminder_10before),
-                stringResource(R.string.reminder_1hbefore),
-                stringResource(R.string.reminder_1dbefore),
-                stringResource(R.string.reminder_custom)
-            )
-            val currentChoice = remember { mutableStateOf(
-                if (formatReminderTime(context, reminder.value, reminderTime.longValue).startsWith(customName)) {
-                    customName
-                } else {
-                    formatReminderTime(context, reminder.value, reminderTime.longValue)
-                }
-            ) }
-
-            ToggleOptions(
-                boxHeight = HEIGHT,
-                startOffset = OFFSET,
-                numberChoices = presetLabels.size,
-                currentChoice = currentChoice,
-                choicesNames = presetLabels
-            ) { chosen ->
-                customSelected = chosen == context.getString(R.string.reminder_custom)
-                selectedPresetValue = when (chosen) {
-                    context.getString(R.string.reminder_none) -> -1L
-                    context.getString(R.string.reminder_onTime) -> 0L
-                    context.getString(R.string.reminder_10before) -> 10 * 60 * 1000L
-                    context.getString(R.string.reminder_1hbefore) -> 60 * 60 * 1000L
-                    context.getString(R.string.reminder_1dbefore) -> 24 * 60 * 60 * 1000L
-                    else -> null
-                }
-            }
-
-            // wheel picker showing when "Custom" option is selected
-            if (customSelected) {
-                val amounts = remember(pickedUnit) {
-                    val max = if (pickedUnit == 0) 59 else 23
-                    pickedAmount = pickedAmount.coerceAtMost(max)
-                    (1..max).map { it.toString() }
-                }
-                val units = listOf(
-                    stringResource(R.string.reminder_minutes),
-                    stringResource(R.string.reminder_hours)
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    WheelPicker(
-                        modifier = Modifier.width(80.dp),
-                        items = amounts,
-                        selectedIndex = (pickedAmount - 1).coerceAtLeast(0),
-                        onIndexSelected = { pickedAmount = it + 1 }
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    WheelPicker(
-                        modifier = Modifier.width(100.dp),
-                        items = units,
-                        selectedIndex = pickedUnit,
-                        onIndexSelected = { pickedUnit = it }
-                    )
-                }
-            }
-
-        },
-        bottomButtons = true,
-        leftButtonContent = {
-            Text(
-                text = stringResource(R.string.button_cancel),
-                style = MyTypography.bodyLarge,
-                color = MaterialTheme.colorScheme.inversePrimary
-            )
-        },
-        leftButtonOnClick = { showReminderPicker.value = false },
-        rightButtonContent = {
-            Text(
-                text = stringResource(R.string.button_confirm),
-                style = MyTypography.bodyLarge,
-                color = ValidGreen
-            )
-        },
-        rightButtonOnClick = {
-            if (customSelected) {
-                reminder.value = true
-                val multiplier = if (pickedUnit == 0) 60 * 1000L else 60 * 60 * 1000L
-                reminderTime.longValue = pickedAmount * multiplier
-            } else {
-                val selectedValue = selectedPresetValue ?: 0L
-                reminder.value = selectedValue >= 0L
-                if (selectedValue >= 0L) reminderTime.longValue = selectedValue
-            }
-            showReminderPicker.value = false
-            dataEdited.value = true
-        }
-    )
 }
 
 /**

@@ -43,9 +43,7 @@ data class CalendarEvent(
     val minuteEnd: Int,
     val location: String,
     val notes: String,
-    val tag: String,
-    val reminder: Boolean,
-    val reminderTime: Long
+    val tag: String
 ) {
     companion object {
         /**
@@ -58,7 +56,7 @@ data class CalendarEvent(
 
             return CalendarEvent(UUID.randomUUID().toString().replace("-", ""),
                 "", false, getLocalTimezone().label, dateStart, 0L, 12*60, 0,
-                "", "", "", false, -1L
+                "", "", ""
             )
         }
     }

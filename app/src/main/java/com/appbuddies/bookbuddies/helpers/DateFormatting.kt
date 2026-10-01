@@ -1,7 +1,5 @@
 package com.appbuddies.bookbuddies.helpers
 
-import android.content.Context
-import com.appbuddies.bookbuddies.R
 import com.appbuddies.bookbuddies.data.CalendarEvent
 import com.appbuddies.bookbuddies.data.DateFormat
 import timber.log.Timber
@@ -172,30 +170,4 @@ fun formatMinutes(minutes: Int): String {
     val h = minutes / 60
     val m = minutes % 60
     return "%02d:%02d".format(h, m)
-}
-
-/**
- * Displays the reminder time, whether set ("x hours/minutes before") or not ("No reminder").
- *
- * @param context for accessing string resources
- * @param hasReminder boolean whether or not to show "No reminder"
- * @param reminderTime time in minutes between the event and reminder (positive Long)
- * @return string with reminder time
- */
-fun formatReminderTime(context: Context, hasReminder: Boolean, reminderTime: Long): String {
-    if (!hasReminder) return context.getString(R.string.reminder_none)
-    return when (reminderTime) {
-        0L -> context.getString(R.string.reminder_onTime)
-        10 * 60 * 1000L -> context.getString(R.string.reminder_10before)
-        60 * 60 * 1000L -> context.getString(R.string.reminder_1hbefore)
-        24 * 60 * 60 * 1000L -> context.getString(R.string.reminder_1dbefore)
-        else -> {
-            val totalMinutes = reminderTime / (60 * 1000L)
-            if (totalMinutes % 60 == 0L) {
-                context.getString(R.string.reminder_customHours, totalMinutes / 60)
-            } else {
-                context.getString(R.string.reminder_customMinutes, totalMinutes)
-            }
-        }
-    }
 }
