@@ -18,7 +18,7 @@ An Android app to manage a book collection. It acts as a virtual catalogue where
 ## Architecture and Tools
 The app is developped on AndroidStudio, and all its data is stored locally on the phone.
 Simple data like appearance preferences are stored locally in a "settings" folder.
-Book data is organized using a Android's Room system, and accessed with queries via a DAO (Data Access Object) interface.
+Book data is organized using Android's Room system, and accessed with queries via a DAO (Data Access Object) interface.
 Features that use API searches, like reading an ISBN or searching for book covers, need an Internet access. Otherwise the app can be fully used offline.  
 
 While the app is used, any important Log that could be needed for eventual debugging is printed inside a log.txt file on the user's phone.  
