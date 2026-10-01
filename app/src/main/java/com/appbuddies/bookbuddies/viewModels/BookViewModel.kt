@@ -82,13 +82,16 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     // ---------- FILTERING OUT AUTO-COMPLETION RESULTS ----------
     private fun filterList(input: String, list: List<String>, transform: (String) -> String = { it }): List<String> {
-        val query = input.lowercase()
+        val query = input.trim().lowercase()
+        if (query.isBlank()) return emptyList()
         return list
             .asSequence()
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .filter { item ->
-                item.lowercase().split(" ", ",", "-", "_").any { part -> part.startsWith(query)}
+                val lower = item.lowercase()
+                lower.contains(query) ||
+                lower.split(" ", ",", "-", "_").any { part -> part.startsWith(query)}
             }
             .map(transform)
             .toList()
