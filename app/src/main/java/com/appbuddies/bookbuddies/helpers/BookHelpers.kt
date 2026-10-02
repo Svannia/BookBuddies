@@ -167,7 +167,7 @@ fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSorting, bo
 
     return when (sorting) {
         BookSorting.AUTHOR_SERIES -> {
-            // Not handled here  Euse dedicated groupBooksSubheaders()
+            // Not handled here, use dedicated groupBooksSubheaders()
             emptyMap()
         }
         BookSorting.SERIES -> filteredBooks.groupBy { book ->

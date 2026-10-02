@@ -1,7 +1,6 @@
 package com.appbuddies.bookbuddies.ui
 
 import android.annotation.SuppressLint
-import android.app.DatePickerDialog
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -57,6 +56,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -80,9 +82,11 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -1122,32 +1126,38 @@ fun CustomDatePicker(
     onDateSelected: (Long) -> Unit
 ) {
     if (visible.value) {
-        val calendar = Calendar.getInstance().apply {
-            if (dateMillis > 0L) timeInMillis = dateMillis
-        }
-        val datePickerStyle = when (themeChoice) {
-            ThemeChoice.LIGHT -> R.style.MyDatePickerThemeLight
-            ThemeChoice.DARK -> R.style.MyDatePickerThemeDark
-            ThemeChoice.SYSTEM_DEFAULT -> R.style.MyDatePickerTheme
-        }
-
-        val dialog = DatePickerDialog(
-            context,
-            datePickerStyle,
-            { _, year, month, dayOfMonth ->
-                val cal = Calendar.getInstance()
-                cal.set(year, month, dayOfMonth, 0, 0, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-                onDateSelected(cal.timeInMillis)
-                visible.value = false
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = if (dateMillis > 0L) dateMillis else null,
+            initialDisplayMode = DisplayMode.Input
         )
 
-        dialog.setOnDismissListener { visible.value = false }
-        dialog.show()
+        DatePickerDialog(
+            onDismissRequest = { visible.value = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val normalized = Calendar.getInstance().apply {
+                            timeInMillis = millis
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }.timeInMillis
+                        onDateSelected(normalized)
+                    }
+                    visible.value = false
+                }) {
+                    Text(stringResource(R.string.button_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { visible.value = false }) {
+                    Text(stringResource(R.string.button_cancel))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 }
 
