@@ -201,7 +201,7 @@ suspend fun importBooksFromCsv(
  */
 fun exportBooksToZip(context: Context, books: List<Book>): File {
     val zipFile = File(context.cacheDir, "myBooks_export.zip")
-    ZipOutputStream(zipFile.outputStream().buffered()).use { zip ->
+    ZipOutputStream(zipFile.outputStream()).use { zip ->
         // write CSV
         zip.putNextEntry(ZipEntry("myBooks.csv"))
         zip.write(exportBooksToCSV(books))
@@ -267,7 +267,7 @@ private fun exportBooksToCSV(books: List<Book>): ByteArray {
         csvBuilder.append("$authors,")
 
         csvBuilder.append("${escapeCSVChar(book.title)},")
-        csvBuilder.append("${book.isbn},")
+        csvBuilder.append("\"${book.isbn}\",")
         csvBuilder.append("${escapeCSVChar(book.publisher)},")
 
         val datePublished = displayDate(book.publishedDate, DateFormat.NUMBERED_REVERSE)
