@@ -410,6 +410,13 @@ fun BookView(bookID: String, bookVM: BookViewModel, navigationActions: Navigatio
                                 InfoDetail(
                                     stringResource(R.string.title_format), book.format)
                             }
+                            // signed
+                            if (book.isSigned) {
+                                Text(
+                                    text = stringResource(R.string.txt_isSigned),
+                                    style = MyTypography.bodyLarge.copy(fontStyle = FontStyle.Italic)
+                                )
+                            }
                         }
                     }
                 }

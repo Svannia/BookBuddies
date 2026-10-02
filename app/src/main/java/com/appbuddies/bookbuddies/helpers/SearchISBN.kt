@@ -1,7 +1,6 @@
 package com.appbuddies.bookbuddies.helpers
 
 import android.content.Context
-import android.os.Build
 import android.text.Html.FROM_HTML_MODE_LEGACY
 import android.text.Html.fromHtml
 import com.appbuddies.bookbuddies.BuildConfig
@@ -112,6 +111,7 @@ fun searchByISBN(context: Context, isbn: String, isError: (Boolean) -> Unit, cal
                         rating = 0.0,
                         language = language,
                         format = format,
+                        isSigned = false,
                         read = false,
                         dateStarted = 0L,
                         dateFinished = 0L,

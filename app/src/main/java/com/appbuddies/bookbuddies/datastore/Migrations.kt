@@ -97,3 +97,10 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         db.execSQL("ALTER TABLE calendar_events DROP COLUMN reminderTime")
     }
 }
+
+// add "signed book" field to books
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE books ADD COLUMN isSigned INTEGER NOT NULL DEFAULT 0")
+    }
+}

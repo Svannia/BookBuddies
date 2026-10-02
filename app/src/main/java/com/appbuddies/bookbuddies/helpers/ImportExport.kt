@@ -29,6 +29,7 @@ const val IS_GIFT = "isGift"
 const val START = "read_start"
 const val END = "read_end"
 const val FORMAT = "format"
+const val SIGNED = "signed"
 const val DESCRIPTION = "description"
 const val GENRE = "genre"
 const val LANGUAGE = "language"
@@ -125,6 +126,8 @@ suspend fun importBooksFromCsv(
 
         val readValue = getCol(cols, READ).trim()
         val read = if (dateFinished > 0L) true else (readValue == "1")
+        val signedValue = getCol(cols, SIGNED).trim()
+        val signed = signedValue == "1" || signedValue == "true"
 
         val source = getCol(cols, LOCATION).ifBlank { getCol(cols, SOURCE) }
         val isGiftInt = getCol(cols, IS_GIFT)
@@ -171,6 +174,7 @@ suspend fun importBooksFromCsv(
             rating = getCol(cols, RATING).toDouble(),
             language = getCol(cols, LANGUAGE),
             format = getCol(cols, FORMAT),
+            isSigned = signed,
             read = read,
             dateStarted = dateStarted,
             dateFinished = dateFinished,
@@ -246,6 +250,7 @@ private fun exportBooksToCSV(books: List<Book>): ByteArray {
                 "$COVER_COLOURS," +
                 "$CHOSEN_COLOUR," +
                 "$FORMAT," +
+                "$SIGNED," +
                 "$DESCRIPTION," +
                 "$GENRE," +
                 "$LANGUAGE," +
@@ -292,6 +297,10 @@ private fun exportBooksToCSV(books: List<Book>): ByteArray {
         csvBuilder.append("${book.coverColours.joinToString("|")},")
         csvBuilder.append("${book.chosenCoverColour},")
         csvBuilder.append("${escapeCSVChar(book.format)},")
+
+        val isSigned = if (book.isSigned) "1" else "0"
+        csvBuilder.append("$isSigned,")
+
         csvBuilder.append("${escapeCSVChar(book.description)},")
         csvBuilder.append("${escapeCSVChar(book.genre)},")
         csvBuilder.append("${escapeCSVChar(book.language)},")

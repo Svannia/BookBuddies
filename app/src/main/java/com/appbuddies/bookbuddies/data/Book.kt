@@ -24,6 +24,7 @@ data class Book(
     val rating: Double,
     val language: String,
     val format: String,
+    val isSigned: Boolean,
     val read: Boolean,
     val dateStarted: Long,
     val dateFinished: Long,
@@ -41,7 +42,7 @@ data class Book(
         fun empty(): Book {
             return Book("", "", "", emptyList(), null, emptyList(), 0,
                 "", -1, null, "",
-                "", "", 0L, 0.0, "", "",
+                "", "", 0L, 0.0, "", "", false,
                 false, 0L, 0L, "", "", false,  System.currentTimeMillis()
             )
         }

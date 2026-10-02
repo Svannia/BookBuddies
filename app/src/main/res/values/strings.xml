@@ -136,6 +136,7 @@
     <string name="title_rating">Rating</string>
     <string name="title_readingStatus">Reading status</string>
     <string name="title_settings">Settings</string>
+    <string name="title_signed">Author Signature</string>
     <string name="title_sortBy">Sort by</string>
     <string name="title_source">Source</string>
     <string name="title_theme">Theme</string>
@@ -203,6 +204,7 @@
         as file formats can differ.</string>
     <string name="txt_inputFieldPlaceholder">Input here…</string>
     <string name="txt_isGift">This book is a gift</string>
+    <string name="txt_isSigned">This book is a signed copy</string>
     <string name="txt_localTime">Local time</string>
     <string name="txt_maxChar">max. %1$s characters</string>
     <string name="txt_multiDeleteConfirm">Are you sure you want to delete these books:</string>

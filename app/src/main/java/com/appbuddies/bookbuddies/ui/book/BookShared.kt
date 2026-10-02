@@ -158,6 +158,7 @@ fun EditShared(
     val rating = remember { mutableDoubleStateOf(book?.rating ?: 0.0) }
     val language = remember { mutableStateOf((book?.language ?: "").take(LANGUAGE_MAX)) }
     val format = remember { mutableStateOf((book?.format ?: "").take(FORMAT_MAX)) }
+    val isSigned = remember { mutableStateOf(false) }
     val read = remember { mutableStateOf(false) }
     val startDate = remember { mutableLongStateOf(book?.dateStarted ?: 0L) }
     val finishDate = remember { mutableLongStateOf(book?.dateFinished ?: 0L) }
@@ -181,6 +182,7 @@ fun EditShared(
             rating.doubleValue = book.rating
             language.value = book.language.take(LANGUAGE_MAX)
             format.value = book.format.take(FORMAT_MAX)
+            isSigned.value = book.isSigned
             read.value = book.read
             startDate.longValue = book.dateStarted
             finishDate.longValue = book.dateFinished
@@ -286,6 +288,7 @@ fun EditShared(
                             rating = rating.doubleValue,
                             language = language.value,
                             format = format.value,
+                            isSigned = isSigned.value,
                             read = read.value,
                             dateStarted = startDate.longValue,
                             dateFinished = finishDate.longValue,
@@ -308,6 +311,7 @@ fun EditShared(
                             rating = rating.doubleValue,
                             language = language.value,
                             format = format.value,
+                            isSigned = isSigned.value,
                             read = read.value,
                             dateStarted = startDate.longValue,
                             dateFinished = finishDate.longValue,
@@ -605,7 +609,39 @@ fun EditShared(
                         )
                     }
 
-                    // source (index 11)
+                    // signed (index 11)
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = stringResource(R.string.title_signed),
+                                style = MyTypography.titleSmall.copy(textAlign = TextAlign.Start)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                ToggleBox(
+                                    isRadio = false,
+                                    boxHeight = 20.dp,
+                                    rowPadding = PaddingValues(),
+                                    rowSpacing = 8.dp,
+                                    optionText = stringResource(R.string.txt_isSigned),
+                                    textStyle = MyTypography.bodyLarge,
+                                    isToggled = isSigned.value
+                                ) { isSigned.value = !isSigned.value; dataEdited.value = true }
+                            }
+                        }
+                    }
+
+                    // source (index 12)
                     item {
                         Column(
                             modifier = Modifier
@@ -660,7 +696,7 @@ fun EditShared(
                                     },
                                     onFocusEvent = { focusState ->
                                         if (focusState.isFocused) {
-                                            scope.launch { lazyListState.animateScrollToItem(11, topPaddingPx) }
+                                            scope.launch { lazyListState.animateScrollToItem(12, topPaddingPx) }
                                         }
                                     },
                                     onValueChange = { source.value = it; dataEdited.value = true }
@@ -669,7 +705,7 @@ fun EditShared(
                         }
                     }
 
-                    // bookshelf (index 12)
+                    // bookshelf (index 13)
                     item {
                         SingleInputField(
                             title = stringResource(R.string.title_bookshelf),
@@ -681,14 +717,14 @@ fun EditShared(
                             suggestions = { bookVM.filterBookshelves(it, allBookshelves) },
                             onFocusEvent = { focusState ->
                                 if (focusState.isFocused) {
-                                    scope.launch { lazyListState.animateScrollToItem(12, topPaddingPx) }
+                                    scope.launch { lazyListState.animateScrollToItem(13, topPaddingPx) }
                                 }
                             },
                             onValueChange = { bookshelf.value = it; dataEdited.value = true }
                         )
                     }
 
-                    // read status and dates (index 13)
+                    // read status and dates (index 14)
                     item {
                         Column(
                             modifier = Modifier
@@ -756,7 +792,7 @@ fun EditShared(
                         }
                     }
 
-                    // description (index 14)
+                    // description (index 15)
                     item {
                         SingleInputField(
                             title = stringResource(R.string.title_description),
@@ -769,7 +805,7 @@ fun EditShared(
                             suggestions = { emptyList() },
                             onFocusEvent = { focusState ->
                                 if (focusState.isFocused) {
-                                    scope.launch { lazyListState.animateScrollToItem(14, topPaddingPx) }
+                                    scope.launch { lazyListState.animateScrollToItem(15, topPaddingPx) }
                                 }
                             },
                             onValueChange = { description.value = it; dataEdited.value = true }
