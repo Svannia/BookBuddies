@@ -13,7 +13,7 @@ An Android app to manage a book collection. It acts as a virtual catalogue where
 - Camera scana to automatically fetch a book's ISBN from its barcode.
 - Calendar to show reading progress on books, and mark events such as a book delivery or release.
 - Automatic colours detection of book covers, grouped in buckets of similar colours. Books represented by their cover colour in calendar.
-- Calendar events contain various customization such as user-made tags and event automatic repetition.
+- Calendar events contain various customization such as user-made tags and automatic time-zone conversion.
 
 ## Architecture and Tools
 The app is developped on AndroidStudio, and all its data is stored locally on the phone.
