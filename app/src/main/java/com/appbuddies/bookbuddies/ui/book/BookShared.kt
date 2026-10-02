@@ -525,6 +525,7 @@ fun EditShared(
                             maxLength = ISBN_MAX,
                             showSuggestions = false,
                             suggestions = { emptyList() },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             onFocusEvent = {},
                             onValueChange = { isbn.value = it; dataEdited.value = true }
                         )
@@ -907,7 +908,7 @@ private fun AuthorsListInputFields(
                 InputField(
                     value, icon, 250, AUTHOR_MAX, singleLine = true, true,
                     { suggestions(it) },
-                    { onFocusEvent(it) }
+                    onFocusEvent = { onFocusEvent(it) }
                 ) { onValueChange(it, index) }
                 // bin icon to delete an author
                 Box(

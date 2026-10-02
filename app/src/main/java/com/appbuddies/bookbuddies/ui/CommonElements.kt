@@ -798,6 +798,7 @@ fun CustomTextField(
  * @param singleLine whether the input field is single line or multi line
  * @param canExpand whether or not suggestions should be shown when typing
  * @param suggestions function that provides a list of suggestions based on the current input
+ * @param keyboardOptions only needed if there is a need for a specific keyboard e.g. number pad
  * @param onFocusEvent callback for focus events on the input field
  * @param onValueChange callback for when the input field value changes
  */
@@ -810,6 +811,7 @@ fun InputField(
     singleLine: Boolean,
     canExpand: Boolean,
     suggestions: ((String) -> List<String>),
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onFocusEvent: (FocusState) -> Unit,
     onValueChange: (String) -> Unit
 ) {
@@ -861,6 +863,7 @@ fun InputField(
             placeholder = {
                 Text(text = stringResource(R.string.txt_inputFieldPlaceholder), style = MyTypography.bodySmall)
             },
+            keyboardOptions = keyboardOptions,
             singleLine = singleLine,
             supportingText = {
                 if (showMaxChar.value) {
@@ -932,6 +935,7 @@ fun InputField(
  * @param singleLine whether the input field is single line or multi line (default: true)
  * @param showSuggestions whether to show suggestions when typing
  * @param suggestions function that provides a list of suggestions based on the current input
+ * @param keyboardOptions only needed if there is a need for a specific keyboard e.g. number pad
  * @param onFocusEvent callback for focus events on the input field
  * @param onValueChange callback for when the input field value changes
  * @param extraActions optional content to display at the end of the input field
@@ -946,6 +950,7 @@ fun SingleInputField(
     singleLine: Boolean = true,
     showSuggestions: Boolean,
     suggestions: ((String) -> List<String>),
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onFocusEvent: (FocusState) -> Unit,
     onValueChange: (String) -> Unit,
     extraActions: (@Composable RowScope.() -> Unit)? = null
@@ -962,7 +967,8 @@ fun SingleInputField(
             InputField(
                 value, icon, fieldWidth, maxLength, singleLine, showSuggestions,
                 { suggestions(it) },
-                { onFocusEvent(it) }
+                keyboardOptions = keyboardOptions,
+                { onFocusEvent(it) },
             ) { onValueChange(it) }
             if (extraActions != null) extraActions()
         }
