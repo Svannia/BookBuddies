@@ -1,8 +1,12 @@
 package com.appbuddies.bookbuddies.helpers
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import com.appbuddies.bookbuddies.data.Book
 import com.appbuddies.bookbuddies.data.DateFormat
+import com.appbuddies.bookbuddies.datastore.DatabaseProvider
 import com.opencsv.CSVReader
 import timber.log.Timber
 import java.io.File
@@ -327,4 +331,58 @@ private fun escapeCSVChar(text: String): String {
     val needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\\n")
     val escaped = text.replace("\"", "\"\"")
     return if (needsQuotes) "\"$escaped\"" else escaped
+}
+
+/**
+ * Exports all app database into a backup file.
+ *
+ * @param context for accessing the app's database path and cache directory
+ * @return backup file containing the exported database
+ */
+fun exportAppBackup(context: Context): File {
+    val dbFile = context.getDatabasePath("bookbuddies.db")
+    val backupFile = File(context.cacheDir, "bookbuddies_backup.db")
+    dbFile.copyTo(backupFile, overwrite = true)
+    Timber.tag("Backup").d("Database backup created at ${backupFile.absolutePath}")
+    return backupFile
+}
+
+/**
+ * Imports a backup file into the app's database, replacing the existing database.
+ *
+ * @param context for accessing the app's database path and content resolver
+ * @param uri URI of the backup file to import
+ * @return true if the import was successful, false otherwise
+ */
+fun importAppBackup(context: Context, uri: Uri): Boolean {
+    return try {
+        DatabaseProvider.closeAndReset()
+
+        val dbFile = context.getDatabasePath("bookbuddies.db")
+        File(dbFile.path + "-wal").delete()
+        File(dbFile.path + "-shm").delete()
+
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            dbFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        Timber.tag("Backup").d("Database backup imported from $uri")
+        true
+    } catch (e: Exception) {
+        Timber.tag("Backup").e("Failed to import backup with error: $e")
+        false
+    }
+}
+
+/**
+ * Restarts the app by launching the main activity and finishing the current activity.
+ *
+ * @param context the context from which to restart the app
+ */
+fun restartApp(context: Context) {
+    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)!!
+    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
+    (context as Activity).finish()
 }

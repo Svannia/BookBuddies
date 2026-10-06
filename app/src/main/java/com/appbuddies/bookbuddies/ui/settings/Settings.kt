@@ -1,5 +1,6 @@
 package com.appbuddies.bookbuddies.ui.settings
 
+import android.app.Activity
 import android.net.Uri
 import android.os.SystemClock
 import android.provider.OpenableColumns
@@ -51,7 +52,10 @@ import com.appbuddies.bookbuddies.helpers.findBookCovers
 import com.appbuddies.bookbuddies.helpers.importBooksFromCsv
 import com.appbuddies.bookbuddies.errors.handleError
 import com.appbuddies.bookbuddies.helpers.copyToClipboard
+import com.appbuddies.bookbuddies.helpers.exportAppBackup
 import com.appbuddies.bookbuddies.helpers.exportBooksToZip
+import com.appbuddies.bookbuddies.helpers.importAppBackup
+import com.appbuddies.bookbuddies.helpers.restartApp
 import com.appbuddies.bookbuddies.navigation.NavigationActions
 import com.appbuddies.bookbuddies.navigation.Route
 import com.appbuddies.bookbuddies.system.TelegramBot
@@ -100,6 +104,10 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
     val errorInvalidFormat = stringResource(R.string.toast_invalidCSV)
     val successExport = stringResource(R.string.toast_successfulExport)
     val errorExport = stringResource(R.string.toast_failExport)
+    val successBackupImport = stringResource(R.string.toast_successfulBackupImport)
+    val errorBackupImport = stringResource(R.string.toast_failExportBackup)
+    val successBackupExport = stringResource(R.string.toast_successfulBackupImport)
+    val errorBackupExport = stringResource(R.string.toast_failExportBackup)
     val exportButton = stringResource(R.string.button_export)
 
     // launcher to access files for importing
@@ -235,6 +243,45 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
         }
     }
 
+    // launchers for app backup
+    val importBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                val success = importAppBackup(context, uri)
+                if (success) {
+                    progressing.value = false
+                    Toast.makeText(context, successBackupImport, Toast.LENGTH_SHORT).show()
+                    val activity = context as? Activity
+                    activity?.let { restartApp(it) }
+                } else {
+                    progressing.value = false
+                    handleError(context, errorBackupImport)
+                }
+            }
+        }
+    }
+
+    val exportBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch {
+                try {
+                    val backupFile = exportAppBackup(context)
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        backupFile.inputStream().use { it.copyTo(output) }
+                    }
+                    Toast.makeText(context, successBackupExport, Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Timber.tag("Backup").e("Failed to export backup with error $e")
+                    handleError(context, errorBackupExport)
+                }
+            }
+        }
+    }
+
     // variables for setting theme
     val themeChoice = convertThemeToText(dataVM.currentTheme.collectAsState().value)
     val themeChoices = ThemeChoice.entries.map { convertThemeToText(it) }
@@ -259,7 +306,9 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
             topBarIcons = {}
         ) { paddingValues ->
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -353,9 +402,26 @@ fun Settings(dataVM: DataViewModel, bookVM: BookViewModel, navigationActions: Na
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(HEIGHT.dp)
-                                .clickable { removeCoversVisible.value = true},
+                                .clickable { removeCoversVisible.value = true },
                             contentAlignment = Alignment.CenterStart
                         ) { Text(modifier = Modifier.padding(start = OFFSET.dp), text = stringResource(R.string.button_removeCovers), style = MyTypography.bodyLarge) }
+                    }
+                }
+                // settings category for app backup
+                item {
+                    SettingCategory(stringResource(R.string.title_backup)) {
+                        // import backup
+                        ToolTipRow(
+                            onSettingClick = { importBackupLauncher.launch(arrayOf("application/octet-stream", "*/*")) },
+                            settingText = stringResource(R.string.button_importBackup),
+                            toolTipText = stringResource(R.string.txt_importBackupTooltip)
+                        )
+                        // export backup
+                        ToolTipRow(
+                            onSettingClick = { exportBackupLauncher.launch("bookbuddies_backup.db") },
+                            settingText = stringResource(R.string.button_exportBackup),
+                            toolTipText = stringResource(R.string.txt_exportBackupTooltip)
+                        )
                     }
                 }
                 // settings category for About information

@@ -13,10 +13,12 @@
     <string name="button_enterISBN">Enter ISBN</string>
     <string name="button_expandAll">Expand all</string>
     <string name="button_export">Export book data</string>
+    <string name="button_exportBackup">Export app backup</string>
     <string name="button_findCovers">Find covers</string>
     <string name="button_finishedToday">finished today</string>
     <string name="button_hideRead">Hide read books</string>
     <string name="button_import">Import book data</string>
+    <string name="button_importBackup">Import app backup</string>
     <string name="button_leave">Leave</string>
     <string name="button_manualAdd">Enter manually</string>
     <string name="button_markAsRead">Mark as Read</string>
@@ -106,6 +108,7 @@
     <string name="title_about">About</string>
     <string name="title_allDay">All day</string>
     <string name="title_authors">Authors</string>
+    <string name="title_backup">App Backup</string>
     <string name="title_bookCreate">Add New Book</string>
     <string name="title_bookshelf">Bookshelf</string>
     <string name="title_bought">Bought at</string>
@@ -154,6 +157,7 @@
     <string name="toast_emptyBugReport">Please describe the bug to send a report.</string>
     <string name="toast_emptyTagName">Please enter a tag name.</string>
     <string name="toast_failExport">Failed to export books.</string>
+    <string name="toast_failExportBackup">Failed to export app backup file.</string>
     <string name="toast_fileOpenFailure">Failed to open the selected file.</string>
     <string name="toast_importError">An error occurred while importing the selected file.</string>
     <string name="toast_invalidCSV">Invalid file type, please select a valid CSV or ZIP document.</string>
@@ -167,6 +171,7 @@
     <string name="toast_singleCoverFail">No cover found for this book.</string>
     <string name="toast_successBookDelete">Book successfully deleted!</string>
     <string name="toast_successMultiDelete">Successfully deleted the selected books.</string>
+    <string name="toast_successfulBackupImport">The app data was successfully imported!</string>
     <string name="toast_successfulCovers">All possible covers have been added!</string>
     <string name="toast_successfulExport">The books have been successfully exported</string>
     <string name="toast_successfulImport">The books have been successfully imported!</string>
@@ -193,10 +198,15 @@
     <string name="txt_donationThanks">Anything is whole-heartedly appreciated, and it helps keep my apps free!</string>
     <string name="txt_editLeave">Are you sure you want to leave? You haven\'t saved your modifications.</string>
     <string name="txt_emptyDay">Nothing on that day!</string>
+    <string name="txt_exportBackupTooltip">Use this before importing another backup so your data is saved in case of failure.\n
+        \nYou can use this option to transfer all your app\'s data into a new phone.</string>
     <string name="txt_failedCoversClipboard">Covers not found</string>
     <string name="txt_finishReading">"Finished reading on: "</string>
     <string name="txt_giftFrom">Gift from:</string>
     <string name="txt_iconsBy">"Icons by "</string>
+    <string name="txt_importBackupTooltip">WARNING:\n
+        \nThis will overwrite everything that you currently have in your app with the backup file\'s content.\n
+        \n It is strongly recommended to export a backup of your current data before using this option.</string>
     <string name="txt_importTooltip">If you exported data from this app before, you can re-import the ZIP file here
         (or CSV file if you don\'t have or don\'t want to import book covers).\n
         \nIf you don\'t have book cover pictures, you can use the \"Find covers\" function to automatically look them up after importing the CSV file.\n

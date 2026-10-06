@@ -120,5 +120,10 @@ object DatabaseProvider {
                 MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build().also { db = it }
     }
+
+    fun closeAndReset() {
+        db?.close()
+        db = null
+    }
 }
 
