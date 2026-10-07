@@ -93,6 +93,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     val books by bookVM.sortedBooks.collectAsState(emptyList())
     val sorting by bookVM.sorting.collectAsState()
     val onlyUnread by bookVM.onlyUnread.collectAsState()
+    val onlyCurrent by bookVM.onlyCurrentRead.collectAsState()
 
     val deleteVisible = remember { mutableStateOf(false) }
 
@@ -122,11 +123,11 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
 
     // expanded state of each group, re-initialized when the sorting or book entries are changed
     val expandedStates = remember { mutableStateMapOf<String, Boolean>() }
-    LaunchedEffect(books, sorting, onlyUnread) {
+    LaunchedEffect(books, sorting, onlyUnread, onlyCurrent) {
         val keys = if (sorting == BookSorting.AUTHOR_SERIES) {
-            groupBooksSubheaders(context, onlyUnread, sorting, books).keys
+            groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, books).keys
         } else {
-            groupBooks(context, onlyUnread, sorting, books).keys
+            groupBooks(context, onlyUnread, onlyCurrent, sorting, books).keys
         }
         // add eventual new header
         keys.forEach { key ->
@@ -140,14 +141,14 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     val displayedCount by remember {
         derivedStateOf {
             if (sorting == BookSorting.AUTHOR_SERIES) {
-                val grouped = groupBooksSubheaders(context, onlyUnread, sorting, books)
+                val grouped = groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, books)
                 grouped.entries.sumOf { (author, seriesMap) ->
                     if (expandedStates[author] == true) {
                         seriesMap.values.sumOf { it.size }
                     } else 0
                 }
             } else {
-                val grouped = groupBooks(context, onlyUnread, sorting, books)
+                val grouped = groupBooks(context, onlyUnread, onlyCurrent, sorting, books)
                 grouped.entries.sumOf { (header, entries) ->
                     if (expandedStates[header] == true) entries.size
                     else 0
@@ -189,7 +190,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
         expandedStates.keys.forEach { expandedStates[it] = false }
     }
 
-    // Visibility of the popup for unread filter and sorting methods
+    // Visibility of the popup for filters and sorting methods
     val showFilters = remember { mutableStateOf(false) }
 
     if (progressing.value) {
@@ -356,7 +357,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     } else {
                         // Specific display for Author>Series sorting method, since it has subheaders
                         if (sorting == BookSorting.AUTHOR_SERIES) {
-                            val groupedBooks = groupBooksSubheaders(context, onlyUnread, sorting, books)
+                            val groupedBooks = groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, books)
                             FastScroll(
                                 minThumbWidth = 5,
                                 maxThumbWidth = 20,
@@ -415,7 +416,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             }
                         } else {
                             // Display for any other sorting method
-                            val groupedBooks = groupBooks(context, onlyUnread, sorting, books)
+                            val groupedBooks = groupBooks(context, onlyUnread, onlyCurrent, sorting, books)
                             val groupedBooksState = remember { mutableStateOf(groupedBooks) }
                             LaunchedEffect(groupedBooks) { groupedBooksState.value = groupedBooks}
                             FastScroll(
@@ -500,7 +501,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                         .fillMaxWidth()
                                         .height(16.dp))
 
-                                    // toggle box for "unread" filter
+                                    // toggle boxes for "unread" and "currently reading" filters
                                     ToggleBox(
                                         isRadio = false,
                                         boxHeight = 20.dp,
@@ -511,6 +512,18 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                         isToggled = onlyUnread
                                     ) {
                                         bookVM.switchUnreadFilter()
+                                        showFilters.value = false
+                                    }
+                                    ToggleBox(
+                                        isRadio = false,
+                                        boxHeight = 20.dp,
+                                        rowPadding = PaddingValues(),
+                                        rowSpacing = 8.dp,
+                                        optionText = stringResource(R.string.button_currentRead),
+                                        textStyle = MyTypography.bodyMedium,
+                                        isToggled = onlyCurrent
+                                    ) {
+                                        bookVM.switchCurrentReadFilter()
                                         showFilters.value = false
                                     }
                                 }

@@ -33,6 +33,8 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
     val sorting: StateFlow<BookSorting> = _bookSorting
     private val _onlyUnread = MutableStateFlow(false)
     val onlyUnread: StateFlow<Boolean> = _onlyUnread
+    private val _onlyCurrentRead = MutableStateFlow(false)
+    val onlyCurrentRead: StateFlow<Boolean> = _onlyCurrentRead
 
     // to save fast-scroll position across screen recompositions
     var savedScrollIndex: Int = 0
@@ -458,10 +460,18 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
 
     /**
      * Switches on/off the option to filter out the read books (only showing unread books).
-     *
      */
     fun switchUnreadFilter() {
         _onlyUnread.value = !_onlyUnread.value
+        if (_onlyUnread.value) _onlyCurrentRead.value = false
+    }
+
+    /**
+     * Switches on/off the option to filter only the books currently being read (isRead is false, start date is set, finish date is not set).
+     */
+    fun switchCurrentReadFilter() {
+        _onlyCurrentRead.value = !_onlyCurrentRead.value
+        if (_onlyCurrentRead.value) _onlyUnread.value = false
     }
 }
 

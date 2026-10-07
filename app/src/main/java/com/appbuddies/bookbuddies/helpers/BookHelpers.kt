@@ -158,12 +158,17 @@ fun getCoverColour(book: Book): Color {
  *
  * @param context to access string resources
  * @param unreadFilter whether or not to filter out books that have been read (only showing unread books)
+ * @param currentReadFilter whether or not to filter by books that are currently being read
  * @param sorting current sorting method
  * @param books current list of all Book objects
  * @return Map that maps group headers to their sorted list of books
  */
-fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSorting, books: List<Book>): Map<String, List<Book>> {
-    val filteredBooks = if (unreadFilter) books.filter { !it.read } else books
+fun groupBooks(context: Context, unreadFilter: Boolean, currentReadFilter: Boolean, sorting: BookSorting, books: List<Book>): Map<String, List<Book>> {
+    val filteredBooks = when {
+        unreadFilter -> books.filter { !it.read }
+        currentReadFilter -> books.filter { !it.read && it.dateStarted > 0L && it.dateFinished <= 0L }
+        else -> books
+    }
 
     return when (sorting) {
         BookSorting.AUTHOR_SERIES -> {
@@ -181,7 +186,7 @@ fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSorting, bo
         }
         BookSorting.RATING -> filteredBooks.groupBy { book ->
             val rounded = book.rating.toInt().coerceIn(0, 5)
-            "$rounded ☁E"
+            "$rounded \u2B50"
         }
         BookSorting.GENRE -> filteredBooks.groupBy { book ->
             book.genre.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
@@ -203,13 +208,18 @@ fun groupBooks(context: Context, unreadFilter: Boolean, sorting: BookSorting, bo
  *
  * @param context to access string resources
  * @param unreadFilter whether or not to filter out books that have been read (only showing unread books)
+ * @param currentReadFilter whether or not to filter by books that are currently being read
  * @param sorting current sorting method
  * @param books current list of all Book objects
  * @return Map that maps group headers to a mapping of group subheaders to their sorted list of books
  */
-fun groupBooksSubheaders(context: Context, unreadFilter: Boolean, sorting: BookSorting, books: List<Book>): Map<String, Map<String, List<Book>>> {
+fun groupBooksSubheaders(context: Context, unreadFilter: Boolean, currentReadFilter: Boolean, sorting: BookSorting, books: List<Book>): Map<String, Map<String, List<Book>>> {
     if (sorting == BookSorting.AUTHOR_SERIES) {
-        val filteredBooks = if (unreadFilter) books.filter { !it.read } else books
+        val filteredBooks = when {
+            unreadFilter -> books.filter { !it.read }
+            currentReadFilter -> books.filter { !it.read && it.dateStarted > 0L && it.dateFinished <= 0L }
+            else -> books
+        }
 
         return filteredBooks.groupBy { book ->
             book.authors.firstOrNull()?.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknownAuthor)
