@@ -71,6 +71,7 @@ import com.appbuddies.bookbuddies.helpers.groupBooks
 import com.appbuddies.bookbuddies.helpers.groupBooksSubheaders
 import com.appbuddies.bookbuddies.ui.CoverImage
 import com.appbuddies.bookbuddies.ui.CustomContentDialogWindow
+import com.appbuddies.bookbuddies.ui.CustomTextField
 import com.appbuddies.bookbuddies.ui.FastScroll
 import com.appbuddies.bookbuddies.ui.OptionsMenu
 import com.appbuddies.bookbuddies.ui.ProgressBar
@@ -121,13 +122,24 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     val failedCovers = remember { mutableListOf<String>() }
     val clipboard = LocalClipboard.current
 
+    // Keyword lookup
+    val searchActive = remember { mutableStateOf(false) }
+    val searchQuery = remember { mutableStateOf("") }
+    val queryFilteredBooks by remember(books, searchQuery.value, searchActive.value) {
+        derivedStateOf {
+            if (searchActive.value && searchQuery.value.isNotBlank()) {
+                books.filter { it.title.contains(searchQuery.value, ignoreCase = true) }
+            } else books
+        }
+    }
+
     // expanded state of each group, re-initialized when the sorting or book entries are changed
     val expandedStates = remember { mutableStateMapOf<String, Boolean>() }
     LaunchedEffect(books, sorting, onlyUnread, onlyCurrent) {
         val keys = if (sorting == BookSorting.AUTHOR_SERIES) {
-            groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, books).keys
+            groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, queryFilteredBooks).keys
         } else {
-            groupBooks(context, onlyUnread, onlyCurrent, sorting, books).keys
+            groupBooks(context, onlyUnread, onlyCurrent, sorting, queryFilteredBooks).keys
         }
         // add eventual new header
         keys.forEach { key ->
@@ -141,14 +153,14 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
     val displayedCount by remember {
         derivedStateOf {
             if (sorting == BookSorting.AUTHOR_SERIES) {
-                val grouped = groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, books)
+                val grouped = groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, queryFilteredBooks)
                 grouped.entries.sumOf { (author, seriesMap) ->
                     if (expandedStates[author] == true) {
                         seriesMap.values.sumOf { it.size }
                     } else 0
                 }
             } else {
-                val grouped = groupBooks(context, onlyUnread, onlyCurrent, sorting, books)
+                val grouped = groupBooks(context, onlyUnread, onlyCurrent, sorting, queryFilteredBooks)
                 grouped.entries.sumOf { (header, entries) ->
                     if (expandedStates[header] == true) entries.size
                     else 0
@@ -242,7 +254,8 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             .fillMaxWidth()
                             .background(color = MaterialTheme.colorScheme.background)
                             .padding(vertical = 4.dp, horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (selectionModeActive.value) {
                             val successToast = stringResource(R.string.toast_successfulCovers)
@@ -334,13 +347,53 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                                     }
                                 }
                             )
-                        } else {
+                        }
+                        else if (searchActive.value) {
+                            CustomTextField(
+                                value = searchQuery.value,
+                                onValueChange = {
+                                    searchQuery.value = it
+                                    // todo: filter out books by those whose title contains the search query
+                                },
+                                icon = -1,
+                                placeHolder = "Search a book title...",
+                                singleLine = true,
+                                maxLength = 70,
+                                showMaxChara = false,
+                                width = 280.dp
+                            )
+                            Icon(
+                                modifier = Modifier.size(24.dp).padding(0.dp).clickable {
+                                    searchActive.value = false
+                                    searchQuery.value = ""
+                                },
+                                painter = painterResource(R.drawable.cancel),
+                                contentDescription = stringResource(R.string.desc_cancel),
+                            )
+                        }
+                        else {
                             // Number of books displayed
                             Text(
                                 modifier = Modifier.height(32.dp),
                                 text = "Displaying $displayedCount books",
                                 style = MyTypography.bodyMedium
                             )
+                            Icon(
+                                modifier = Modifier.size(24.dp).padding(0.dp).clickable {
+                                    searchActive.value = true
+                                },
+                                painter = painterResource(R.drawable.search),
+                                contentDescription = stringResource(R.string.desc_search),
+                            )
+                           /* IconButton(
+                                onClick = { searchActive.value = true },
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.search),
+                                    modifier = Modifier.size(12.dp),
+                                    contentDescription = stringResource(R.string.des_search)
+                                )
+                            }*/
                         }
                     }
 
@@ -357,7 +410,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                     } else {
                         // Specific display for Author>Series sorting method, since it has subheaders
                         if (sorting == BookSorting.AUTHOR_SERIES) {
-                            val groupedBooks = groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, books)
+                            val groupedBooks = groupBooksSubheaders(context, onlyUnread, onlyCurrent, sorting, queryFilteredBooks)
                             FastScroll(
                                 minThumbWidth = 5,
                                 maxThumbWidth = 20,
@@ -416,7 +469,7 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                             }
                         } else {
                             // Display for any other sorting method
-                            val groupedBooks = groupBooks(context, onlyUnread, onlyCurrent, sorting, books)
+                            val groupedBooks = groupBooks(context, onlyUnread, onlyCurrent, sorting, queryFilteredBooks)
                             val groupedBooksState = remember { mutableStateOf(groupedBooks) }
                             LaunchedEffect(groupedBooks) { groupedBooksState.value = groupedBooks}
                             FastScroll(
