@@ -126,6 +126,7 @@ class BookViewModel(private val repository: BookRepository) : ViewModel() {
             BookSorting.RECENTLY_ADDED -> books.sortedByDescending { it.dateAdded }
             BookSorting.RATING -> books.sortedByDescending { it.rating }
             BookSorting.GENRE -> books.sortedBy { it.genre }
+            BookSorting.BOOKSHELF -> books.sortedBy { it.bookshelf }
             BookSorting.LANGUAGE -> books.sortedBy { it.language }
             BookSorting.FORMAT -> books.sortedBy { it.format }
             BookSorting.SOURCE -> books.sortedBy { it.source }

@@ -45,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -132,6 +133,12 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
             } else books
         }
     }
+    // to auto-focus text field upon tapping search icon
+    val searchFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(searchActive.value) {
+        if (searchActive.value) searchFocusRequester.requestFocus()
+    }
+
 
     // expanded state of each group, re-initialized when the sorting or book entries are changed
     val expandedStates = remember { mutableStateMapOf<String, Boolean>() }
@@ -351,14 +358,12 @@ fun HomeScreen(bookVM: BookViewModel, navigationActions: NavigationActions) {
                         else if (searchActive.value) {
                             CustomTextField(
                                 value = searchQuery.value,
-                                onValueChange = {
-                                    searchQuery.value = it
-                                    // todo: filter out books by those whose title contains the search query
-                                },
+                                onValueChange = { searchQuery.value = it },
                                 icon = -1,
                                 placeHolder = "Search a book title...",
                                 singleLine = true,
                                 maxLength = 70,
+                                focusRequester = searchFocusRequester,
                                 showMaxChara = false,
                                 width = 280.dp
                             )

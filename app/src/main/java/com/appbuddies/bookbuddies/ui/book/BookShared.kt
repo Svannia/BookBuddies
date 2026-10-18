@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -420,6 +421,7 @@ fun EditShared(
                             maxLength = TITLE_MAX,
                             showSuggestions = false,
                             suggestions = { emptyList() },
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                             onFocusEvent = {},
                             onValueChange = { title.value = it; dataEdited.value = true }
                         )
@@ -453,6 +455,7 @@ fun EditShared(
                             maxLength = SERIES_MAX,
                             showSuggestions = true,
                             suggestions = { bookVM.filterSeries(it, allSeries) },
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                             onFocusEvent = { focusState ->
                                 if (focusState.isFocused) {
                                     scope.launch { lazyListState.animateScrollToItem(3, topPaddingPx) }
@@ -908,6 +911,7 @@ private fun AuthorsListInputFields(
                 InputField(
                     value, icon, 250, AUTHOR_MAX, singleLine = true, true,
                     { suggestions(it) },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     onFocusEvent = { onFocusEvent(it) }
                 ) { onValueChange(it, index) }
                 // bin icon to delete an author

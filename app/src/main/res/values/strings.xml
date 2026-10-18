@@ -7,6 +7,7 @@
     <string name="button_clearAll">Clear all</string>
     <string name="button_collapseAll">Collapse all</string>
     <string name="button_confirm">Confirm</string>
+    <string name="button_currentRead">Currently reading</string>
     <string name="button_deleteBook">Delete book</string>
     <string name="button_deleteBooks">Delete books</string>
     <string name="button_endTime">Add end time</string>
@@ -61,6 +62,7 @@
     <string name="desc_rating">book rating (0 E stars)</string>
     <string name="desc_read">is read</string>
     <string name="desc_rightArrow">arrow to the right icon</string>
+    <string name="desc_search">search button</string>
     <string name="desc_textFieldIcon">text field icon</string>
     <string name="desc_time">event time icon</string>
     <string name="desc_tooltip">tooltip info</string>
@@ -91,6 +93,7 @@
 
     <string name="sorting_added">Recently added</string>
     <string name="sorting_author"><![CDATA[Author > Series]]></string>
+    <string name="sorting_bookshelf">Bookshelf</string>
     <string name="sorting_format">Format</string>
     <string name="sorting_genre">Genre</string>
     <string name="sorting_language">Language</string>
@@ -232,6 +235,4 @@
     <string name="txt_unknown">Unspecified</string>
     <string name="txt_unknownAuthor">Unknown Author</string>
     <string name="txt_unknownSeries">Standalones</string>
-    <string name="button_currentRead">Currently reading</string>
-    <string name="desc_search">search button</string>
 </resources>

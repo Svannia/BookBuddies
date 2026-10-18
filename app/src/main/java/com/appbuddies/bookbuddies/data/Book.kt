@@ -56,7 +56,7 @@ enum class DateFormat {
 
 // The different possible methods to sort and group books in the main page
 enum class BookSorting {
-    AUTHOR_SERIES, SERIES, TITLE, RECENTLY_ADDED, RATING, GENRE, LANGUAGE, FORMAT, SOURCE
+    AUTHOR_SERIES, SERIES, TITLE, RECENTLY_ADDED, RATING, GENRE, BOOKSHELF, LANGUAGE, FORMAT, SOURCE
 }
 
 val sortingMap = mapOf(
@@ -66,6 +66,7 @@ val sortingMap = mapOf(
     BookSorting.RECENTLY_ADDED to R.string.sorting_added,
     BookSorting.RATING to R.string.sorting_rating,
     BookSorting.GENRE to R.string.sorting_genre,
+    BookSorting.BOOKSHELF to R.string.sorting_bookshelf,
     BookSorting.LANGUAGE to R.string.sorting_language,
     BookSorting.FORMAT to R.string.sorting_format,
     BookSorting.SOURCE to R.string.sorting_source

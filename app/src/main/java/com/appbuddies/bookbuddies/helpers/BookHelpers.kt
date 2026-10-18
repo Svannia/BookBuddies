@@ -191,6 +191,9 @@ fun groupBooks(context: Context, unreadFilter: Boolean, currentReadFilter: Boole
         BookSorting.GENRE -> filteredBooks.groupBy { book ->
             book.genre.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
         }
+        BookSorting.BOOKSHELF -> filteredBooks.groupBy { book ->
+            book.bookshelf.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
+        }
         BookSorting.LANGUAGE -> filteredBooks.groupBy { book ->
             book.language.takeIf { it.isNotBlank() } ?: context.getString(R.string.txt_unknown)
         }
